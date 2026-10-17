@@ -80,7 +80,7 @@
  let characters,selectedId,view='overview',libraryCategory='all',libraryQuery='',libraryLevel='all',spellQuery='',spellLevel='all';
  let lastFocus=null,modalOpen=false;
  try{const s=JSON.parse(localStorage.getItem(KEY));characters=Array.isArray(s?.characters)&&s.characters.length?s.characters:null;selectedId=s?.selectedId;}catch{}
- if(!characters){characters=[makeBorruk(),makeWizardDemo(),makeRogueDemo()];selectedId=characters[0].id;}
+ if(!characters){characters=[makeWizardDemo(),makeRogueDemo()];selectedId=characters[0].id;}
  try{const u=JSON.parse(localStorage.getItem(VIEWKEY));if(navigation.some(x=>x[0]===u.view))view=u.view;}catch{}
  let c=()=>characters.find(x=>x.id===selectedId)||characters[0];
  function save(){try{localStorage.setItem(KEY,JSON.stringify({characters,selectedId}));}catch(e){toast('Δεν ήταν δυνατή η αποθήκευση στον browser. Κάνε Export backup.');}}
