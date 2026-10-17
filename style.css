@@ -47,3 +47,12 @@
 .spell-progress-row strong{font-size:11px;overflow-wrap:anywhere;text-align:right}
 .spell-progress-row.is-base{border-color:#9e835a;background:#343027}
 @media(max-width:560px){.spell-scaling-mini{font-size:9px}.spell-progress-grid{grid-template-columns:1fr 1fr;gap:4px}.spell-progress-row{padding:6px 5px;font-size:10px}.spell-progress-row strong{font-size:10px}}
+
+/* v1.5 update & storage controls */
+.atlas-update-actions{margin:10px 0 8px}
+#update-status{margin:6px 0 12px;line-height:1.5}
+.atlas-update-banner{position:fixed;z-index:95;left:50%;top:12px;transform:translateX(-50%);width:min(calc(100% - 22px),700px);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;background:#233d49;color:#f1f8f8;border:1px solid #76bbad;border-radius:13px;box-shadow:0 8px 32px #0009}
+.atlas-update-banner strong{display:block;font-size:13px}
+.atlas-update-banner small{display:block;font-size:11px;color:#c2d8d7;margin-top:3px}
+.atlas-update-banner .btn{flex-shrink:0}
+@media(max-width:480px){.atlas-update-banner{top:7px;padding:9px;gap:6px}.atlas-update-banner strong{font-size:11px}.atlas-update-banner small{font-size:10px}.atlas-update-banner .btn{font-size:10px;padding:7px}}

@@ -1,0 +1,10 @@
+{
+  "version": "1.5.0",
+  "released": "2026-10-17",
+  "features": [
+    "party JSON demo",
+    "safe update check",
+    "cache reset",
+    "local-data reset"
+  ]
+}

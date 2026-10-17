@@ -1,0 +1,928 @@
+{
+  "application": "Character Atlas",
+  "schema": 1,
+  "exportedAt": "2026-10-17T00:00:00Z",
+  "description": "DEMO party roster. Only Borruk sheet and party class/species/appearance are partially confirmed. All other combat values are editable illustrative placeholders.",
+  "characters": [
+    {
+      "id": "demo-borruk",
+      "name": "Borruk Thunderfist",
+      "player": "",
+      "species": "Human",
+      "background": "Soldier",
+      "alignment": "Neutral Good",
+      "classes": [
+        {
+          "name": "Fighter",
+          "level": 3,
+          "subclass": "Battle Master"
+        }
+      ],
+      "abilities": {
+        "STR": 15,
+        "DEX": 14,
+        "CON": 13,
+        "INT": 8,
+        "WIS": 10,
+        "CHA": 12
+      },
+      "skills": {
+        "Athletics": 1,
+        "Intimidation": 1,
+        "Medicine": 1,
+        "Survival": 1,
+        "Perception": 1
+      },
+      "saves": [
+        "STR",
+        "CON"
+      ],
+      "hp": {
+        "max": 30,
+        "current": 30,
+        "temp": 0
+      },
+      "ac": 12,
+      "loadouts": [
+        {
+          "id": "lnqx1mdx",
+          "name": "Spear + Shield",
+          "ac": 18
+        },
+        {
+          "id": "41amn9ns",
+          "name": "Greatsword (two-handed)",
+          "ac": 16
+        }
+      ],
+      "activeLoadout": 0,
+      "speed": 30,
+      "initiativeBonus": 0,
+      "proficiencyOverride": "",
+      "inspiration": false,
+      "conditions": [],
+      "exhaustion": 0,
+      "attacks": [
+        {
+          "id": "thyu8u66",
+          "name": "Spear",
+          "ability": "STR",
+          "damage": "1d6",
+          "type": "Piercing",
+          "mastery": "Sap",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Versatile (1d8). Thrown 20/60 ft.",
+          "equipped": true
+        },
+        {
+          "id": "m0vdr9fw",
+          "name": "Greatsword",
+          "ability": "STR",
+          "damage": "2d6",
+          "type": "Slashing",
+          "mastery": "Graze",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Heavy, Two-Handed. Requires both hands; AC 16 in greatsword loadout.",
+          "equipped": true
+        },
+        {
+          "id": "f6o47es0",
+          "name": "Dagger",
+          "ability": "DEX",
+          "damage": "1d4",
+          "type": "Piercing",
+          "mastery": "",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Finesse, Light, Thrown.",
+          "equipped": true
+        },
+        {
+          "id": "z3r7fn8s",
+          "name": "Light Crossbow",
+          "ability": "DEX",
+          "damage": "1d8",
+          "type": "Piercing",
+          "mastery": "Slow",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Ammunition, Loading, Two-Handed.",
+          "equipped": true
+        }
+      ],
+      "resources": [
+        {
+          "id": "j4w5krkr",
+          "name": "Second Wind",
+          "current": 2,
+          "max": 2,
+          "recharge": "short1",
+          "detail": "Bonus Action, heal 1d10+3"
+        },
+        {
+          "id": "ind5rvyh",
+          "name": "Action Surge",
+          "current": 1,
+          "max": 1,
+          "recharge": "short",
+          "detail": "One additional action"
+        },
+        {
+          "id": "o570dznm",
+          "name": "Superiority Dice",
+          "current": 4,
+          "max": 4,
+          "recharge": "short",
+          "detail": "d8 · Maneuver Save DC 12"
+        }
+      ],
+      "features": [
+        {
+          "id": "cko69esn",
+          "name": "Protection Fighting Style",
+          "detail": "Όταν σύμμαχος δίπλα σου δέχεται επίθεση και κρατάς Shield, μπορείς να χρησιμοποιήσεις Reaction ώστε να δυσκολέψεις τις επιθέσεις εναντίον του μέχρι την αρχή του επόμενου turn σου.",
+          "action": "Reaction",
+          "source": "Fighter",
+          "level": 1
+        },
+        {
+          "id": "y080pzba",
+          "name": "Tactical Mind",
+          "detail": "Σε αποτυχημένο Ability Check μπορείς να ξοδέψεις χρήση Second Wind για +1d10 στο check· αν παραμείνει αποτυχία, δεν χάνεται η χρήση.",
+          "action": "Special",
+          "source": "Fighter",
+          "level": 2
+        },
+        {
+          "id": "59tertdp",
+          "name": "Student of War",
+          "detail": "Ως Battle Master αποκτάς 1 extra Fighter skill proficiency και 1 artisan tool proficiency. Καταχώρισέ τα στο Character tab.",
+          "action": "Passive",
+          "source": "Battle Master",
+          "level": 3
+        }
+      ],
+      "companions": [],
+      "feats": [
+        "feat-tough",
+        "feat-savageattacker"
+      ],
+      "maneuvers": [
+        "man-precisionattack",
+        "man-baitandswitch",
+        "man-menacingattack"
+      ],
+      "spellbook": [],
+      "slots": {},
+      "pact": {
+        "level": 1,
+        "max": 0,
+        "used": 0
+      },
+      "spellAbility": "INT",
+      "spellDCOverride": "",
+      "spellAttackOverride": "",
+      "concentrating": "",
+      "inventory": [
+        {
+          "id": "q72ltkm2",
+          "name": "Chain Mail",
+          "qty": 1,
+          "description": "Heavy Armor · AC 16",
+          "weight": 55,
+          "equipped": true
+        },
+        {
+          "id": "dxbzrv38",
+          "name": "Shield",
+          "qty": 1,
+          "description": "+2 AC when wielded. Equipping/doffing requires Utilize action (2024).",
+          "weight": 6,
+          "equipped": true
+        },
+        {
+          "id": "m52wbhsd",
+          "name": "Spear",
+          "qty": 1,
+          "description": "Main one-handed weapon",
+          "weight": 3,
+          "equipped": true
+        },
+        {
+          "id": "3fcthipl",
+          "name": "Greatsword",
+          "qty": 1,
+          "description": "Two-handed high-damage weapon",
+          "weight": 6,
+          "equipped": false
+        },
+        {
+          "id": "niuvhwza",
+          "name": "Dagger",
+          "qty": 1,
+          "description": "Backup weapon",
+          "weight": 1,
+          "equipped": false
+        },
+        {
+          "id": "deqtm5ej",
+          "name": "Light Crossbow",
+          "qty": 1,
+          "description": "Ranged weapon; requires bolts",
+          "weight": 5,
+          "equipped": false
+        }
+      ],
+      "currency": {
+        "gp": 9,
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "pp": 0
+      },
+      "notes": "DEMO PARTY — Borruk: Level 3, abilities, HP 30 and skill proficiencies based on confirmed sheet; DM house rule: all Passive Perception 10. Battle Master and example maneuvers should be confirmed. Destroyed warhammer NOT in inventory.",
+      "journal": [],
+      "hitDice": {
+        "max": 3,
+        "used": 0
+      },
+      "death": {
+        "success": 0,
+        "fail": 0
+      },
+      "languages": "Common",
+      "proficiencies": "Armor: Light, Medium, Heavy, Shields. Weapons: Simple, Martial. Tools: choose Student of War tool.",
+      "plan": "At Level 4 consider ASI STR +1 / CON +1 or Shield Master; ask DM.",
+      "portrait": "",
+      "rolls": [],
+      "rulesVersion": "2024",
+      "passivePerceptionOverride": 10
+    },
+    {
+      "id": "demo-aelyn-character",
+      "name": "Aelyn Starwind",
+      "player": "",
+      "species": "Elf",
+      "background": "Custom",
+      "alignment": "",
+      "classes": [
+        {
+          "name": "Ranger",
+          "level": 3,
+          "subclass": ""
+        }
+      ],
+      "abilities": {
+        "STR": 10,
+        "DEX": 16,
+        "CON": 12,
+        "INT": 10,
+        "WIS": 14,
+        "CHA": 10
+      },
+      "skills": {
+        "Perception": 1,
+        "Stealth": 1,
+        "Survival": 1,
+        "Nature": 1
+      },
+      "saves": [
+        "STR",
+        "DEX"
+      ],
+      "hp": {
+        "max": 25,
+        "current": 25,
+        "temp": 0
+      },
+      "ac": 14,
+      "loadouts": [
+        {
+          "id": "demo-aelyn-loadout",
+          "name": "Demo leather armor",
+          "ac": 14
+        }
+      ],
+      "activeLoadout": 0,
+      "speed": 30,
+      "initiativeBonus": 0,
+      "proficiencyOverride": "",
+      "inspiration": false,
+      "conditions": [],
+      "exhaustion": 0,
+      "attacks": [
+        {
+          "id": "demo-aelyn-longbow",
+          "name": "Longbow",
+          "ability": "DEX",
+          "damage": "1d8",
+          "type": "Piercing",
+          "mastery": "Slow",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Established signature weapon; verify mastery.",
+          "equipped": true
+        },
+        {
+          "id": "demo-aelyn-scimitar",
+          "name": "Scimitar",
+          "ability": "DEX",
+          "damage": "1d6",
+          "type": "Slashing",
+          "mastery": "Nick",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Established weapon; verify mastery.",
+          "equipped": true
+        }
+      ],
+      "resources": [],
+      "features": [],
+      "companions": [],
+      "feats": [],
+      "maneuvers": [],
+      "spellbook": [
+        {
+          "id": "demo-aelyn-spell-hunter’s-mark",
+          "ref": "spell-huntersmark",
+          "name": "Hunter’s Mark",
+          "prepared": true,
+          "level": 1
+        },
+        {
+          "id": "demo-aelyn-spell-cure-wounds",
+          "ref": "spell-curewounds",
+          "name": "Cure Wounds",
+          "prepared": true,
+          "level": 1
+        }
+      ],
+      "slots": {
+        "1": {
+          "max": 3,
+          "used": 0
+        }
+      },
+      "pact": {
+        "level": 1,
+        "max": 0,
+        "used": 0
+      },
+      "spellAbility": "WIS",
+      "spellDCOverride": "",
+      "spellAttackOverride": "",
+      "concentrating": "",
+      "inventory": [
+        {
+          "id": "demo-aelyn-item-longbow",
+          "name": "Longbow",
+          "qty": 1,
+          "description": "Known from campaign",
+          "weight": 0,
+          "equipped": true
+        },
+        {
+          "id": "demo-aelyn-item-scimitar",
+          "name": "Scimitar",
+          "qty": 1,
+          "description": "Known from campaign",
+          "weight": 0,
+          "equipped": true
+        }
+      ],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 0,
+        "pp": 0
+      },
+      "notes": "Aelyn Starwind: elven ranger. Canon appearance: bronze-red wavy hair, green eyes, longbow and scimitar. Class and species known; level 3, abilities, HP, spells, slots, AC and proficiencies are DEMO assumptions. DM house rule: Passive Perception 10.",
+      "journal": [],
+      "hitDice": {
+        "max": 3,
+        "used": 0
+      },
+      "death": {
+        "success": 0,
+        "fail": 0
+      },
+      "languages": "Common",
+      "proficiencies": "Confirm with player",
+      "plan": "Confirm stats, spells, feats, proficiencies, equipment and subclass with the player and DM.",
+      "portrait": "",
+      "rolls": [],
+      "rulesVersion": "2024",
+      "passivePerceptionOverride": 10
+    },
+    {
+      "id": "demo-luna-character",
+      "name": "Luna",
+      "player": "",
+      "species": "Elf",
+      "background": "Custom",
+      "alignment": "",
+      "classes": [
+        {
+          "name": "Sorcerer",
+          "level": 3,
+          "subclass": ""
+        }
+      ],
+      "abilities": {
+        "STR": 8,
+        "DEX": 14,
+        "CON": 14,
+        "INT": 11,
+        "WIS": 12,
+        "CHA": 16
+      },
+      "skills": {
+        "Arcana": 1,
+        "Insight": 1,
+        "Persuasion": 1
+      },
+      "saves": [
+        "CON",
+        "CHA"
+      ],
+      "hp": {
+        "max": 20,
+        "current": 20,
+        "temp": 0
+      },
+      "ac": 12,
+      "loadouts": [
+        {
+          "id": "demo-luna-loadout",
+          "name": "Demo — edit equipment",
+          "ac": 12
+        }
+      ],
+      "activeLoadout": 0,
+      "speed": 30,
+      "initiativeBonus": 0,
+      "proficiencyOverride": "",
+      "inspiration": false,
+      "conditions": [],
+      "exhaustion": 0,
+      "attacks": [],
+      "resources": [
+        {
+          "id": "demo-luna-sorcery-points",
+          "name": "Sorcery Points",
+          "current": 3,
+          "max": 3,
+          "recharge": "long",
+          "detail": "Illustrative quantity; verify spellcasting rules."
+        }
+      ],
+      "features": [],
+      "companions": [],
+      "feats": [],
+      "maneuvers": [],
+      "spellbook": [
+        {
+          "id": "demo-luna-spell-fire-bolt",
+          "ref": "spell-firebolt",
+          "name": "Fire Bolt",
+          "prepared": true,
+          "level": 0
+        },
+        {
+          "id": "demo-luna-spell-mage-hand",
+          "ref": "spell-magehand",
+          "name": "Mage Hand",
+          "prepared": true,
+          "level": 0
+        },
+        {
+          "id": "demo-luna-spell-shield",
+          "ref": "spell-shield",
+          "name": "Shield",
+          "prepared": true,
+          "level": 1
+        },
+        {
+          "id": "demo-luna-spell-magic-missile",
+          "ref": "spell-magicmissile",
+          "name": "Magic Missile",
+          "prepared": true,
+          "level": 1
+        },
+        {
+          "id": "demo-luna-spell-misty-step",
+          "ref": "spell-mistystep",
+          "name": "Misty Step",
+          "prepared": true,
+          "level": 2
+        }
+      ],
+      "slots": {
+        "1": {
+          "max": 4,
+          "used": 0
+        },
+        "2": {
+          "max": 2,
+          "used": 0
+        }
+      },
+      "pact": {
+        "level": 1,
+        "max": 0,
+        "used": 0
+      },
+      "spellAbility": "CHA",
+      "spellDCOverride": "",
+      "spellAttackOverride": "",
+      "concentrating": "",
+      "inventory": [
+        {
+          "id": "demo-luna-item-celestial-blue-cloak",
+          "name": "Celestial blue cloak",
+          "qty": 1,
+          "description": "Known visual design",
+          "weight": 0,
+          "equipped": false
+        }
+      ],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 0,
+        "pp": 0
+      },
+      "notes": "Luna: elf sorcerer, silver hair, blue eyes and a deep-blue celestial cloak. Hidden ethereal bow with blue-glowing arrows in established artwork. Level, stats, spells, subclass and equipment details DEMO only. DM house rule: Passive Perception 10.",
+      "journal": [],
+      "hitDice": {
+        "max": 3,
+        "used": 0
+      },
+      "death": {
+        "success": 0,
+        "fail": 0
+      },
+      "languages": "Common",
+      "proficiencies": "Confirm with player",
+      "plan": "Confirm stats, spells, feats, proficiencies, equipment and subclass with the player and DM.",
+      "portrait": "",
+      "rolls": [],
+      "rulesVersion": "2024",
+      "passivePerceptionOverride": 10
+    },
+    {
+      "id": "demo-amantyl-character",
+      "name": "Amantyl",
+      "player": "",
+      "species": "Dragonborn",
+      "background": "Custom",
+      "alignment": "",
+      "classes": [
+        {
+          "name": "Sorcerer",
+          "level": 3,
+          "subclass": ""
+        }
+      ],
+      "abilities": {
+        "STR": 10,
+        "DEX": 12,
+        "CON": 14,
+        "INT": 12,
+        "WIS": 10,
+        "CHA": 16
+      },
+      "skills": {
+        "Arcana": 1,
+        "Persuasion": 1,
+        "Intimidation": 1
+      },
+      "saves": [
+        "CON",
+        "CHA"
+      ],
+      "hp": {
+        "max": 20,
+        "current": 20,
+        "temp": 0
+      },
+      "ac": 12,
+      "loadouts": [
+        {
+          "id": "demo-amantyl-loadout",
+          "name": "Demo — edit equipment",
+          "ac": 12
+        }
+      ],
+      "activeLoadout": 0,
+      "speed": 30,
+      "initiativeBonus": 0,
+      "proficiencyOverride": "",
+      "inspiration": false,
+      "conditions": [],
+      "exhaustion": 0,
+      "attacks": [
+        {
+          "id": "demo-amantyl-spear",
+          "name": "Spear",
+          "ability": "STR",
+          "damage": "1d6",
+          "type": "Piercing",
+          "mastery": "Sap",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Elegant gold-accented spear in canon; demo melee stats",
+          "equipped": true
+        }
+      ],
+      "resources": [
+        {
+          "id": "demo-amantyl-sorcery-points",
+          "name": "Sorcery Points",
+          "current": 3,
+          "max": 3,
+          "recharge": "long",
+          "detail": "Demonstration only; verify with player"
+        }
+      ],
+      "features": [],
+      "companions": [],
+      "feats": [],
+      "maneuvers": [],
+      "spellbook": [
+        {
+          "id": "demo-amantyl-spell-ray-of-frost",
+          "ref": "spell-rayoffrost",
+          "name": "Ray of Frost",
+          "prepared": true,
+          "level": 0
+        },
+        {
+          "id": "demo-amantyl-spell-prestidigitation",
+          "ref": "spell-prestidigitation",
+          "name": "Prestidigitation",
+          "prepared": true,
+          "level": 0
+        },
+        {
+          "id": "demo-amantyl-spell-chromatic-orb",
+          "ref": "",
+          "name": "Chromatic Orb",
+          "prepared": true,
+          "level": 0
+        },
+        {
+          "id": "demo-amantyl-spell-shield",
+          "ref": "spell-shield",
+          "name": "Shield",
+          "prepared": true,
+          "level": 1
+        },
+        {
+          "id": "demo-amantyl-spell-scorching-ray",
+          "ref": "spell-scorchingray",
+          "name": "Scorching Ray",
+          "prepared": true,
+          "level": 2
+        }
+      ],
+      "slots": {
+        "1": {
+          "max": 4,
+          "used": 0
+        },
+        "2": {
+          "max": 2,
+          "used": 0
+        }
+      },
+      "pact": {
+        "level": 1,
+        "max": 0,
+        "used": 0
+      },
+      "spellAbility": "CHA",
+      "spellDCOverride": "",
+      "spellAttackOverride": "",
+      "concentrating": "",
+      "inventory": [
+        {
+          "id": "demo-amantyl-item-gold-accented-spear",
+          "name": "Gold-accented spear",
+          "qty": 1,
+          "description": "Known signature weapon",
+          "weight": 0,
+          "equipped": true
+        }
+      ],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 0,
+        "pp": 0
+      },
+      "notes": "Amantyl: GREEN dragonborn sorcerer with small horns, green/gold robes and elegant gold-accented spear. Level, stats, spells, subclasses, spell slots and items besides visual elements are demo placeholders. DM house rule: Passive Perception 10.",
+      "journal": [],
+      "hitDice": {
+        "max": 3,
+        "used": 0
+      },
+      "death": {
+        "success": 0,
+        "fail": 0
+      },
+      "languages": "Common",
+      "proficiencies": "Confirm with player",
+      "plan": "Confirm stats, spells, feats, proficiencies, equipment and subclass with the player and DM.",
+      "portrait": "",
+      "rolls": [],
+      "rulesVersion": "2024",
+      "passivePerceptionOverride": 10
+    },
+    {
+      "id": "demo-gror-character",
+      "name": "Gror",
+      "player": "",
+      "species": "Dwarf",
+      "background": "Custom",
+      "alignment": "",
+      "classes": [
+        {
+          "name": "Barbarian",
+          "level": 3,
+          "subclass": ""
+        }
+      ],
+      "abilities": {
+        "STR": 16,
+        "DEX": 12,
+        "CON": 16,
+        "INT": 8,
+        "WIS": 10,
+        "CHA": 10
+      },
+      "skills": {
+        "Athletics": 1,
+        "Intimidation": 1,
+        "Survival": 1
+      },
+      "saves": [
+        "STR",
+        "CON"
+      ],
+      "hp": {
+        "max": 35,
+        "current": 35,
+        "temp": 0
+      },
+      "ac": 14,
+      "loadouts": [
+        {
+          "id": "demo-gror-loadout",
+          "name": "Demo unarmored (with shield?)",
+          "ac": 14
+        }
+      ],
+      "activeLoadout": 0,
+      "speed": 30,
+      "initiativeBonus": 0,
+      "proficiencyOverride": "",
+      "inspiration": false,
+      "conditions": [],
+      "exhaustion": 0,
+      "attacks": [
+        {
+          "id": "demo-gror-greataxe",
+          "name": "Greataxe",
+          "ability": "STR",
+          "damage": "1d12",
+          "type": "Slashing",
+          "mastery": "Cleave",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Two-handed. Known signature weapon; demo mechanics.",
+          "equipped": true
+        },
+        {
+          "id": "demo-gror-handaxe",
+          "name": "Handaxe",
+          "ability": "STR",
+          "damage": "1d6",
+          "type": "Slashing",
+          "mastery": "Vex",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Thrown 20/60; known throwing axes.",
+          "equipped": true
+        }
+      ],
+      "resources": [
+        {
+          "id": "demo-gror-rage",
+          "name": "Rage",
+          "current": 3,
+          "max": 3,
+          "recharge": "long",
+          "detail": "Demo uses; check actual 2024 Barbarian character sheet"
+        }
+      ],
+      "features": [
+        {
+          "id": "demo-gror-rage",
+          "name": "Rage",
+          "detail": "Barbarian rage; exact bonuses depend on level and class rules.",
+          "source": "Barbarian",
+          "level": 1,
+          "action": "Bonus Action"
+        }
+      ],
+      "companions": [],
+      "feats": [],
+      "maneuvers": [],
+      "spellbook": [],
+      "slots": {},
+      "pact": {
+        "level": 1,
+        "max": 0,
+        "used": 0
+      },
+      "spellAbility": "STR",
+      "spellDCOverride": "",
+      "spellAttackOverride": "",
+      "concentrating": "",
+      "inventory": [
+        {
+          "id": "demo-gror-item-greataxe",
+          "name": "Greataxe",
+          "qty": 1,
+          "description": "Known signature weapon",
+          "weight": 0,
+          "equipped": true
+        },
+        {
+          "id": "demo-gror-item-handaxe",
+          "name": "Handaxe",
+          "qty": 2,
+          "description": "Throwing axes; illustrative count",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "demo-gror-item-beer-barrel",
+          "name": "Beer barrel",
+          "qty": 1,
+          "description": "Known character prop",
+          "weight": 0,
+          "equipped": false
+        }
+      ],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 0,
+        "pp": 0
+      },
+      "notes": "Gror: dwarf barbarian, red braided beard, throwing axes, large greataxe, warhammer and a beer barrel. Level, stats, HP, features, rage uses and equipment quantities are demo-only. DM house rule: Passive Perception 10.",
+      "journal": [],
+      "hitDice": {
+        "max": 3,
+        "used": 0
+      },
+      "death": {
+        "success": 0,
+        "fail": 0
+      },
+      "languages": "Common",
+      "proficiencies": "Confirm with player",
+      "plan": "Confirm stats, spells, feats, proficiencies, equipment and subclass with the player and DM.",
+      "portrait": "",
+      "rolls": [],
+      "rulesVersion": "2024",
+      "passivePerceptionOverride": 10
+    }
+  ]
+}
