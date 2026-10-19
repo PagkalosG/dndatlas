@@ -1,45 +1,15 @@
-/* D&D Atlas v1.5 — app-only caching, automatic refresh, zero character-data deletion. */
-const CACHE='dndatlas-shell-v1.5';
-const FILES=['./','./index.html','./style.css','./app.js','./i18n.js','./data.js','./spell-effects.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./demo-party.json','./version.json'];
-const TARGETS=new Set(FILES.map(f=>new URL(f,self.registration.scope).pathname));
-self.addEventListener('install',event=>{
- event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES.map(f=>new Request(new URL(f,self.registration.scope),{cache:'reload'})))).then(()=>self.skipWaiting()));
+/* D&D Atlas v2 — network-first app shell, never clear browser character data */
+const CACHE='dndatlas-shell-v2.0.0';
+const SHELL=['./','./index.html','./style.css','./app.js','./i18n.js','./data.js','./spell-effects.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./demo-party.json','./data/sessions.json','./data/campaign-images.json','./version.json'];
+const base=new URL(self.registration.scope),valid=p=>p.startsWith(base.pathname);
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(async c=>{await Promise.allSettled(SHELL.map(f=>c.add(new Request(new URL(f,base),{cache:'reload'}))));}).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await caches.keys())if((k.startsWith('dndatlas-shell-')||k.startsWith('character-atlas-v'))&&k!==CACHE)await caches.delete(k);await self.clients.claim()})()));
+self.addEventListener('fetch',e=>{const r=e.request,u=new URL(r.url);if(r.method!=='GET'||u.origin!==self.location.origin||!valid(u.pathname))return;
+  if(!SHELL.some(p=>new URL(p,base).pathname===u.pathname)&&!u.pathname.includes('/assets/campaign/'))return;
+  e.respondWith((async()=>{const cache=await caches.open(CACHE);try{const net=await fetch(r,{cache:'no-store'});if(net.ok){await cache.put(r,net.clone());return net;}throw Error('HTTP '+net.status);}catch(err){return await cache.match(r)||Response.error();}})());
 });
-self.addEventListener('activate',event=>{
- event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith('dndatlas-shell-')||k.startsWith('character-atlas-v')).filter(k=>k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim();})());
-});
-self.addEventListener('fetch',event=>{
- const req=event.request,url=new URL(req.url);
- if(req.method!=='GET'||url.origin!==self.location.origin||!url.pathname.startsWith(new URL(self.registration.scope).pathname))return;
- if(!TARGETS.has(url.pathname))return;
- // Network-first for app files: a GitHub commit is picked up on the next online reload.
- event.respondWith((async()=>{
-  const cache=await caches.open(CACHE);
-  try{
-   const result=await fetch(req,{cache:'no-store'});
-   if(result.ok){await cache.put(new URL(url.pathname,self.location.origin),result.clone());return result;}
-   throw Error('Non-success response '+result.status);
-  }catch(err){const cached=await cache.match(new URL(url.pathname,self.location.origin));if(cached)return cached;
-   if(req.mode==='navigate'){const fallback=await cache.match(new URL('./index.html',self.registration.scope));if(fallback)return fallback;}
-   return Response.error();}
- })());
-});
-async function checkFiles(){
- const cache=await caches.open(CACHE);const changed=[];
- for(const file of FILES.filter(f=>f!=='./')){
-  const uri=new URL(file,self.registration.scope),key=new URL(uri.pathname,uri.origin);
-  const old=await cache.match(key);
-  const fresh=await fetch(uri,{cache:'no-store'});
-  if(!fresh.ok)throw Error('Network failed ('+fresh.status+')');
-  let different=!old;
-  if(old){const a=new Uint8Array(await old.arrayBuffer()),b=new Uint8Array(await fresh.clone().arrayBuffer());
-   different=a.byteLength!==b.byteLength||a.some((v,i)=>v!==b[i]);}
-  if(different){changed.push(file);await cache.put(key,fresh.clone());}
- }
- return changed;
-}
-self.addEventListener('message',event=>{
- const reply=msg=>{try{event.ports?.[0]?.postMessage(msg);}catch{}};
- if(event.data?.type==='CHECK_UPDATES')event.waitUntil(checkFiles().then(changed=>reply({ok:true,changed})).catch(err=>reply({ok:false,error:String(err.message||err)})));
- if(event.data?.type==='CLEAR_SHELL_CACHE')event.waitUntil(caches.delete(CACHE).then(()=>reply({ok:true})).catch(err=>reply({ok:false,error:String(err.message||err)})));
+self.addEventListener('message',e=>{
+ const respond=x=>{try{e.ports?.[0]?.postMessage(x)}catch{}};
+ if(e.data?.type==='CHECK_UPDATES')e.waitUntil((async()=>{let changed=[];const cache=await caches.open(CACHE);for(const f of SHELL.filter(x=>x!=='./')){let req=new Request(new URL(f,base),{cache:'no-store'}),old=await cache.match(req),fresh=await fetch(req,{cache:'no-store'});if(!fresh.ok)throw Error('HTTP '+fresh.status);let diff=!old;if(old){const a=new Uint8Array(await old.arrayBuffer()),b=new Uint8Array(await fresh.clone().arrayBuffer());diff=a.length!==b.length||a.some((v,i)=>v!==b[i]);}if(diff){changed.push(f);await cache.put(req,fresh.clone());}}respond({ok:true,changed})})().catch(err=>respond({ok:false,error:String(err)})));
+ if(e.data?.type==='CLEAR_SHELL_CACHE')e.waitUntil(caches.delete(CACHE).then(()=>respond({ok:true})).catch(err=>respond({ok:false,error:String(err)})));
 });

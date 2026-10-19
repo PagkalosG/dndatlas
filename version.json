@@ -1,10 +1,6 @@
 {
-  "version": "1.5.1",
-  "released": "2026-10-19",
-  "features": [
-    "party JSON demo",
-    "safe update check",
-    "cache reset",
-    "local-data reset"
-  ]
+  "version": "2.0.0",
+  "updated": "2026-10-19",
+  "ruleset": "D&D 5e 2024",
+  "notes": "Six-tab combat and journal redesign, portrait crop/zoom, GitHub campaign assets"
 }

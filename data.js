@@ -20,7 +20,7 @@ window.ATLAS_DATA = (() => {
   Artificer:{die:8,saves:['CON','INT'],caster:'half',ability:'INT',subs:['Alchemist','Armorer','Artillerist','Battle Smith','Custom…']},
   Custom:{die:8,saves:[],caster:'none',subs:['Custom…']}
  };
- const species=['Human','Elf','Dwarf','Halfling','Dragonborn','Gnome','Goliath','Orc','Tiefling','Aasimar','Half-Elf (legacy)','Half-Orc (legacy)','Custom'];
+ const species=['Human','Elf','Dwarf','Halfling','Dragonborn','Gnome','Goliath','Orc','Tiefling','Aasimar'];
  const background=['Acolyte','Artisan','Charlatan','Criminal','Entertainer','Farmer','Guard','Guide','Hermit','Merchant','Noble','Sage','Sailor','Scribe','Soldier','Wayfarer','Custom'];
  const maneuvers = [
   ['Ambush','Όταν κάνεις Initiative ή Stealth check, πρόσθεσε το superiority die στο αποτέλεσμα.','Check','Initiative / Stealth','—'],
