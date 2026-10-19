@@ -2,7 +2,7 @@
  'use strict';
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
- const APP_VERSION='2.1.2';
+ const APP_VERSION='2.1.3';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
