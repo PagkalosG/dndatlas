@@ -80,3 +80,14 @@ body.building{overflow:hidden!important}.atlas-builder{position:fixed;inset:0;ba
 @media(max-width:900px){.combat-columns{grid-template-columns:1fr}.library-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.library-filters input{grid-column:1/-1}}
 @media(max-width:600px){.combat-status{gap:6px}.combat-status>div{padding:9px 3px}.combat-status b{font-size:18px}.combat-attack-title{flex-wrap:wrap}.combat-attack-values span{display:block}.combat-attack-values b{display:block}.portrait-adjust-layout{grid-template-columns:1fr}.portrait-adjust-frame{width:min(270px,100%);margin:auto}.progression-grid{grid-template-columns:1fr}.campaign-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.campaign-entry-head{flex-wrap:wrap}.campaign-entry-head .linklike{flex-basis:100%}}
 @media print{.topbar,.sidebar,.mobile-nav,.btn,.footer{display:none!important}}
+
+/* v2.1: readable feature details and more room between Journal panels */
+.combat-feature-list .tile b{display:block;line-height:1.45}
+.combat-feature-list .tile .combat-feature-summary{display:block;margin-top:11px;line-height:1.6;color:var(--muted);white-space:normal}
+.campaign-entry{margin-bottom:20px}
+.campaign-entry + .campaign-entry{margin-top:4px}
+.atlas-journal-page>.panel + .panel{margin-top:24px}
+.mastery-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;max-height:48vh;overflow:auto;padding:8px 0}
+.mastery-choice{display:flex;align-items:center;gap:9px;border:1px solid var(--stroke);border-radius:10px;padding:10px;background:var(--panel2);cursor:pointer}
+.mastery-choice input{width:17px;flex:0 0 17px}.mastery-choice span{display:flex;flex-direction:column;gap:5px}
+.mastery-choice b{font-size:12px}.mastery-choice small{font-size:10px;color:var(--muted)}

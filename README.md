@@ -1,4 +1,4 @@
-# D&D Atlas v2.0 — GitHub Pages
+# D&D Atlas v2.1.2 — GitHub Pages
 
 Static PWA for **D&D 5e 2024 only**. All six tabs: Overview, Character, Combat, Inventory, Journal, Library. Includes new-character guided Builder, real party JSON, adjustable Overview portrait (drag + zoom), spell/combat references and shared campaign sessions/media. EN/EL languages.
 
@@ -52,3 +52,18 @@ Click the large portrait in Overview. Upload a photo, drag inside the preview, s
 
 ### Credits
 Fan-made, unofficial project. Rules reference: D&D 2024 / SRD 5.2 (Creative Commons BY 4.0). Not affiliated with Wizards of the Coast.
+
+## Google Drive gallery option (v2.1)
+
+Set `data/drive-config.json` to `enabled: true`, plus the publicly shared Google Drive `folderId` and a **referrer-restricted** Google Drive API key. Shared photos are automatically discovered through the official Drive API, so you no longer need to maintain `data/campaign-images.json` for photos. Sessions themselves continue to come from `data/sessions.json` on GitHub. See `README_EL.md` for setup and public-access cautions. If Google Drive is not configured or unavailable, the previous GitHub gallery remains the fallback.
+
+## Feature cleanup (v2.1)
+
+Fighter Weapon Masteries now have an explicit 3-choice picker at level 3; unrecorded choices remain pending. Features show the chosen Fighting Style once and group Human traits together. Sorcerer Metamagic choices are grouped in one entry. Layout spacing improved on Combat and Journal.
+
+
+## v2.1.2 consolidation
+
+This release merges v2.1 and the newer v2.1.1 `app.js`, including inventory Weapon Mastery stars (no selections invented for Borruk), an Overview completion warning, weapon status and optional notes, and matching Combat labels. Broken, lost, stolen, and destroyed weapons are indicated as unavailable.
+
+The campaign image Google Drive integration is optional and **off** until `data/drive-config.json` is configured. Character ability scores are deliberately unchanged pending DM review of background increases under 2024 rules. Export remains a custom printable sheet, **not** the official fillable 2024 PDF. Rules support and bilingual translation still have known gaps for less commonly used features.

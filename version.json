@@ -1,6 +1,6 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.2",
   "updated": "2026-10-19",
   "ruleset": "D&D 5e 2024",
-  "notes": "Six-tab combat and journal redesign, portrait crop/zoom, GitHub campaign assets"
+  "notes": "v2.1 Drive and rules audit + v2.1.1 Inventory Weapon Mastery stars, weapon conditions and Overview warning; 2024 stats awaiting DM confirmation"
 }

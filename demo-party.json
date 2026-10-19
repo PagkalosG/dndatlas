@@ -2,7 +2,7 @@
   "application": "Character Atlas",
   "schema": 1,
   "exportedAt": "2026-10-19T00:00:00Z",
-  "description": "Three player-sheet characters: Borruk Thunderfist (Battle Master), Luna Spellbrook (Aberrant Sorcery), Ammantyl Vythrax (Draconic Sorcery). PDF-derived values preserved where possible; unresolved selections and rules conflicts explicitly noted.",
+  "description": "Three player-sheet characters: Borruk Thunderfist (Battle Master), Luna Spellbrook (Aberrant Sorcery), Ammantyl Vythrax (Draconic Sorcery). PDF-derived values preserved where possible; unresolved selections and rules conflicts explicitly noted. Updated 2024 rules-derived Origin Feat and subclass feature annotations (v2.1).",
   "dataProvenance": {
     "Borruk": "Handwritten sheet and explicit Level 3 / 30 HP / Battle Master confirmations in conversation",
     "Luna": "5E_CharacterSheet_Fillable luna.pdf",
@@ -402,7 +402,9 @@
       "sourceDocuments": [
         "Borruk handwritten character sheet (user photo)",
         "User-confirmed Level 3/30 HP/Battle Master"
-      ]
+      ],
+      "fightingStyle": "Protection",
+      "weaponMasteries": []
     },
     {
       "id": "party-luna-spellbrook",
@@ -528,7 +530,7 @@
           "source": "Sorcerer",
           "level": 1,
           "action": "Bonus Action",
-          "detail": "2 uses per Long Rest. See 2024 class rule for precise benefit."
+          "detail": "D&D 2024: As a Bonus Action, for 1 minute your Sorcerer spell save DC increases by 1 and you have Advantage on attack rolls made with Sorcerer spells. Twice per Long Rest."
         },
         {
           "id": "party-luna-spellbrook-fontofmagic",
@@ -609,10 +611,20 @@
           "level": 2,
           "action": "Metamagic",
           "detail": "Extend spell range; source indicates 1 Sorcery Point."
+        },
+        {
+          "id": "luna-2024-psionic-spells",
+          "name": "Psionic Spells",
+          "detail": "D&D 2024 — Aberrant Sorcery Level 3: Arms of Hadar, Calm Emotions, Detect Thoughts, Dissonant Whispers and Mind Sliver are always prepared. These spells do not count against Sorcerer prepared-spell choices.",
+          "source": "Aberrant Sorcery",
+          "level": 3,
+          "action": "Passive"
         }
       ],
       "companions": [],
-      "feats": [],
+      "feats": [
+        "feat-musician"
+      ],
       "maneuvers": [],
       "spellbook": [
         {
@@ -1142,7 +1154,7 @@
           "source": "Sorcerer",
           "level": 1,
           "action": "Bonus Action",
-          "detail": "2 uses per Long Rest. See 2024 class rule for precise benefit."
+          "detail": "D&D 2024: As a Bonus Action, for 1 minute your Sorcerer spell save DC increases by 1 and you have Advantage on attack rolls made with Sorcerer spells. Twice per Long Rest."
         },
         {
           "id": "party-ammantyl-vythrax-fontofmagic",
@@ -1174,7 +1186,7 @@
           "source": "Dragonborn",
           "level": 1,
           "action": "Special",
-          "detail": "Source PDF lists 2d10, 15 ft cone or 30 ft line. Verify shape against selected ruleset."
+          "detail": "D&D 2024 Dragonborn Level 3: replace one attack during the Attack action with a 15-foot Cone or 30-foot Line (5 feet wide), dealing 1d10 Acid damage; targets make a Dexterity save against DC 8 + CON modifier + Proficiency Bonus (half damage on success). Uses equal to Proficiency Bonus per Long Rest. Damage becomes 2d10 at character Level 5."
         },
         {
           "id": "amm-resistance",
@@ -1198,7 +1210,7 @@
           "source": "Draconic Sorcery",
           "level": 3,
           "action": "Passive",
-          "detail": "AC 13 and HP 22 transcribed from player sheet. Exact HP increase wording on sheet should be checked with DM."
+          "detail": "D&D 2024 Draconic Sorcery Level 3: maximum Hit Points increase by 3, and by 1 for each additional Sorcerer level. While not wearing armor, base AC equals 10 + Dexterity modifier + Charisma modifier. The current 22 HP and AC 13 were recorded on the sheet."
         },
         {
           "id": "amm-metam-empowered",
@@ -1215,6 +1227,14 @@
           "level": 2,
           "action": "Metamagic",
           "detail": "Reroll a missed spell attack under feat rules; source indicates 1 Sorcery Point."
+        },
+        {
+          "id": "ammantyl-2024-draconic-spells",
+          "name": "Draconic Spells",
+          "detail": "D&D 2024 — Draconic Sorcery Level 3: Alter Self, Chromatic Orb, Command and Dragon’s Breath are always prepared. They do not count against your Sorcerer prepared-spell choices.",
+          "source": "Draconic Sorcery",
+          "level": 3,
+          "action": "Passive"
         }
       ],
       "companions": [],
