@@ -790,7 +790,121 @@
   };
   const mediaSrc=v=>safePortrait(v)?v:safeMediaPath(v);
   const mediaTitle=v=>campaignImages.find(x=>x.path===v)?.title||(v.startsWith('drive:')?'Google Drive image':v.split('/').pop())||'';
-  const mediaCards=(paths)=>`<div class="campaign-gallery">${(paths||[]).map(src=>mediaSrc(src)?`<figure><img loading="lazy" referrerpolicy="no-referrer" src="${attr(mediaSrc(src))}" alt="${attr(mediaTitle(src))}"><figcaption>${esc(mediaTitle(src))}</figcaption></figure>`:'').join('')}</div>`;
+  // The gallery works with Google Drive, GitHub images, and personal session photos.
+  // Captions are text-only; the large image is opened in a separate accessible viewer.
+  const mediaCards=(paths)=>`<div class="campaign-gallery">${(paths||[]).map((src,i)=>mediaSrc(src)?`<figure><button type="button" class="campaign-preview-btn" data-atlas-gallery-open="${i}" aria-label="${attr(tr('Άνοιγμα εικόνας: ','Open image: ')+mediaTitle(src))}"><img loading="lazy" referrerpolicy="no-referrer" src="${attr(mediaSrc(src))}" data-atlas-drive-id="${drivePath(src)?attr(src.slice(6)):''}" alt="${attr(mediaTitle(src))}"></button><figcaption>${esc(mediaTitle(src))}</figcaption></figure>`:'').join('')}</div>`;
+  // Keep this enhancement confined to app.js: a GitHub update needs just one file.
+  function ensureCampaignViewerCSS(){
+    if(document.getElementById('atlas-gallery-viewer-css'))return;
+    const style=document.createElement('style');style.id='atlas-gallery-viewer-css';
+    style.textContent=`
+      .campaign-gallery .campaign-preview-btn{appearance:none;border:0;background:none;padding:0;margin:0;display:block;width:100%;cursor:zoom-in;overflow:hidden;color:inherit;text-align:inherit}
+      .campaign-gallery .campaign-preview-btn img{transition:transform .17s ease}
+      .campaign-gallery .campaign-preview-btn:hover img{transform:scale(1.035)}
+      .campaign-gallery .campaign-preview-btn:focus-visible{outline:3px solid #e8be77;outline-offset:-3px}
+      .atlas-gallery-backdrop{position:fixed;inset:0;z-index:20000;background:rgba(4,8,16,.97);color:#f1f4f8;display:flex;flex-direction:column;align-items:stretch;justify-content:center;padding:max(env(safe-area-inset-top),12px) max(env(safe-area-inset-right),10px) max(env(safe-area-inset-bottom),12px) max(env(safe-area-inset-left),10px);box-sizing:border-box}
+      .atlas-gallery-toolbar{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:1400px;margin:0 auto 10px}
+      .atlas-gallery-counter{font-size:13px;color:#c9d4e2;white-space:nowrap;font-variant-numeric:tabular-nums}
+      .atlas-gallery-close,.atlas-gallery-nav{appearance:none;background:rgba(27,40,56,.94);color:#fff;border:1px solid #647488;border-radius:50%;height:46px;width:46px;flex:0 0 46px;cursor:pointer;font-size:28px;display:flex;align-items:center;justify-content:center;line-height:1}
+      .atlas-gallery-close:hover,.atlas-gallery-nav:hover{background:#38536a}
+      .atlas-gallery-close:focus-visible,.atlas-gallery-nav:focus-visible{outline:3px solid #e8be77;outline-offset:3px}
+      .atlas-gallery-nav:disabled{opacity:.2;cursor:default}
+      .atlas-gallery-nav[hidden]{display:none}
+      .atlas-gallery-close{font-size:25px}
+      .atlas-gallery-stage{width:100%;max-width:1400px;margin:0 auto;display:grid;grid-template-columns:52px minmax(0,1fr) 52px;gap:9px;align-items:center;flex:1;min-height:0;touch-action:pan-y}
+      .atlas-gallery-photo{min-width:0;min-height:0;display:flex;justify-content:center;align-items:center;height:100%;overflow:hidden}
+      .atlas-gallery-photo img{max-width:100%;max-height:100%;height:auto;width:auto;object-fit:contain;border-radius:6px;box-shadow:0 5px 34px #0009}
+      .atlas-gallery-footer{max-width:1200px;width:100%;margin:10px auto 0;text-align:center;min-height:28px;color:#d2dbe7;font-size:13px;overflow-wrap:anywhere}
+      @media(max-width:600px){.atlas-gallery-stage{grid-template-columns:38px minmax(0,1fr) 38px;gap:2px}.atlas-gallery-nav{width:36px;height:44px;flex-basis:36px;font-size:24px}.atlas-gallery-close{width:40px;height:40px;flex-basis:40px}.atlas-gallery-footer{font-size:12px}}
+      @media(prefers-reduced-motion:reduce){.campaign-gallery .campaign-preview-btn img{transition:none}}
+    `;
+    document.head.appendChild(style);
+  }
+  ensureCampaignViewerCSS();
+  let campaignViewer=null;
+  function showCampaignViewerImage(next){
+    if(!campaignViewer)return;
+    const {items,root}=campaignViewer;
+    campaignViewer.index=(next+items.length)%items.length;
+    const item=items[campaignViewer.index];
+    const photo=root.querySelector('[data-atlas-gallery-photo]');
+    photo.alt=item.title;
+    photo.onerror=()=>{
+      // A public Drive preview can occasionally reject a high-resolution request.
+      if(photo.src!==item.thumbnail){photo.onerror=null;photo.src=item.thumbnail;}
+    };
+    photo.src=item.full;
+    root.querySelector('[data-atlas-gallery-count]').textContent=`${campaignViewer.index+1} / ${items.length}`;
+    root.querySelector('[data-atlas-gallery-caption]').textContent=item.title;
+  }
+  function closeCampaignViewer(){
+    if(!campaignViewer)return;
+    const {root,previousOverflow,focusTarget}=campaignViewer;
+    root.remove();campaignViewer=null;
+    document.body.style.overflow=previousOverflow;
+    if(focusTarget?.isConnected)focusTarget.focus({preventScroll:true});
+  }
+  function openCampaignViewer(trigger){
+    const gallery=trigger.closest('.campaign-gallery');if(!gallery)return;
+    const buttons=[...gallery.querySelectorAll('[data-atlas-gallery-open]')];
+    const items=buttons.map(button=>{
+      const image=button.querySelector('img'),id=image?.dataset.atlasDriveId||'';
+      const thumb=image?.getAttribute('src')||'';
+      return {full:id?`https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w2400`:thumb,
+        thumbnail:thumb,title:button.closest('figure')?.querySelector('figcaption')?.textContent||image?.alt||''};
+    }).filter(item=>item.thumbnail);
+    if(!items.length)return;
+    const index=Math.max(0,buttons.indexOf(trigger));
+    closeCampaignViewer();ensureCampaignViewerCSS();
+    const root=document.createElement('div');root.className='atlas-gallery-backdrop';root.id='atlas-campaign-viewer';
+    root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');
+    root.setAttribute('aria-label',tr('Προβολή εικόνων της περιπέτειας','Campaign image viewer'));
+    root.innerHTML=`<div class="atlas-gallery-toolbar"><span class="atlas-gallery-counter" data-atlas-gallery-count></span><button type="button" class="atlas-gallery-close" data-atlas-gallery-close aria-label="${attr(tr('Κλείσιμο εικόνας','Close image'))}" title="${attr(tr('Κλείσιμο (Esc)','Close (Esc)'))}">×</button></div><div class="atlas-gallery-stage"><button type="button" class="atlas-gallery-nav" data-atlas-gallery-prev aria-label="${attr(tr('Προηγούμενη εικόνα','Previous image'))}" title="${attr(tr('Προηγούμενη εικόνα (←)','Previous image (←)'))}">‹</button><div class="atlas-gallery-photo"><img data-atlas-gallery-photo referrerpolicy="no-referrer" alt=""></div><button type="button" class="atlas-gallery-nav" data-atlas-gallery-next aria-label="${attr(tr('Επόμενη εικόνα','Next image'))}" title="${attr(tr('Επόμενη εικόνα (→)','Next image (→)'))}">›</button></div><div class="atlas-gallery-footer" data-atlas-gallery-caption></div>`;
+    if(items.length===1){root.querySelector('[data-atlas-gallery-prev]').hidden=true;root.querySelector('[data-atlas-gallery-next]').hidden=true;}
+    const previousOverflow=document.body.style.overflow;
+    document.body.appendChild(root);document.body.style.overflow='hidden';
+    campaignViewer={items,index:0,root,previousOverflow,focusTarget:trigger};
+    showCampaignViewerImage(Math.min(index,items.length-1));
+    root.querySelector('[data-atlas-gallery-close]')?.focus();
+  }
+  document.addEventListener('click',event=>{
+    const trigger=event.target.closest('[data-atlas-gallery-open],[data-atlas-gallery-next],[data-atlas-gallery-prev],[data-atlas-gallery-close]');
+    if(trigger){event.preventDefault();event.stopImmediatePropagation();
+      if(trigger.hasAttribute('data-atlas-gallery-open'))openCampaignViewer(trigger);
+      else if(trigger.hasAttribute('data-atlas-gallery-close'))closeCampaignViewer();
+      else if(campaignViewer)showCampaignViewerImage(campaignViewer.index+(trigger.hasAttribute('data-atlas-gallery-next')?1:-1));
+      return;
+    }
+    if(campaignViewer&&event.target===campaignViewer.root){event.stopImmediatePropagation();closeCampaignViewer();}
+  },true);
+  document.addEventListener('keydown',event=>{
+    if(!campaignViewer)return;
+    if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeCampaignViewer();}
+    else if(event.key==='ArrowRight'||event.key==='ArrowLeft'){
+      event.preventDefault();event.stopImmediatePropagation();
+      if(campaignViewer.items.length>1)showCampaignViewerImage(campaignViewer.index+(event.key==='ArrowRight'?1:-1));
+    }else if(event.key==='Tab'){
+      const buttons=[...campaignViewer.root.querySelectorAll('button:not([hidden])')];
+      if(!buttons.length)return;
+      const idx=buttons.indexOf(document.activeElement);
+      if(event.shiftKey&&idx<=0){event.preventDefault();buttons.at(-1).focus();}
+      else if(!event.shiftKey&&idx===buttons.length-1){event.preventDefault();buttons[0].focus();}
+    }
+  },true);
+  let galleryTouchStart=null;
+  document.addEventListener('touchstart',event=>{
+    if(!campaignViewer||!campaignViewer.root.contains(event.target)||event.touches.length!==1)return;
+    galleryTouchStart={x:event.touches[0].clientX,y:event.touches[0].clientY};
+  },{passive:true,capture:true});
+  document.addEventListener('touchend',event=>{
+    if(!campaignViewer||!galleryTouchStart||!event.changedTouches.length)return;
+    const dx=event.changedTouches[0].clientX-galleryTouchStart.x;
+    const dy=event.changedTouches[0].clientY-galleryTouchStart.y;
+    galleryTouchStart=null;
+    if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.3&&campaignViewer.items.length>1){
+      event.preventDefault();showCampaignViewerImage(campaignViewer.index+(dx<0?1:-1));
+    }
+  },{passive:false,capture:true});
   async function listGoogleDriveImages(folderId,apiKey){
     if(!validDriveId(folderId)||typeof apiKey!=='string'||!/^[a-zA-Z0-9_-]{15,}$/.test(apiKey))throw Error('Invalid Drive configuration');
     const found=[];let pageToken='',pages=0;
