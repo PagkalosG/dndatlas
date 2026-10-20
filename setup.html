@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D&D Atlas · Initial Creator Setup</title>
+<style>
+:root{color-scheme:dark; font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#0c1322;color:#f2f5fd}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px}.wrap{width:min(100%,560px)}.card{background:#152039;border:1px solid #34445e;border-radius:18px;padding:25px;box-shadow:0 20px 65px #0005}h1{font-size:1.65rem;margin:0 0 8px}p{line-height:1.55;color:#c5d0e5}.eyebrow{font-size:.77rem;letter-spacing:.17em;color:#a7b9db;font-weight:750;margin-bottom:9px}.field{margin-top:16px}label{display:block;font-size:.92rem;font-weight:650;margin-bottom:7px}input{width:100%;padding:13px;border-radius:9px;border:1px solid #4d5e7c;background:#0b1427;color:white;font-size:1rem}input:focus{outline:2px solid #90b6ff;outline-offset:2px}.hint{font-size:.79rem;color:#aebcd2;margin-top:6px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}button{border:0;border-radius:9px;background:#d9ae69;color:#182333;font:700 .96rem system-ui;padding:12px 16px;cursor:pointer}button.secondary{background:#354665;color:white}button:disabled{opacity:.55;cursor:wait}.status{border-radius:9px;padding:12px;margin-top:16px;background:#28324c;white-space:pre-wrap;overflow-wrap:anywhere}.status.error{background:#55292c;color:#ffd7da}.status.success{background:#204739;color:#d6ffe7}.hidden{display:none}.codes{background:#0b1427;border:1px solid #41516c;padding:14px;border-radius:9px;line-height:1.8;word-break:break-all;user-select:all;font-family:ui-monospace,Consolas,monospace}.warning{margin-top:18px;border-left:3px solid #d9ae69;padding:9px 12px;background:#28263a;color:#eedec6;font-size:.87rem;line-height:1.5}a{color:#b7d1ff}
+</style>
+</head>
+<body>
+<main class="wrap"><div class="card">
+<div class="eyebrow">D&D ATLAS · ONE-TIME SETUP</div><h1>Δημιουργία Creator</h1>
+<p>Η αρχική ρύθμιση γίνεται απευθείας από τον browser. Οι κωδικοί αποστέλλονται μόνο μέσω HTTPS στον Cloudflare Worker και δεν αποθηκεύονται σε αυτή τη σελίδα.</p>
+<form id="setupForm" autocomplete="off">
+<div class="field"><label for="api">Διεύθυνση API</label><input id="api" type="url" required value="https://dndatlas-api.pagkalosgeo.workers.dev" spellcheck="false"><div class="hint">Ο Worker που απαντά στο /health με status ok.</div></div>
+<div class="field"><label for="username">Όνομα Creator</label><input id="username" required value="creator" minlength="3" maxlength="30" pattern="[a-zA-Z][a-zA-Z0-9_-]{2,29}" spellcheck="false"></div>
+<div class="field"><label for="setupToken">BOOTSTRAP_TOKEN (Cloudflare Secret)</label><input id="setupToken" type="password" required autocomplete="off" spellcheck="false"></div>
+<div class="field"><label for="password">Νέος κωδικός Creator</label><input id="password" type="password" required minlength="12" autocomplete="new-password"><div class="hint">Τουλάχιστον 12 χαρακτήρες. Προτίμησε μεγάλη, μοναδική συνθηματική φράση.</div></div>
+<div class="field"><label for="confirm">Επιβεβαίωση κωδικού</label><input id="confirm" type="password" required minlength="12" autocomplete="new-password"></div>
+<div class="actions"><button id="submit" type="submit">Δημιουργία Creator</button></div>
+</form>
+<div id="status" class="status hidden" role="status" aria-live="polite"></div>
+<section id="recovery" class="hidden" aria-label="Κωδικοί ανάκτησης"><h2>Κωδικοί ανάκτησης</h2><p><strong>Αποθήκευσέ τους τώρα.</strong> Θα εμφανιστούν μόνο μία φορά και κάθε κωδικός χρησιμοποιείται μία φορά.</p><div id="codes" class="codes"></div><div class="actions"><button id="copy" type="button" class="secondary">Αντιγραφή κωδικών</button><button id="download" type="button" class="secondary">Αποθήκευση TXT</button></div><div class="warning">Μετά την ασφαλή αποθήκευση, διέγραψε το BOOTSTRAP_TOKEN από τα Secrets του Worker. Κράτησε το RECOVERY_PEPPER. Αφαίρεσε και αυτή τη setup.html από το δημόσιο GitHub μετά την ολοκλήρωση.</div></section>
+<div class="warning">Μην αποθηκεύσεις μυστικούς κωδικούς στο GitHub ή σε screenshot. Αν υπάρχει ήδη Creator στη βάση, το API θα αρνηθεί δεύτερη δημιουργία.</div>
+</div></main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+let savedCodes=[];
+const setStatus=(message,type)=>{const e=$('status');e.textContent=message;e.className='status '+(type||'');};
+$('setupForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const api=$('api').value.trim().replace(/\/+$/,'');
+ const token=$('setupToken').value;
+ const pass=$('password').value;
+ if(!/^https:\/\//i.test(api)){setStatus('Η διεύθυνση του API πρέπει να χρησιμοποιεί HTTPS.','error');return;}
+ if(pass!==$('confirm').value){setStatus('Οι κωδικοί Creator δεν ταιριάζουν.','error');return;}
+ if(pass.length<12){setStatus('Ο κωδικός Creator πρέπει να έχει τουλάχιστον 12 χαρακτήρες.','error');return;}
+ const button=$('submit');button.disabled=true;setStatus('Γίνεται επικοινωνία με το Cloudflare API…','');
+ try{
+   const response=await fetch(api+'/setup/creator',{
+     method:'POST',headers:{'Content-Type':'application/json','X-Atlas-Setup':token},
+     body:JSON.stringify({username:$('username').value.trim(),pin:pass}),
+     cache:'no-store',mode:'cors'
+   });
+   let data;try{data=await response.json()}catch{throw new Error('Η απάντηση του API δεν είναι έγκυρο JSON. HTTP '+response.status)}
+   if(!response.ok)throw new Error(data.error||data.message||('Σφάλμα HTTP '+response.status));
+   if(!Array.isArray(data.recoveryCodes)||data.recoveryCodes.length===0)throw new Error('Δημιουργήθηκε ο Creator, αλλά δεν επιστράφηκαν κωδικοί ανάκτησης. Έλεγξε τη βάση πριν ξαναδοκιμάσεις.');
+   savedCodes=data.recoveryCodes;
+   $('codes').textContent=savedCodes.map((c,i)=>String(i+1).padStart(2,'0')+'. '+c).join('\n');
+   $('recovery').classList.remove('hidden');
+   $('setupForm').classList.add('hidden');
+   $('setupToken').value='';$('password').value='';$('confirm').value='';
+   setStatus('Ο Creator δημιουργήθηκε! Αποθήκευσε τώρα τους κωδικούς ανάκτησης.','success');
+ }catch(error){setStatus('Δεν ολοκληρώθηκε η δημιουργία: '+error.message+'\nΑν εμφανίζεται NetworkError, έλεγξε ότι άνοιξες τη σελίδα μέσω GitHub Pages και ότι το ALLOWED_ORIGIN είναι σωστό.','error');}
+ finally{button.disabled=false;}
+});
+$('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(savedCodes.join('\n'));setStatus('Οι κωδικοί αντιγράφηκαν. Φύλαξέ τους σε ασφαλές μέρος.','success')}catch{setStatus('Δεν ήταν δυνατή η αντιγραφή. Αντίγραψέ τους χειροκίνητα.','error')}});
+$('download').addEventListener('click',()=>{if(!savedCodes.length)return;const blob=new Blob(['D&D Atlas Creator recovery codes\nKeep private — each code works once.\n\n',savedCodes.join('\n'),'\n'],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='dndatlas-creator-recovery-codes.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+</script>
+</body></html>
