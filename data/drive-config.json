@@ -1,6 +1,5 @@
 {
   "enabled": true,
-  "folderId": "1lm8qEV5Er4sDtAzXEGWD9P7uICtt3jIe",
-  "apiKey": "AIzaSyA81Jnq2KA-Co_MYdyUuR9pJjRSBsTaz3Q"
+  "workerUrl": "https://dndatlas-drive.pagkalosgeo.workers.dev/images"
 }
 
