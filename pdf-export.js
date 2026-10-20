@@ -57,19 +57,32 @@
    'text_25blbj':ch.abilities?.WIS||10,'text_26ccgh':ch.abilities?.DEX||10,
    'text_27jhio':ch.abilities?.CHA||10,'text_28owjh':ch.abilities?.CON||10,
    'text_427aebp':bonus(calc.proficiency),
-   'textarea_93szqe':(ch.features||[]).map(x=>x.name).join('\n'),
-   'textarea_91jawi':`${ch.species||''}\n${ch.speciesTraits||''}`,
-   'textarea_92aaks':(ch.feats||[]).join('\n'),
-   'textarea_89gsxf':ch.proficiencies||'',
-   'textarea_90mfnr':ch.languages||'',
-   'text_270axdp':ch.spellAbility||'',
-   'text_271dmmw':calc.spellDC??'',
-   'text_272rsuk':bonus(calc.spellAttack||0),
+   'textarea_93szqe':(ch.features||[]).filter(x=>!['Resourceful','Skillful','Versatile'].includes(x.name)).map(x=>x.name).join('\n'),
+   'textarea_91jawi':(ch.features||[]).filter(x=>['Resourceful','Skillful','Versatile'].includes(x.name)).map(x=>x.name).join('\n') || ch.speciesTraits || '',
+   'textarea_92aaks':(ch.feats||[]).map(x=>String(typeof x==='string'?x:x?.name||'').replace(/^feat-/,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[-_]/g,' ').replace(/\b[a-z]/g,m=>m.toUpperCase())).join('\n'),
+   'textarea_89gsxf':typeof ch.proficiencies==='string'?ch.proficiencies:(ch.proficiencies?.weapons||[]).join(', '),
+   'textarea_90mfnr':typeof ch.proficiencies==='string'?'':(ch.proficiencies?.tools||[]).join(', '),
    'textarea_273pluw':ch.appearance||'',
    'textarea_274seuz':ch.backgroundStory||'',
-   'textarea_259fnwq':(ch.inventory||[]).map(i=>`${i.qty||1} x ${i.name}`).join('\n')
+   'textarea_259fnwq':Array.isArray(ch.languages)?ch.languages.join(', '):(ch.languages||''),
+   'textarea_260nudr':(ch.inventory||[]).map(i=>`${i.qty||1} x ${i.name}`).join('\n')
   };
   for(const [name,value]of Object.entries(pairs))set(form,name,value);
+  // A Fighter without learned spells has no spellcasting statistics.
+  const hasSpells=Array.isArray(ch.spellbook)&&ch.spellbook.length>0;
+  if(hasSpells){
+   set(form,'text_270axdp',ch.spellAbility||'');
+   set(form,'text_271dmmw',calc.spellDC??'');
+   set(form,'text_272rsuk',calc.spellAttack==null?'':bonus(calc.spellAttack));
+  }
+  // Class/subclass labels are printed on the official PDF but have no separate form widgets.
+  // Draw them at their actual label positions; all genuine form fields stay editable.
+  try{
+   const page=pdf.getPage(0),font=await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+   const draw=(value,x,y,max=100)=>{const s=latin(value||'');if(s)page.drawText(s.slice(0,40),{x,y,size:9,font,maxWidth:max});};
+   draw((ch.classes||[]).map(c=>c.name||c.class||c.id).filter(Boolean).join(' / '),145,727,100);
+   draw(first.subclass||ch.subclass||'',145,705,100);
+  }catch(e){console.warn('Class labels cannot be rendered',e)}
   for(const [stat,[field,check]] of Object.entries(SAVE_ROWS)){
    set(form,field,bonus(calc.saveMod?calc.saveMod(ch,stat):ability(stat)+(ch.saves||[]).includes(stat)*calc.proficiency));
    checked(form,check,(ch.saves||[]).includes(stat));
@@ -97,7 +110,7 @@
    set(form,names[i],a.name);set(form,atk[i],bonus(calc.attackBonus?calc.attackBonus(ch,a):(a.ability==='DEX'?ability('DEX'):ability('STR'))+(a.proficient===false?0:calc.proficiency)+(Number(a.magicBonus)||0)));set(form,notes[i],[a.mastery,a.notes].filter(Boolean).join(' · '));set(form,damage[i],(calc.attackDamage?calc.attackDamage(ch,a):(a.damage||''))+' '+(a.type||''));
   });
   // User's spell names fill the first available spell rows; other columns stay editable.
-  (ch.spellbook||[]).slice(0,30).forEach((x,i)=>{const labelField=['text_306noh','text_307kiz','text_308oany','text_309vlmr','text_310iatm','text_311eska','text_312trhs','text_313jros','text_314gyue','text_315plkl','text_316ndrn','text_317gkbw','text_318ogf','text_319huqd','text_320kzak','text_321ucnv','text_322wcdj','text_323kmpj','text_324jzvi','text_325xpvz','text_326ydhp','text_327kpws','text_328uom','text_329yurm','text_330jyte','text_331jfme','text_332xoqp','text_333ekrb','text_334zias','text_335znlw'][i];if(labelField)set(form,labelField,x.name);});
+  (hasSpells?ch.spellbook:[]).slice(0,30).forEach((x,i)=>{const labelField=['text_306noh','text_307kiz','text_308oany','text_309vlmr','text_310iatm','text_311eska','text_312trhs','text_313jros','text_314gyue','text_315plkl','text_316ndrn','text_317gkbw','text_318ogf','text_319huqd','text_320kzak','text_321ucnv','text_322wcdj','text_323kmpj','text_324jzvi','text_325xpvz','text_326ydhp','text_327kpws','text_328uom','text_329yurm','text_330jyte','text_331jfme','text_332xoqp','text_333ekrb','text_334zias','text_335znlw'][i];if(labelField)set(form,labelField,x.name);});
   // Keep fields editable (do not flatten); render appearances.
   try{form.updateFieldAppearances()}catch(e){console.warn('Some PDF appearances require a reader refresh',e)}
   const data=await pdf.save({useObjectStreams:true});const blob=new Blob([data],{type:'application/pdf'});
