@@ -2,7 +2,7 @@
  'use strict';
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
- const APP_VERSION='2.1.4';
+ const APP_VERSION='2.1.5';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -193,7 +193,7 @@
  function renderApp(){
   const ch=c();if(!ch)return;
   const lvl=totalLevel(ch);document.title=`${ch.name} · Character Atlas`;
-  document.getElementById('app').innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="logo">A</div><div><strong>CHARACTER ATLAS</strong><small>D&D 2024 · Offline</small></div></div><div class="top-actions"><select class="language-select" data-language-select aria-label="Language"><option value="en" ${L.getLanguage()==="en"?"selected":""}>EN</option><option value="el" ${L.getLanguage()==="el"?"selected":""}>ΕΛ</option></select><select class="select-character" aria-label="Επιλογή χαρακτήρα" data-char-select>${characters.map(x=>`<option value="${attr(x.id)}" ${x.id===ch.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><button class="btn icon" data-action="new-character" aria-label="Νέος χαρακτήρας" title="Νέος χαρακτήρας">＋</button><button class="btn desktop-only" data-action="backup">${svg('download')} Backup</button><button class="btn icon" data-action="settings" aria-label="Ρυθμίσεις / Import / Export" title="Ρυθμίσεις">${svg('settings')}</button></div></header><div class="shell"><aside class="sidebar"><div class="side-head">ADVENTURE DESK</div><nav class="nav-list">${navigation.map(([id,name])=>`<button data-tab="${id}" class="nav-item ${id===view?'active':''}">${svg(id)} ${name}</button>`).join('')}</nav><div class="side-footer"><span class="chip gold">2024 Rules Only</span><br/>Όλα τα δεδομένα μένουν τοπικά στη συσκευή. Χρησιμοποίησε Export για backup.</div></aside><main class="main"><div class="content">${view==='overview'?'':hero(ch)}${renderPage(ch)}<footer class="footer">D&D Atlas v2.1.4 · Fan-made, unofficial companion · Summaries only · Rulebook/DM have final say · <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener">SRD 5.2.1</a> (CC BY 4.0). Not affiliated with Wizards of the Coast.</footer></div></main></div><nav class="mobile-nav">${navigation.map(([id,name])=>`<button data-tab="${id}" class="${id===view?'active':''}">${svg(id)}<span>${name}</span></button>`).join('')}</nav><input id="portrait-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" aria-label="Choose character image" hidden /></div>`;
+  document.getElementById('app').innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="logo">A</div><div><strong>CHARACTER ATLAS</strong><small>D&D 2024 · Offline</small></div></div><div class="top-actions"><select class="language-select" data-language-select aria-label="Language"><option value="en" ${L.getLanguage()==="en"?"selected":""}>EN</option><option value="el" ${L.getLanguage()==="el"?"selected":""}>ΕΛ</option></select><select class="select-character" aria-label="Επιλογή χαρακτήρα" data-char-select>${characters.map(x=>`<option value="${attr(x.id)}" ${x.id===ch.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><button class="btn icon" data-action="new-character" aria-label="Νέος χαρακτήρας" title="Νέος χαρακτήρας">＋</button><button class="btn desktop-only" data-action="backup">${svg('download')} Backup</button><button class="btn icon" data-action="settings" aria-label="Ρυθμίσεις / Import / Export" title="Ρυθμίσεις">${svg('settings')}</button></div></header><div class="shell"><aside class="sidebar"><div class="side-head">ADVENTURE DESK</div><nav class="nav-list">${navigation.map(([id,name])=>`<button data-tab="${id}" class="nav-item ${id===view?'active':''}">${svg(id)} ${name}</button>`).join('')}</nav><div class="side-footer"><span class="chip gold">2024 Rules Only</span><br/>Όλα τα δεδομένα μένουν τοπικά στη συσκευή. Χρησιμοποίησε Export για backup.</div></aside><main class="main"><div class="content">${view==='overview'?'':hero(ch)}${renderPage(ch)}<footer class="footer">D&D Atlas v2.1.5 · Fan-made, unofficial companion · Summaries only · Rulebook/DM have final say · <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener">SRD 5.2.1</a> (CC BY 4.0). Not affiliated with Wizards of the Coast.</footer></div></main></div><nav class="mobile-nav">${navigation.map(([id,name])=>`<button data-tab="${id}" class="${id===view?'active':''}">${svg(id)}<span>${name}</span></button>`).join('')}</nav><input id="portrait-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" aria-label="Choose character image" hidden /></div>`;
   L.translateRoot(document.getElementById('app'));
  }
  function hero(ch){let load=activeLoadout(ch);return `<section class="hero"><div class="hero-title"><button class="avatar portrait-trigger" type="button" data-action="portrait" aria-label="Character portrait" title="Character portrait">${portraitMarkup(ch)}<span class="portrait-camera" aria-hidden="true">✎</span></button><div><h1>${esc(ch.name)}</h1><div class="subline">${esc(ch.species)} · ${esc(classLabel(ch))}</div><div class="hero-meta"><span class="chip gold">LVL ${totalLevel(ch)}</span><span class="chip">${esc(ch.background||'No background')}</span><span class="chip">PB ${signed(prof(ch))}</span>${ch.inspiration?'<span class="chip good">✧ Inspired</span>':''}${ch.concentrating?`<span class="chip good">◉ Conc: ${esc(ch.concentrating)}</span>`:''}</div></div></div><div class="hero-tools"><button class="btn sm" data-action="edit-character">${svg('edit')} Edit</button><button class="btn sm" data-action="level-up">Level ↑</button><button class="btn sm" data-action="short-rest">Short Rest</button><button class="btn sm" data-action="long-rest">Long Rest</button></div></section>`;}
@@ -908,27 +908,28 @@
       event.preventDefault();showCampaignViewerImage(campaignViewer.index+(dx<0?1:-1));
     }
   },{passive:false,capture:true});
-  async function listGoogleDriveImages(folderId,apiKey){
-    if(!validDriveId(folderId)||typeof apiKey!=='string'||!/^[a-zA-Z0-9_-]{15,}$/.test(apiKey))throw Error('Invalid Drive configuration');
-    const found=[];let pageToken='',pages=0;
-    do{
-      const u=new URL('https://www.googleapis.com/drive/v3/files');
-      u.searchParams.set('q',`'${folderId}' in parents and trashed = false`);
-      u.searchParams.set('fields','nextPageToken,files(id,name,mimeType,thumbnailLink)');
-      u.searchParams.set('pageSize','1000');u.searchParams.set('key',apiKey);
-      u.searchParams.set('supportsAllDrives','true');u.searchParams.set('includeItemsFromAllDrives','true');
-      if(pageToken)u.searchParams.set('pageToken',pageToken);
-      const response=await fetch(u.href,{cache:'no-store'});
-      if(!response.ok)throw Error('Drive API HTTP '+response.status);
-      const data=await response.json();
-      for(const file of data.files||[]){
-        if(!validDriveId(file.id)||!/^image\/(?:jpeg|png|webp|gif)$/i.test(file.mimeType||''))continue;
-        const path='drive:'+file.id;
-        if(typeof file.thumbnailLink==='string'&&/^https:\/\/(?:[^/]+\.)?googleusercontent\.com\//.test(file.thumbnailLink))driveThumbs[file.id]=file.thumbnailLink;
-        found.push({id:file.id,title:file.name||file.id,path});
-      }
-      pageToken=String(data.nextPageToken||'');pages++;
-    }while(pageToken&&pages<10);
+  // Read the publicly available gallery index through the Cloudflare Worker.
+  // The Google Drive API key stays server-side as a Worker secret and is NEVER read by the PWA.
+  async function listWorkerImages(workerUrl){
+    if(typeof workerUrl!=='string')throw Error('Worker URL is missing');
+    let url;
+    try{url=new URL(workerUrl);}catch{throw Error('Worker URL is invalid');}
+    if(url.protocol!=='https:' || url.username || url.password || url.search || url.hash ||
+       url.hostname!=='dndatlas-drive.pagkalosgeo.workers.dev' || url.pathname!=='/images'){
+      throw Error('Worker URL is not an approved endpoint');
+    }
+    const response=await fetch(url.href,{cache:'no-store'});
+    if(!response.ok)throw Error('Worker HTTP '+response.status);
+    const data=await response.json();
+    if(!data||!Array.isArray(data.images))throw Error('Worker returned an invalid gallery');
+    const found=[];
+    const seen=new Set();
+    for(const item of data.images){
+      if(!item || !validDriveId(item.id) ||
+         (item.path && item.path!=='drive:'+item.id) || seen.has(item.id))continue;
+      seen.add(item.id);
+      found.push({id:item.id,title:typeof item.title==='string' ? item.title.slice(0,200) : item.id,path:'drive:'+item.id});
+    }
     return found;
   }
   async function fetchSharedData(){
@@ -944,9 +945,9 @@
         const confResponse=await fetch('./data/drive-config.json',{cache:'no-store'});
         if(confResponse.ok){
           const config=await confResponse.json();
-          if(config.enabled&&config.folderId&&config.apiKey){
+          if(config.enabled===true){
             driveConfigured=true;
-            try{campaignImages=await listGoogleDriveImages(config.folderId,config.apiKey);campaignImageSource='drive';}
+            try{campaignImages=await listWorkerImages(config.workerUrl);campaignImageSource='drive';}
             catch(err){driveError=String(err.message||err);}
           }
         }
@@ -956,7 +957,7 @@
         if(m.ok){const items=await m.json();campaignImages=(Array.isArray(items)?items:items.images||[]).filter(x=>x&&typeof x.path==='string'&&safeMediaPath(x.path)).map(x=>({id:x.id||x.path,title:x.title||x.path.split('/').pop(),path:x.path}));}
       }
       sharedLoaded=true;
-      sharedStatus=driveConfigured&&driveError?tr('Δεν φορτώθηκαν οι εικόνες Google Drive. Εμφανίζεται η εναλλακτική συλλογή GitHub.','Google Drive images could not load. The GitHub fallback gallery is shown.')+' ('+driveError+')':'';
+      sharedStatus=driveConfigured&&driveError?tr('Δεν φορτώθηκαν οι εικόνες μέσω Cloudflare. Εμφανίζεται η εναλλακτική συλλογή GitHub.','Cloudflare gallery images could not load. The GitHub fallback gallery is shown.')+' ('+driveError+')':'';
     }catch(err){sharedStatus=tr('Δεν ήταν δυνατή η λήψη. Τα τοπικά δεδομένα παραμένουν διαθέσιμα.','Shared data could not be loaded. Local entries remain available.');}
     if(view==='journal')renderApp();
   }
@@ -965,7 +966,7 @@
     return `<article class="campaign-entry"><div class="campaign-entry-head"><button class="linklike" data-atlas-journal-open="${remote?'shared:':'local:'}${attr(j.id)}"><strong>${esc(j.title||'')}</strong><small>${esc(j.date||'')} · ${remote?tr('Κοινό από το GitHub','Shared from GitHub'):tr('Τοπικό στη συσκευή','Local on this device')}</small></button><button class="btn sm" data-atlas-journal-edit="${remote?'shared:':'local:'}${attr(j.id)}">${tr('Επεξεργασία','Edit')}</button><button class="btn sm ${remote?'':'warn'}" data-atlas-journal-remove="${remote?'shared:':'local:'}${attr(j.id)}">${remote?tr('Απόκρυψη','Hide'):tr('Διαγραφή','Delete')}</button></div>${mediaCards(j.images||[])}<p class="campaign-excerpt">${esc((j.text||'').slice(0,360))}</p></article>`;}).join('')||`<div class="empty">${tr('Δεν υπάρχουν καταχωρίσεις.','No entries available.')}</div>`;}
   renderJournal=function(ch){return `<div class="atlas-journal-page"><div class="page-title"><div><h2>${tr('Ημερολόγιο περιπέτειας','Campaign Journal')}</h2><p>${tr('Κοινά sessions και εικόνες από το GitHub ή το Google Drive, με προσωπικές αλλαγές.','Shared sessions and GitHub or Google Drive images, with personal customizations.')}</p></div><button class="btn primary sm" data-atlas-journal-new>${tr('+ Καταχώριση','+ Entry')}</button></div>
     ${section('Κοινά sessions','Shared sessions',`<p class="muted small">${tr('Τα κοινά sessions φορτώνονται από το GitHub. Οι αλλαγές και αποκρύψεις εδώ ισχύουν μόνο στη συσκευή σου.','Shared sessions are loaded from GitHub. Your edits and hidden entries remain local to this device.')}</p>${sharedStatus?`<div class="notice">${esc(sharedStatus)}</div>`:''}${journalTiles(sharedSessions,true)}${sharedHidden.length?`<button class="btn sm" data-atlas-journal-restore>${tr('Επαναφορά κρυμμένων κοινών sessions','Restore hidden shared sessions')} (${sharedHidden.length})</button>`:''}`,`<button class="btn sm" data-atlas-journal-refresh>${tr('Ανανέωση κοινών δεδομένων','Refresh shared data')}</button>`)}
-    ${section(campaignImageSource==='drive'?'Κοινές εικόνες · Google Drive':'Κοινές εικόνες campaign',campaignImageSource==='drive'?'Shared images · Google Drive':'Shared campaign images',campaignImages.length?mediaCards(campaignImages.map(x=>x.path)):`<p class="muted">${tr('Πρόσθεσε φωτογραφίες σε δημόσιο φάκελο Drive (με data/drive-config.json) ή στο εναλλακτικό GitHub manifest.','Add photos to a public Drive folder (configured in data/drive-config.json) or to the fallback GitHub manifest.')}</p>`)}
+    ${section(campaignImageSource==='drive'?'Κοινές εικόνες · Google Drive':'Κοινές εικόνες campaign',campaignImageSource==='drive'?'Shared images · Google Drive':'Shared campaign images',campaignImages.length?mediaCards(campaignImages.map(x=>x.path)):`<p class="muted">${tr('Πρόσθεσε φωτογραφίες στον δημόσιο φάκελο Drive που εξυπηρετεί ο Cloudflare Worker ή στο εναλλακτικό GitHub manifest.','Add photos to the public Drive folder served by the Cloudflare Worker or to the fallback GitHub manifest.')}</p>`)}
     ${section('Οι προσωπικές μου καταχωρίσεις','My personal entries',journalTiles((ch.journal||[]).slice().reverse(),false),`<button class="btn sm" data-atlas-journal-new>${tr('+ Προσθήκη','+ Add')}</button>`)}
     ${section('Προσωπικές σημειώσεις','Personal notes',`<textarea id="notes-editor" rows="5" placeholder="${tr('Σημειώσεις και παρατηρήσεις…','Notes and observations…')}">${esc(ch.notes||'')}</textarea><button class="btn sm primary" data-action="save-notes">${tr('Αποθήκευση','Save')}</button>`)}</div>`;
   };

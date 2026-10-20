@@ -1,6 +1,6 @@
 {
-  "version": "2.1.4",
-  "updated": "2026-10-19",
+  "version": "2.1.5",
+  "updated": "2026-10-20",
   "ruleset": "D&D 5e 2024",
-  "notes": "Gallery viewer full-size / next previous + app.js cache-bust and service worker shell update. All character and Drive data unchanged."
+  "notes": "Cloudflare Worker image gallery; browser no longer reads or sends the Google Drive API key. Existing gallery lightbox and character data unchanged."
 }
