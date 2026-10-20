@@ -1,6 +1,6 @@
 /* D&D Atlas v2 — network-first app shell, never clear browser character data */
-const CACHE='dndatlas-shell-v3.1.2';
-const SHELL=['./','./index.html','./style.css?v=3.1.2','./app.js?v=3.1.2','./i18n.js','./data.js','./spell-effects.js','./pdf-export.js?v=3.1.2','./official-2024-character-sheet.pdf','./data/api-config.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./demo-party.json','./data/sessions.json','./data/campaign-images.json','./data/drive-config.json','./version.json'];
+const CACHE='dndatlas-shell-v3.1.3';
+const SHELL=['./','./index.html','./style.css?v=3.1.3','./app.js?v=3.1.3','./i18n.js','./data.js','./spell-effects.js','./pdf-export.js?v=3.1.3','./official-2024-character-sheet.pdf','./data/api-config.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./demo-party.json','./data/sessions.json','./data/campaign-images.json','./data/drive-config.json','./version.json'];
 const base=new URL(self.registration.scope),valid=p=>p.startsWith(base.pathname);
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(async c=>{await Promise.allSettled(SHELL.map(f=>c.add(new Request(new URL(f,base),{cache:'reload'}))));}).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await caches.keys())if((k.startsWith('dndatlas-shell-')||k.startsWith('character-atlas-v'))&&k!==CACHE)await caches.delete(k);await self.clients.claim()})()));

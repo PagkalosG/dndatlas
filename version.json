@@ -1,7 +1,7 @@
 {
-  "version": "3.1.2",
+  "version": "3.1.3",
   "updated": "2026-10-20",
   "ruleset": "D&D 5e 2024",
-  "notes": "Consumables preset dropdown and rule detail popups; 3.1.1 cumulative",
+  "notes": "PDF 2024 export field mapping correction; v3.1.2 cumulative",
   "build": "2026-10-20"
 }

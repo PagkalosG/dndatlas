@@ -16,7 +16,25 @@
  const mod=n=>Math.floor((Number(n)||10)/2)-5;
  const bonus=n=>n>=0?'+'+n:String(n);
  const level=ch=>(ch.classes||[]).reduce((a,x)=>a+(Number(x.level)||0),0);
- function set(form,key,value){try{form.getTextField(key).setText(latin(value))}catch(e){console.warn('PDF field skipped:',key,e.message)}}
+ function set(form,key,value){try{form.getTextField(key).setText(latin(value ?? ''))}catch(e){console.warn('PDF field skipped:',key,e.message)}}
+ function checked(form,key,yes){try{const field=form.getCheckBox(key);if(yes)field.check();else field.uncheck()}catch(e){console.warn('PDF checkbox skipped:',key,e.message)}}
+ // These names were verified against the field positions of the uploaded 2024 fillable template.
+ const SAVE_ROWS={
+  STR:['text_60zpuk','checkbox_125msvq'],DEX:['text_68bipd','checkbox_127neck'],
+  CON:['text_72gnbq','checkbox_131jtbq'],INT:['text_54bfgy','checkbox_119phvx'],
+  WIS:['text_62yaan','checkbox_245mnu'],CHA:['text_73cwxt','checkbox_251dtie']
+ };
+ const SKILL_ROWS={
+  Arcana:['text_55nptn','checkbox_120drb'],History:['text_56ksru','checkbox_121xgrv'],
+  Investigation:['text_57bjob','checkbox_122zffm'],Nature:['text_58zoel','checkbox_123smy'],
+  Religion:['text_59mfqs','checkbox_124zscb'],Athletics:['text_61knsn','checkbox_126dqaq'],
+  'Animal Handling':['text_63uhiv','checkbox_246hqns'],Insight:['text_64odvk','checkbox_247lffe'],
+  Medicine:['text_65hnhb','checkbox_248scbg'],Perception:['text_66djlf','checkbox_249voxf'],
+  Survival:['text_67cr','checkbox_250mjvi'],Acrobatics:['text_69srmm','checkbox_128cefr'],
+  'Sleight of Hand':['text_70obrk','checkbox_129tlov'],Stealth:['text_71pflk','checkbox_130ukqx'],
+  Deception:['text_74rkfi','checkbox_252naxc'],Intimidation:['text_75pauh','checkbox_253mbyq'],
+  Performance:['text_76vfsc','checkbox_254ypds'],Persuasion:['text_77nads','checkbox_255ltdr']
+ };
  window.ATLAS_EXPORT_PDF=async function(ch,calc){
   const PDFLib=await ensureLib();
   const response=await fetch('./official-2024-character-sheet.pdf',{cache:'no-store'});
@@ -27,9 +45,9 @@
   const pairs={
    'text_1imkp':ch.name,'text_2qgox':ch.background,'text_3bfkv':ch.species,
    'text_4deth':level(ch),'text_5mocb':ch.xp||0,'text_6agjh':calc.armorClass,
-   'text_8bjml':ch.hp?.current||0,'text_9efgi':ch.hp?.temp||0,
-   'text_10mexx':ch.hp?.max||1,'text_11dcsb':ch.hitDice?.max||level(ch),
-   'text_12kvai':ch.hitDice?.used||0,'text_13wrft':bonus(calc.initiative),
+   'text_8bjml':ch.hp?.current??0,'text_9efgi':ch.hp?.temp??0,
+   'text_10mexx':ch.hp?.max??1,'text_11dcsb':ch.hitDice?.max??level(ch),
+   'text_12kvai':ch.hitDice?.used??0,'text_13wrft':bonus(calc.initiative),
    'text_14lvnq':ch.speed||30,'text_15cqja':ch.size||'Medium',
    'text_16wgea':ch.passivePerceptionOverride!==''&&ch.passivePerceptionOverride!=null?ch.passivePerceptionOverride:10+calc.skillMod(ch,'Perception'),
    'text_17vpmg':bonus(ability('STR')),'text_18ruyf':bonus(ability('DEX')),
@@ -52,12 +70,31 @@
    'textarea_259fnwq':(ch.inventory||[]).map(i=>`${i.qty||1} x ${i.name}`).join('\n')
   };
   for(const [name,value]of Object.entries(pairs))set(form,name,value);
+  for(const [stat,[field,check]] of Object.entries(SAVE_ROWS)){
+   set(form,field,bonus(calc.saveMod?calc.saveMod(ch,stat):ability(stat)+(ch.saves||[]).includes(stat)*calc.proficiency));
+   checked(form,check,(ch.saves||[]).includes(stat));
+  }
+  for(const [skill,[field,check]] of Object.entries(SKILL_ROWS)){
+   const rank=Number(ch.skills?.[skill]||0);
+   // Expertise doubles PB in the numeric box; the sheet only has a proficiency checkbox.
+   set(form,field,bonus(calc.skillMod?calc.skillMod(ch,skill):0));
+   checked(form,check,rank>0);
+  }
+  // Heroic Inspiration: a marked checkbox is more accurate than an empty sheet.
+  checked(form,'checkbox_132oesm',Boolean(ch.inspiration));
+  // Death Save success/failure boxes (top right), all 3 each.
+  for(let i=0;i<3;i++){
+   checked(form,['checkbox_83uays','checkbox_84cpmm','checkbox_85xlev'][i],i<(Number(ch.death?.success)||0));
+   checked(form,['checkbox_86iksy','checkbox_87keam','checkbox_88iabv'][i],i<(Number(ch.death?.fail)||0));
+  }
+  // Keep the second independent Notes column for the weapon's own notes / mastery.
+  const notes=['text_107qvwl','text_108aybq','text_109slbn','text_110lbdh','text_111ubex','text_112omg'];
   // Weapon table (name / hit modifier / damage) in the original layout.
   const rows=(ch.attacks||[]).slice(0,6);
   rows.forEach((a,i)=>{const names=['text_95mtme','text_96nzoa','text_97iydj','text_98wnad','text_99bdzl','text_100zmbl'];
    const atk=['text_101ohoi','text_102yibj','text_103rlae','text_104qwkw','text_105gvuz','text_106vkdo'];
    const damage=['text_113tpwa','text_114lhuk','text_115pcxn','text_116sohv','text_117fabc','text_118cokl'];
-   set(form,names[i],a.name);set(form,atk[i],bonus((a.ability==='DEX'?ability('DEX'):ability('STR'))+calc.proficiency+(Number(a.magicBonus)||0)));set(form,damage[i],(a.damage||'')+' '+(a.type||''));
+   set(form,names[i],a.name);set(form,atk[i],bonus(calc.attackBonus?calc.attackBonus(ch,a):(a.ability==='DEX'?ability('DEX'):ability('STR'))+(a.proficient===false?0:calc.proficiency)+(Number(a.magicBonus)||0)));set(form,notes[i],[a.mastery,a.notes].filter(Boolean).join(' · '));set(form,damage[i],(calc.attackDamage?calc.attackDamage(ch,a):(a.damage||''))+' '+(a.type||''));
   });
   // User's spell names fill the first available spell rows; other columns stay editable.
   (ch.spellbook||[]).slice(0,30).forEach((x,i)=>{const labelField=['text_306noh','text_307kiz','text_308oany','text_309vlmr','text_310iatm','text_311eska','text_312trhs','text_313jros','text_314gyue','text_315plkl','text_316ndrn','text_317gkbw','text_318ogf','text_319huqd','text_320kzak','text_321ucnv','text_322wcdj','text_323kmpj','text_324jzvi','text_325xpvz','text_326ydhp','text_327kpws','text_328uom','text_329yurm','text_330jyte','text_331jfme','text_332xoqp','text_333ekrb','text_334zias','text_335znlw'][i];if(labelField)set(form,labelField,x.name);});
