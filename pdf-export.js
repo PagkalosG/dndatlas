@@ -16,7 +16,45 @@
  const mod=n=>Math.floor((Number(n)||10)/2)-5;
  const bonus=n=>n>=0?'+'+n:String(n);
  const level=ch=>(ch.classes||[]).reduce((a,x)=>a+(Number(x.level)||0),0);
- function set(form,key,value){try{form.getTextField(key).setText(latin(value ?? ''))}catch(e){console.warn('PDF field skipped:',key,e.message)}}
+ function set(form,key,value,opts={}){try{
+   const field=form.getTextField(key);field.setText(latin(value ?? ''));
+   if(opts.multiline){try{field.enableMultiline()}catch(e){}}
+   if(opts.size)field.setFontSize(opts.size);
+  }catch(e){console.warn('PDF field skipped:',key,e.message)}}
+ const featureName=v=>typeof v==='string'?v:String(v?.name||v?.id||'');
+ const cleanFeat=v=>featureName(v).replace(/^feat[-_]/i,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[-_]/g,' ').replace(/\b[a-z]/g,m=>m.toUpperCase());
+ const featureGroup=v=>String(v?.source||v?.category||v?.type||'').toLowerCase();
+ const SPECIES_TRAITS=new Set(['resourceful','skillful','versatile']);
+ function featureText(ch,species){
+  const rows=(ch.features||[]).filter(x=>{
+    const name=featureName(x).toLowerCase();
+    const group=featureGroup(x);
+    return species ? SPECIES_TRAITS.has(name)||group.includes('species')||group.includes('human')
+      : !SPECIES_TRAITS.has(name)&&!group.includes('species')&&!group.includes('human');
+  });
+  return [...new Set(rows.map(featureName).filter(Boolean))].join('\n');
+ }
+ function splitProficiencies(ch){
+  const pr=ch.proficiencies||{};
+  if(typeof pr==='string'){
+   const items=pr.split(/(?=\b(?:Armor|Weapons|Tools):)/i);
+   const armor=items.filter(x=>/^\s*(?:Armor|Weapons):/i.test(x)).join(' ').trim();
+   const tools=items.filter(x=>/^\s*Tools:/i.test(x)).join(' ').trim();
+   return {training:armor,tools};
+  }
+  const arr=x=>Array.isArray(x)?x.join(', '):String(x||'');
+  return {training:[arr(pr.armor)&&'Armor: '+arr(pr.armor),arr(pr.weapons)&&'Weapons: '+arr(pr.weapons)].filter(Boolean).join('\n'),tools:arr(pr.tools)};
+ }
+ function languagesText(ch){
+  const data=ch.languages;
+  if(Array.isArray(data))return data.map(x=>typeof x==='string'?x:(x?.name||'')).filter(Boolean).join(', ');
+  return typeof data==='string'?data:'';
+ }
+ function speciesText(ch){
+  const feats=featureText(ch,true);
+  const extras=Array.isArray(ch.speciesTraits)?ch.speciesTraits.map(featureName).join('\n'):(ch.speciesTraits||'');
+  return [...new Set([feats,extras].filter(Boolean).join('\n').split('\n').filter(Boolean))].join('\n');
+ }
  function checked(form,key,yes){try{const field=form.getCheckBox(key);if(yes)field.check();else field.uncheck()}catch(e){console.warn('PDF checkbox skipped:',key,e.message)}}
  // These names were verified against the field positions of the uploaded 2024 fillable template.
  const SAVE_ROWS={
@@ -57,17 +95,30 @@
    'text_25blbj':ch.abilities?.WIS||10,'text_26ccgh':ch.abilities?.DEX||10,
    'text_27jhio':ch.abilities?.CHA||10,'text_28owjh':ch.abilities?.CON||10,
    'text_427aebp':bonus(calc.proficiency),
-   'textarea_93szqe':(ch.features||[]).filter(x=>!['Resourceful','Skillful','Versatile'].includes(x.name)).map(x=>x.name).join('\n'),
-   'textarea_91jawi':(ch.features||[]).filter(x=>['Resourceful','Skillful','Versatile'].includes(x.name)).map(x=>x.name).join('\n') || ch.speciesTraits || '',
-   'textarea_92aaks':(ch.feats||[]).map(x=>String(typeof x==='string'?x:x?.name||'').replace(/^feat-/,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[-_]/g,' ').replace(/\b[a-z]/g,m=>m.toUpperCase())).join('\n'),
-   'textarea_89gsxf':typeof ch.proficiencies==='string'?ch.proficiencies:(ch.proficiencies?.weapons||[]).join(', '),
-   'textarea_90mfnr':typeof ch.proficiencies==='string'?'':(ch.proficiencies?.tools||[]).join(', '),
+   'textarea_93szqe':featureText(ch,false),
+   'textarea_91jawi':speciesText(ch),
+   'textarea_92aaks':(ch.feats||[]).map(cleanFeat).filter(Boolean).join('\n'),
+   'textarea_89gsxf':splitProficiencies(ch).training,
+   'textarea_90mfnr':splitProficiencies(ch).tools,
    'textarea_273pluw':ch.appearance||'',
    'textarea_274seuz':ch.backgroundStory||'',
-   'textarea_259fnwq':Array.isArray(ch.languages)?ch.languages.join(', '):(ch.languages||''),
+   'textarea_259fnwq':languagesText(ch),
    'textarea_260nudr':(ch.inventory||[]).map(i=>`${i.qty||1} x ${i.name}`).join('\n')
   };
-  for(const [name,value]of Object.entries(pairs))set(form,name,value);
+  // PDF form defaults produce oversized text and overflow in the feature panels.
+  // Set font size for the actual form field so it remains editable after export.
+  const panelFonts={
+   textarea_89gsxf:8,textarea_90mfnr:8,textarea_91jawi:10,
+   textarea_92aaks:10,textarea_93szqe:9,textarea_94ci:9,
+   textarea_259fnwq:9,textarea_260nudr:8,
+   textarea_273pluw:9,textarea_274seuz:9
+  };
+  for(const [name,value]of Object.entries(pairs))set(form,name,value,
+   name in panelFonts?{size:panelFonts[name],multiline:true}:{});
+  // Identity fields stay in their own boxes with readable, bounded type.
+  ['text_1imkp','text_2qgox','text_3bfkv'].forEach(k=>{
+   try{form.getTextField(k).setFontSize(10)}catch(e){}
+  });
   // A Fighter without learned spells has no spellcasting statistics.
   const hasSpells=Array.isArray(ch.spellbook)&&ch.spellbook.length>0;
   if(hasSpells){
@@ -80,8 +131,8 @@
   try{
    const page=pdf.getPage(0),font=await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
    const draw=(value,x,y,max=100)=>{const s=latin(value||'');if(s)page.drawText(s.slice(0,40),{x,y,size:9,font,maxWidth:max});};
-   draw((ch.classes||[]).map(c=>c.name||c.class||c.id).filter(Boolean).join(' / '),145,727,100);
-   draw(first.subclass||ch.subclass||'',145,705,100);
+   draw((ch.classes||[]).map(c=>c.name||c.class||c.id).filter(Boolean).join(' / '),145,741,100);
+   draw(first.subclass||ch.subclass||'',145,719,100);
   }catch(e){console.warn('Class labels cannot be rendered',e)}
   for(const [stat,[field,check]] of Object.entries(SAVE_ROWS)){
    set(form,field,bonus(calc.saveMod?calc.saveMod(ch,stat):ability(stat)+(ch.saves||[]).includes(stat)*calc.proficiency));

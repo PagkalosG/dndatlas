@@ -1,4 +1,4 @@
 {
-  "version": "3.1.4",
-  "notes": "PDF field mapping fixes: Equipment, Languages, class labels, no fighter spellcasting, readable feats."
+  "version": "3.1.5",
+  "notes": "2024 PDF: readable multiline fields, correct Species Traits/Feats/Class Features, Languages and Tools mapping, bounded heading fonts."
 }
