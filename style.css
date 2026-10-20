@@ -91,3 +91,19 @@ body.building{overflow:hidden!important}.atlas-builder{position:fixed;inset:0;ba
 .mastery-choice{display:flex;align-items:center;gap:9px;border:1px solid var(--stroke);border-radius:10px;padding:10px;background:var(--panel2);cursor:pointer}
 .mastery-choice input{width:17px;flex:0 0 17px}.mastery-choice span{display:flex;flex-direction:column;gap:5px}
 .mastery-choice b{font-size:12px}.mastery-choice small{font-size:10px;color:var(--muted)}
+
+/* D&D Atlas v3 refinements */
+.mobile-nav{grid-template-columns:repeat(6,minmax(0,1fr))!important;width:100%;justify-content:stretch}
+.mobile-nav button{min-width:0;width:100%;gap:4px}.mobile-nav button svg{width:21px;height:21px}
+.atlas-rest-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:14px 0 17px}
+.atlas-rest-row .btn{font-size:14px;padding:12px 8px;min-height:48px}
+.combat-feature-summary{display:block;margin-top:10px!important;line-height:1.6!important}
+.atlas-journal-page .panel,.atlas-journal-page .campaign-entry{margin-bottom:16px}
+.atlas-journal-page .campaign-gallery{gap:13px}
+.cloud-auth-locked #app{display:none!important}
+.cloud-auth-overlay{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0d1521;color:#e1e9f0;padding:20px}
+.cloud-auth-card{width:min(470px,100%);padding:28px;border:1px solid #41556b;border-radius:18px;background:#162436;box-shadow:0 10px 40px #0007}
+.cloud-auth-card h1{margin:0 0 10px;color:#ebc68c}.cloud-auth-card label{display:block;margin:12px 0 5px}.cloud-auth-card .btn{margin-top:16px;width:100%}
+.cloud-account-grid{display:grid;gap:10px}.cloud-account-row{display:grid;gap:8px;padding:12px;border:1px solid #385168;border-radius:12px;margin:10px 0}
+.cloud-account-row .btn{width:auto}.atlas-tag-filter{margin:10px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+@media(max-width:480px){.atlas-rest-row{gap:8px}.atlas-rest-row .btn{font-size:12px}}

@@ -1,0 +1,1 @@
+Contains material adapted from the System Reference Document 5.2.1 (SRD 5.2.1), copyright Wizards of the Coast LLC. SRD 5.2.1 is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/ . Official source: https://www.dndbeyond.com/srd . This is an unofficial fan application.
