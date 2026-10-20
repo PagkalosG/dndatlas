@@ -15,8 +15,8 @@
 <div class="field"><label for="api">Διεύθυνση API</label><input id="api" type="url" required value="https://dndatlas-api.pagkalosgeo.workers.dev" spellcheck="false"><div class="hint">Ο Worker που απαντά στο /health με status ok.</div></div>
 <div class="field"><label for="username">Όνομα Creator</label><input id="username" required value="creator" minlength="3" maxlength="30" pattern="[a-zA-Z][a-zA-Z0-9_-]{2,29}" spellcheck="false"></div>
 <div class="field"><label for="setupToken">BOOTSTRAP_TOKEN (Cloudflare Secret)</label><input id="setupToken" type="password" required autocomplete="off" spellcheck="false"></div>
-<div class="field"><label for="password">Νέος κωδικός Creator</label><input id="password" type="password" required minlength="12" autocomplete="new-password"><div class="hint">Τουλάχιστον 12 χαρακτήρες. Προτίμησε μεγάλη, μοναδική συνθηματική φράση.</div></div>
-<div class="field"><label for="confirm">Επιβεβαίωση κωδικού</label><input id="confirm" type="password" required minlength="12" autocomplete="new-password"></div>
+<div class="field"><label for="password">Νέος κωδικός Creator</label><input id="password" type="password" required minlength="8" autocomplete="new-password"><div class="hint">Τουλάχιστον 8 χαρακτήρες. Προτίμησε μεγάλη, μοναδική συνθηματική φράση.</div></div>
+<div class="field"><label for="confirm">Επιβεβαίωση κωδικού</label><input id="confirm" type="password" required minlength="8" autocomplete="new-password"></div>
 <div class="actions"><button id="submit" type="submit">Δημιουργία Creator</button></div>
 </form>
 <div id="status" class="status hidden" role="status" aria-live="polite"></div>
@@ -35,7 +35,7 @@ $('setupForm').addEventListener('submit',async e=>{
  const pass=$('password').value;
  if(!/^https:\/\//i.test(api)){setStatus('Η διεύθυνση του API πρέπει να χρησιμοποιεί HTTPS.','error');return;}
  if(pass!==$('confirm').value){setStatus('Οι κωδικοί Creator δεν ταιριάζουν.','error');return;}
- if(pass.length<12){setStatus('Ο κωδικός Creator πρέπει να έχει τουλάχιστον 12 χαρακτήρες.','error');return;}
+ if(pass.length<8){setStatus('Ο κωδικός Creator πρέπει να έχει τουλάχιστον 8 χαρακτήρες.','error');return;}
  const button=$('submit');button.disabled=true;setStatus('Γίνεται επικοινωνία με το Cloudflare API…','');
  try{
    const response=await fetch(api+'/setup/creator',{
