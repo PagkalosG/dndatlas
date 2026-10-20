@@ -17,8 +17,11 @@
  const bonus=n=>n>=0?'+'+n:String(n);
  const level=ch=>(ch.classes||[]).reduce((a,x)=>a+(Number(x.level)||0),0);
  function set(form,key,value,opts={}){try{
-   const field=form.getTextField(key);field.setText(latin(value ?? ''));
+   const field=form.getTextField(key);
    if(opts.multiline){try{field.enableMultiline()}catch(e){}}
+   // Set the appearance size BEFORE assigning text: avoids inherited zero-size auto-fit.
+   if(opts.size)field.setFontSize(opts.size);
+   field.setText(latin(value ?? ''));
    if(opts.size)field.setFontSize(opts.size);
   }catch(e){console.warn('PDF field skipped:',key,e.message)}}
  const featureName=v=>typeof v==='string'?v:String(v?.name||v?.id||'');
@@ -103,15 +106,22 @@
    'textarea_273pluw':ch.appearance||'',
    'textarea_274seuz':ch.backgroundStory||'',
    'textarea_259fnwq':languagesText(ch),
-   'textarea_260nudr':(ch.inventory||[]).map(i=>`${i.qty||1} x ${i.name}`).join('\n')
+   'textarea_260nudr':(ch.inventory||[]).map(i=>`${i.qty||1} x ${i.name}`).join('\n'),
+   'text_275cexd':ch.alignment||'',
+   'text_265qztg':ch.currency?.cp??0,
+   'text_266ykte':ch.currency?.sp??0,
+   'text_267yykj':ch.currency?.ep??0,
+   'text_268lycv':ch.currency?.gp??0,
+   'text_269bzjf':ch.currency?.pp??0
   };
   // PDF form defaults produce oversized text and overflow in the feature panels.
+  // Fixed font sizes MUST be reflected in each field's appearance stream.
   // Set font size for the actual form field so it remains editable after export.
   const panelFonts={
-   textarea_89gsxf:8,textarea_90mfnr:8,textarea_91jawi:10,
-   textarea_92aaks:10,textarea_93szqe:9,textarea_94ci:9,
+   textarea_89gsxf:7,textarea_90mfnr:8,textarea_91jawi:9,
+   textarea_92aaks:9,textarea_93szqe:8,textarea_94ci:8,
    textarea_259fnwq:9,textarea_260nudr:8,
-   textarea_273pluw:9,textarea_274seuz:9
+   textarea_273pluw:8,textarea_274seuz:8
   };
   for(const [name,value]of Object.entries(pairs))set(form,name,value,
    name in panelFonts?{size:panelFonts[name],multiline:true}:{});
@@ -162,8 +172,9 @@
   });
   // User's spell names fill the first available spell rows; other columns stay editable.
   (hasSpells?ch.spellbook:[]).slice(0,30).forEach((x,i)=>{const labelField=['text_306noh','text_307kiz','text_308oany','text_309vlmr','text_310iatm','text_311eska','text_312trhs','text_313jros','text_314gyue','text_315plkl','text_316ndrn','text_317gkbw','text_318ogf','text_319huqd','text_320kzak','text_321ucnv','text_322wcdj','text_323kmpj','text_324jzvi','text_325xpvz','text_326ydhp','text_327kpws','text_328uom','text_329yurm','text_330jyte','text_331jfme','text_332xoqp','text_333ekrb','text_334zias','text_335znlw'][i];if(labelField)set(form,labelField,x.name);});
-  // Keep fields editable (do not flatten); render appearances.
-  try{form.updateFieldAppearances()}catch(e){console.warn('Some PDF appearances require a reader refresh',e)}
+  // Rebuild appearance streams with the explicit PDF standard font.
+  // Do not flatten: all original fields must remain editable.
+  try{const font=await pdf.embedFont(PDFLib.StandardFonts.Helvetica);form.updateFieldAppearances(font)}catch(e){console.warn('Some PDF appearances require a reader refresh',e)}
   const data=await pdf.save({useObjectStreams:true});const blob=new Blob([data],{type:'application/pdf'});
   const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=(ch.name||'character').replace(/[^\w -]/g,'_')+'-DND-2024.pdf';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),10000);
   if(/[α-ωΑ-Ω]/.test(JSON.stringify(ch)))alert('The official PDF uses a Latin font. Greek text was transliterated for compatibility; review the result before sharing.');

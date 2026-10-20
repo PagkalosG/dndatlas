@@ -1,14 +1,10 @@
-# D&D Atlas v3.1.5 — Character Sheet PDF layout patch
+# D&D Atlas v3.1.6 — PDF appearance fix
 
-Ανέβασε **μόνο** τα `pdf-export.js`, `index.html`, `sw.js`, `version.json` στη ρίζα του GitHub repository. Δεν αλλάζει το Cloudflare API ή η D1.
+Ανέβασε **μόνο** τα `pdf-export.js`, `index.html`, `sw.js`, `version.json` στη ρίζα του repository, κάνοντας αντικατάσταση. Cloudflare και D1 δεν αλλάζουν.
 
-## Τι διορθώνει
-- Προσδιορισμένα μεγέθη γραμματοσειράς στα πεδία Class Features, Species Traits, Feats, Equipment Training, Tools, Languages, Equipment, Appearance και Backstory.
-- Human Resourceful / Skillful / Versatile στα Species Traits και οι υπόλοιπες Fighter/Battle Master features στα Class Features.
-- Τα Feats εμφανίζονται ως ονόματα (π.χ. Tough, Savage Attacker), όχι ως εσωτερικά IDs.
-- Το πεδίο Tools δεν γεμίζει με όλα τα proficiencies ή τις γλώσσες όταν αποθηκεύονται ως ελεύθερο κείμενο.
-- Το Languages χρησιμοποιεί μόνο το `character.languages`, το Equipment μόνο το `character.inventory`.
-- Class/Subclass στη σωστή σειρά της επικεφαλίδας.
+- Διορθώνει τη σειρά ρύθμισης μεγέθους γραμματοσειράς και τη δημιουργία appearance streams για τα fillable multiline fields (Species Traits, Feats, Class Features, Languages, Equipment).
+- Συμπληρώνει Alignment και πέντε νομίσματα CP/SP/EP/GP/PP από τα δεδομένα του χαρακτήρα.
+- Διατηρεί το PDF επεξεργάσιμο.
+- Appearance και Background Story συμπληρώνονται μόνο όταν τα αντίστοιχα πεδία έχουν περιεχόμενο (και είναι ορατό στον εξαγωγέα).
 
-## Σημείωση
-Η εξαγωγή μπορεί να αναδείξει ελλιπή ή λανθασμένα πηγαία δεδομένα χαρακτήρα. Για παράδειγμα, αν η εφαρμογή δεν έχει συμπληρωμένη επιλογή εργαλείου, δεν εφευρίσκεται κατά την εξαγωγή. Το επίσημο PDF χρησιμοποιεί λατινικές γραμματοσειρές και η εξαγωγή μεταγράφει ελληνικό κείμενο. Έχει γίνει έλεγχος σύνταξης και γεωμετρίας των πραγματικών PDF fields, όχι ολοκληρωμένη δοκιμή από τον browser/Cloudflare.
+Δεν έχει γίνει πλήρης end-to-end επαλήθευση εμφάνισης στο GitHub/browser. Έλεγξε το αποτέλεσμα ανοίγοντάς το σε Chrome και Adobe Acrobat. Μην ανεβάσεις αρχείο με ευαίσθητη ιστορία άλλου παίκτη.
