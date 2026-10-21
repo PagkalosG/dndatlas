@@ -1,7 +1,7 @@
 {
-  "version": "3.1.7",
-  "updated": "2026-10-20",
+  "version": "3.2.0-partial",
+  "updated": "2026-10-21",
   "ruleset": "D&D 5e 2024",
-  "notes": "Short/Long Rest reporting, optional physical Hit Die healing, official 2024 full Hit Dice restoration on Long Rest",
+  "notes": "User rename and account revocation, journal thumbnails, weapon warning, cloud demo button removal",
   "build": "2026-10-20"
 }

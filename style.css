@@ -120,13 +120,8 @@ body.building{overflow:hidden!important}.atlas-builder{position:fixed;inset:0;ba
 .atlas-srd-credit{font-size:10px;overflow-wrap:anywhere}
 @media(max-width:600px){.atlas-srd-viewer>iframe{min-height:62vh}}
 
-/* D&D Atlas: keep filtered image cards the same size as a full gallery. */
-.atlas-journal-page .campaign-gallery {
-  grid-template-columns: repeat(auto-fill, minmax(130px, 180px));
-  justify-content: start;
-}
-.atlas-journal-page .campaign-gallery figure { min-width:0; width:100%; }
-.atlas-journal-page .campaign-gallery img { width:100%; height:145px; object-fit:contain; }
-@media(max-width:600px) {
-  .atlas-journal-page .campaign-gallery { grid-template-columns:repeat(2,minmax(0,180px)); }
-}
+/* v3.2: prevent a single filtered image from stretching across the gallery */
+.campaign-gallery{grid-template-columns:repeat(auto-fill,minmax(130px,180px));justify-content:start}
+.campaign-gallery figure{width:100%;min-width:0}
+.campaign-gallery img{object-fit:contain}
+@media(max-width:600px){.campaign-gallery{grid-template-columns:repeat(2,minmax(0,180px))}}

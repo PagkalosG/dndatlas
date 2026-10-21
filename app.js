@@ -341,7 +341,7 @@
     const kind=atlasWeaponKind(i),state=kind?weaponStateTag(i):'',star=kind?masteryStar(ch,kind):'';
     return `<div class="inv-item"><div class="overflow-hidden"><button class="linklike" data-item-detail="${attr(i.id)}" style="font-size:12px;text-align:left">${esc(i.name)}</button><div class="tiny muted">${esc(i.description||tr('Χωρίς περιγραφή','No description'))}${i.equipped?' · '+tr('Εξοπλισμένο','Equipped'):''}</div><div class="atlas-inventory-meta">${state}${kind?`<button type="button" class="btn sm" data-edit-item="${attr(i.id)}">${tr('Κατάσταση όπλου','Weapon condition')}</button>`:''}</div></div><div class="atlas-item-weapon-tools">${star}<span class="qty">×${i.qty}</span><button class="btn sm" data-edit-item="${attr(i.id)}">${tr('Επεξεργασία','Edit')}</button></div></div>`;
   }).join('')||`<div class="empty">${tr('Δεν έχουν προστεθεί αντικείμενα.','No items have been added.')}</div>`;
-  const masteryInfo=fighter?`<div class="atlas-inventory-mastery"><div class="atlas-mastery-alert"><div><strong>${tr('Weapon Mastery (Εξειδίκευση όπλων)','Weapon Mastery')} · ${chosen.length}/${limit}</strong><p>${tr('Πάτησε ☆ δίπλα στον τύπο όπλου. Το ★ σημαίνει επιλεγμένη εξειδίκευση. Μπορείς να αλλάξεις μία επιλογή μετά από Παρατεταμένη ανάπαυση· για διορθώσεις ισχύει η απόφαση του DM.','Tap ☆ next to a weapon kind; ★ means selected. You can exchange one choice after a Long Rest; corrections require DM approval.')}</p></div><button class="btn sm" data-action="choose-masteries">${tr('Άλλοι τύποι όπλων','Other weapon kinds')}</button></div></div>`:'';
+  const masteryInfo=fighter&&chosen.length<limit?`<div class="atlas-inventory-mastery"><div class="atlas-mastery-alert"><div><strong>${tr('Weapon Mastery (Εξειδίκευση όπλων)','Weapon Mastery')} · ${chosen.length}/${limit}</strong><p>${tr('Πάτησε ☆ δίπλα στον τύπο όπλου. Το ★ σημαίνει επιλεγμένη εξειδίκευση. Μπορείς να αλλάξεις μία επιλογή μετά από Παρατεταμένη ανάπαυση· για διορθώσεις ισχύει η απόφαση του DM.','Tap ☆ next to a weapon kind; ★ means selected. You can exchange one choice after a Long Rest; corrections require DM approval.')}</p></div><button class="btn sm" data-action="choose-masteries">${tr('Άλλοι τύποι όπλων','Other weapon kinds')}</button></div></div>`:'';
   return `<div class="page-title"><div><h2>${tr('Εξοπλισμός','Inventory & Equipment')}</h2><p>${tr('Όπλα, πανοπλίες, χρήματα και κατάσταση κάθε όπλου.','Weapons, armor, currency, and individual weapon conditions.')}</p></div>${btn(tr('+ Προσθήκη αντικειμένου','+ Add Item'),'add-item','primary sm')}</div>
   <div class="grid three">${panel(tr('ΧΡΗΜΑΤΑ','CURRENCY'),`<div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr));gap:4px">${['cp','sp','ep','gp','pp'].map(k=>`<div class="meta-box" style="text-align:center;padding:7px 2px"><small>${k.toUpperCase()}</small><strong>${money[k]||0}</strong></div>`).join('')}</div>`,`<button class="btn sm" data-action="edit-currency">${tr('Αλλαγή','Edit')}</button>`)}${panel(tr('ΣΥΝΔΥΑΣΜΟΙ ΕΞΟΠΛΙΣΜΟΥ','LOADOUTS'),`<div class="tile-list">${(ch.loadouts||[]).map((l,i)=>`<button class="tile" data-set-loadout="${i}"><span class="name">${i===ch.activeLoadout?'◉':'○'} ${esc(l.name)}</span><span class="right"><strong>AC ${l.ac}</strong></span></button>`).join('')}</div>`,`<button class="btn sm" data-action="edit-loadouts">${tr('Αλλαγή','Edit')}</button>`)}${panel(tr('ΒΑΡΟΣ','CARRYING'),`<div class="meta-box"><small>${tr('Συνολικό καταχωρισμένο βάρος (λίβρες)','Total listed weight (lb)')}</small><strong>${(ch.inventory||[]).reduce((sum,i)=>sum+(Number(i.weight)||0)*(Number(i.qty)||1),0).toFixed(1)}</strong></div>`)}</div>
   ${masteryInfo}<div class="page-title"><h2>${tr('Αναλώσιμα','Consumables')}</h2><button class="btn sm" data-atlas-add-consumable>${tr('+ Αναλώσιμο','+ Consumable')}</button></div>${panel(tr('ΑΝΑΛΩΣΙΜΑ','CONSUMABLES'),consumableRows(ch))}<div class="page-title"><h2>${tr('Λοιπά αντικείμενα','Other Items')}</h2></div><div class="item-grid">${visibleItems}</div>
@@ -1070,7 +1070,7 @@
     }
     cloud.url=cfg.apiUrl.replace(/\/$/,'');cloud.enabled=true;
     cloud.token=sessionStorage.getItem('dndatlas:session')||localStorage.getItem('dndatlas:remember')||'';
-    if(cloud.token){try{cloud.user=(await cloudRequest('/auth/me')).me;await cloudRefresh();cloudUnlock();return;}catch{cloud.token='';sessionStorage.removeItem('dndatlas:session');localStorage.removeItem('dndatlas:remember');}}
+    if(cloud.token){try{cloud.user=(await cloudRequest('/auth/me')).me;await cloudRefresh();await cloudTagsRefresh();cloudUnlock();return;}catch{cloud.token='';sessionStorage.removeItem('dndatlas:session');localStorage.removeItem('dndatlas:remember');}}
     cloudLoginScreen();
    }catch(e){cloudOverlay(`<h1>D&D Atlas</h1><div class="notice">${cloudMsg('Δεν είναι διαθέσιμο το API.','API unavailable.')} ${esc(e.message)}</div><button class="btn" onclick="location.reload()">Retry</button>`);}
   }
@@ -1118,12 +1118,25 @@
   }
   async function cloudUsers(){
    const d=await cloudRequest('/users');
-   let rows=d.users.map(u=>`<div class="cloud-account-row"><strong>${esc(u.username)} · ${esc(u.role)} ${u.active?'':'(inactive)'}</strong><small>${cloudMsg('Χαρακτήρας','Character')}: ${esc(characters.find(ch=>ch.id===u.ownerCharacterId)?.name||'—')}</small><div class="actions-inline"><button class="btn sm" data-cloud-pin="${u.id}">${cloudMsg('Νέο PIN','Reset PIN')}</button><button class="btn sm" data-cloud-assign="${u.id}">${cloudMsg('Ανάθεση','Assign')}</button>${u.role!=='creator'?`<button class="btn sm" data-cloud-toggle="${u.id}" data-active="${u.active?'1':'0'}">${u.active?cloudMsg('Απενεργοποίηση','Disable'):cloudMsg('Ενεργοποίηση','Enable')}</button><button class="btn sm warn" data-cloud-delete="${u.id}" data-username="${attr(u.username)}">${cloudMsg('Οριστική διαγραφή','Delete permanently')}</button>`:''}</div></div>`).join('');
+   let rows=d.users.map(u=>`<div class="cloud-account-row"><strong>${esc(u.username)} · ${esc(u.role)} ${u.active?'':'(inactive)'}</strong><small>${cloudMsg('Χαρακτήρας','Character')}: ${esc(characters.find(ch=>ch.id===u.ownerCharacterId)?.name||'—')}</small><div class="actions-inline"><button class="btn sm" data-cloud-edit="${u.id}" data-username="${attr(u.username)}">${cloudMsg('Όνομα χρήστη','Edit username')}</button><button class="btn sm" data-cloud-pin="${u.id}">${cloudMsg('Νέο PIN','Reset PIN')}</button><button class="btn sm" data-cloud-assign="${u.id}">${cloudMsg('Ανάθεση','Assign')}</button>${u.role!=='creator'?`<button class="btn sm" data-cloud-toggle="${u.id}" data-active="${u.active?'1':'0'}">${u.active?cloudMsg('Απενεργοποίηση','Disable'):cloudMsg('Ενεργοποίηση','Enable')}</button><button class="btn sm warn" data-cloud-delete="${u.id}" data-username="${attr(u.username)}">${cloudMsg('Οριστική διαγραφή','Delete permanently')}</button>`:''}</div></div>`).join('');
    openModal(cloudMsg('Χρήστες — μόνο Creator','Users — Creator only'),`<p>${cloudMsg('Τα υπάρχοντα PIN δεν εμφανίζονται. Μπορείς μόνο να τα αλλάξεις.','Existing PINs cannot be viewed, only reset.')}</p><form id="cloud-create-user"><div class="form-grid"><div class="field"><label>Username<input name="username" required pattern="[A-Za-z][A-Za-z0-9_-]{2,29}"></label></div><div class="field"><label>${cloudMsg('PIN (6–12 ψηφία)','PIN (6–12 digits)')}<input type="password" name="pin" required minlength="6" maxlength="12" pattern="[0-9]{6,12}" inputmode="numeric" autocomplete="new-password" title="6–12 digits (0–9)"></label></div><div class="field"><label>Role<select name="role"><option value="player">Player</option><option value="dm">DM</option></select></label></div></div><button class="btn primary" type="submit">${cloudMsg('Προσθήκη χρήστη','Add user')}</button></form>${rows}`,`<button class="btn" data-action="close-modal">${cloudMsg('Κλείσιμο','Close')}</button>`,true);
   }
   async function cloudTagsRefresh(){
    if(!cloud.enabled||!cloud.token)return;
-   try{const r=await cloudRequest('/images/tags');cloud.imageTags=Object.fromEntries(r.images.map(i=>[i.id,i]));if(view==='journal')renderApp();}catch(e){console.warn('Image tags unavailable',e);}
+   const r=await cloudRequest('/images/tags');
+   cloud.imageTags=Object.fromEntries((r.images||[]).map(i=>[i.id,i]));
+   if(view==='journal')renderApp();
+  }
+  function editImageTags(fileId){
+   if(!['dm','creator'].includes(cloud.user?.role))return toast(cloudMsg('Μόνο DM ή Creator.','DM or Creator only.'));
+   const prev=cloud.imageTags[fileId]||{sessions:[],tags:[]};
+   const label=campaignImages.find(x=>x.id===fileId)?.title||fileId;
+   openModal(cloudMsg('Ετικέτες εικόνας','Image tags'),
+    `<p class="muted small">${esc(label)}</p><form id="atlas-image-tags-form" data-file-id="${attr(fileId)}">`+
+    `<div class="field"><label>${cloudMsg('Sessions (διαχωρισμένα με κόμμα)','Sessions (comma separated)')}<input name="sessions" maxlength="1600" value="${attr((prev.sessions||[]).join(', '))}"></label></div>`+
+    `<div class="field"><label>${cloudMsg('Άλλα tags (διαχωρισμένα με κόμμα)','Other tags (comma separated)')}<input name="tags" maxlength="2400" value="${attr((prev.tags||[]).join(', '))}"></label></div>`+
+    `<button type="submit" class="btn primary">${cloudMsg('Αποθήκευση','Save')}</button></form>`,
+    `<button type="button" class="btn" data-action="close-modal">${cloudMsg('Άκυρο','Cancel')}</button>`);
   }
   function cloudApplyAccessUI(){
    if(!cloud.enabled||!cloud.user)return;
@@ -1165,12 +1178,19 @@
   // Network is authoritative: authorization is enforced twice (UI and API).
   const writeActions=new Set(['save-notes','save-plan','new-character','delete-character','reset-data','load-demo','add-journal','add-item','add-attack','atlas-edit-story','portrait','inspiration','short-rest','long-rest','hp-heal','hp-damage','level-up','save-hp','edit-character','edit-abilities','edit-classes','edit-loadouts','choose-masteries','pick-maneuvers','pick-feats','add-feature','add-resource','conditions','save-currency','edit-currency','edit-hitdice','spend-hitdie','exhaust-down','exhaust-up']);
   document.addEventListener('click',e=>{
-   const el=e.target.closest('[data-atlas-session],[data-cloud-admin],[data-cloud-refresh],[data-cloud-logout],[data-cloud-import],[data-cloud-pin],[data-cloud-assign],[data-cloud-toggle],[data-cloud-delete],[data-cloud-recover],[data-atlas-use-consumable],[data-atlas-add-consumable],[data-atlas-consumable-detail],[data-atlas-tags],[data-atlas-session-filter]');
+   const el=e.target.closest('[data-atlas-session],[data-cloud-admin],[data-cloud-refresh],[data-cloud-logout],[data-cloud-import],[data-cloud-pin],[data-cloud-edit],[data-cloud-assign],[data-cloud-toggle],[data-cloud-delete],[data-cloud-recover],[data-atlas-use-consumable],[data-atlas-add-consumable],[data-atlas-consumable-detail],[data-atlas-tags],[data-atlas-session-filter]');
    if(el){e.preventDefault();e.stopImmediatePropagation();const d=el.dataset;
     if(d.atlasSession!==undefined){cloudAccount();return;}
     if(d.cloudAdmin!==undefined){cloudUsers().catch(e=>toast(e.message));return;}
     if(d.cloudRefresh!==undefined){cloudRefresh().then(()=>toast('Synced')).catch(e=>toast(e.message));return;}
     if(d.cloudLogout!==undefined){cloudRequest('/auth/logout','POST',{}).catch(()=>{});cloud.user=null;cloud.token='';cloud.ready=false;sessionStorage.removeItem('dndatlas:session');localStorage.removeItem('dndatlas:remember');closeModal();cloudLoginScreen();return;}
+    if(d.cloudEdit!==undefined){
+     if(!canManageUsers())return;
+     const next=prompt(cloudMsg('Νέο username (3–30 χαρακτήρες, λατινικά/αριθμοί/_/-):','New username (3–30 characters, letters/numbers/_/-):'),d.username||'');
+     if(next===null||next.trim()===(d.username||''))return;
+     if(!/^[a-z][a-z0-9_-]{2,29}$/i.test(next.trim()))return toast(cloudMsg('Μη έγκυρο username.','Invalid username.'));
+     cloudRequest('/users/'+encodeURIComponent(d.cloudEdit),'PATCH',{username:next.trim()}).then(()=>cloudUsers()).then(()=>toast(cloudMsg('Το username ενημερώθηκε.','Username updated.'))).catch(e=>toast(e.message));return;
+    }
     if(d.cloudPin!==undefined){cloudResetPinScreen(d.cloudPin).catch(e=>toast(e.message));return;}
     if(d.cloudAssign!==undefined){if(!canManageUsers())return;const id=prompt('Character ID to assign (blank to unassign):\n'+characters.map(c=>c.name+': '+c.id).join('\n'));if(id===null)return;cloudRequest('/users/'+d.cloudAssign,'PATCH',{characterId:id||null}).then(()=>Promise.all([cloudRefresh(),cloudUsers()])).catch(e=>toast(e.message));return;}
     if(d.cloudToggle!==undefined){if(!canManageUsers())return;cloudRequest('/users/'+d.cloudToggle,'PATCH',{active:d.active!=='1'}).then(()=>cloudUsers()).catch(e=>toast(e.message));return;}
@@ -1187,7 +1207,7 @@
     if(d.atlasAddConsumable!==undefined){if(canEditCharacter(c()))editItem('','consumable');else toast(tr('Δεν έχεις δικαίωμα επεξεργασίας.','You cannot edit this character.'));return;}
     if(d.atlasConsumableDetail!==undefined){atlasConsumablePopup(d.atlasConsumableDetail);return;}
     if(d.atlasUseConsumable!==undefined){useConsumable(d.atlasUseConsumable);return;}
-    if(d.atlasTags!==undefined){if(!['dm','creator'].includes(cloud.user?.role||''))return toast('DM or Creator only');const fileId=d.atlasTags;const prev=cloud.imageTags[fileId]||{sessions:[],tags:[]};const sessions=prompt('Session tags, comma separated',prev.sessions.join(', '));if(sessions===null)return;const tags=prompt('Other tags, comma separated',prev.tags.join(', '));if(tags===null)return;cloudRequest('/images/tags','PUT',{id:fileId,sessions:sessions.split(',').map(x=>x.trim()).filter(Boolean),tags:tags.split(',').map(x=>x.trim()).filter(Boolean)}).then(()=>cloudTagsRefresh()).catch(e=>toast(e.message));return;}
+    if(d.atlasTags!==undefined){editImageTags(d.atlasTags);return;}
    }
    if(!cloud.enabled||!cloud.user)return;
    if(canEditCharacter(c()))return;
@@ -1199,12 +1219,29 @@
   },true);
   document.addEventListener('change',e=>{if(e.target.matches('[data-atlas-session-filter]')){campaignTagFilter=e.target.value;renderApp();}},true);
   document.addEventListener('submit',async e=>{
+   if(e.target.id==='atlas-image-tags-form'){
+    e.preventDefault();e.stopImmediatePropagation();
+    const form=e.target, fileId=form.dataset.fileId, fd=new FormData(form);
+    const parse=value=>[...new Set(String(value||'').split(',').map(x=>x.trim()).filter(Boolean))];
+    const sessions=parse(fd.get('sessions')),tags=parse(fd.get('tags'));
+    if(sessions.length>20||tags.length>30||[...sessions,...tags].some(x=>x.length>=80)){
+     toast(cloudMsg('Έως 20 sessions, 30 tags και 79 χαρακτήρες ανά tag.','Maximum 20 sessions, 30 tags, and 79 characters per tag.'));return;
+    }
+    const button=form.querySelector('button[type="submit"]');if(button)button.disabled=true;
+    try{
+     await cloudRequest('/images/tags','PUT',{id:fileId,sessions,tags});
+     await cloudTagsRefresh();
+     closeModal();
+     toast(cloudMsg('Οι ετικέτες αποθηκεύτηκαν.','Tags saved.'));
+    }catch(ex){toast(cloudMsg('Η αποθήκευση απέτυχε: ','Save failed: ')+ex.message);if(button)button.disabled=false;}
+    return;
+   }
    if(e.target.id==='cloud-login-form'){
     e.preventDefault();e.stopImmediatePropagation();const fd=new FormData(e.target);
     try{const info=await cloudRequest('/auth/login','POST',{username:fd.get('username'),pin:fd.get('pin')},false);
       cloud.user=info.me;cloud.token=info.token;
       if(fd.get('remember'))localStorage.setItem('dndatlas:remember',info.token);else sessionStorage.setItem('dndatlas:session',info.token);
-      await cloudRefresh();cloudUnlock();cloudTagsRefresh().catch(()=>{});
+      await cloudRefresh();cloudUnlock();cloudTagsRefresh().catch(e=>console.warn('Image tags unavailable',e));
     }catch(ex){cloudLoginScreen(ex.message);}
    }
    if(e.target.id==='cloud-reset-pin-form'){
