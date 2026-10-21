@@ -22,6 +22,8 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check src/app.js
+          node --check src/rules-2024.js
+          node --test tests/rules-2024.test.cjs
           node --check src/data.js
           node --check src/i18n.js
           node --check src/pdf-export.js
@@ -38,7 +40,6 @@ jobs:
           cp -a assets/campaign _site/assets/campaign
           cp -a assets/icons/. _site/
           cp assets/official-2024-character-sheet.pdf _site/official-2024-character-sheet.pdf
-          cp tests/demo-party.json _site/demo-party.json
           cp docs/SRD_ATTRIBUTION.md _site/SRD_ATTRIBUTION.md
           touch _site/.nojekyll
           test -f _site/index.html && test -f _site/app.js && test -f _site/sw.js

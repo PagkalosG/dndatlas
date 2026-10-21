@@ -1,6 +1,6 @@
 {
-  "version": "3.2.3",
+  "version": "3.2.5",
   "updated": "2026-10-21",
   "ruleset": "D&D 5e 2024",
-  "notes": "Repository reorganized with GitHub Actions build; Celestial Atlas icon preserved; 2024 rules and existing app maintained"
+  "notes": "D&D 2024: Student of War selection origin tracked, class-based weapon proficiency, legal weapon mastery, Settings cleanup"
 }
