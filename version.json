@@ -1,0 +1,6 @@
+{
+  "version": "3.2.3",
+  "updated": "2026-10-21",
+  "ruleset": "D&D 5e 2024",
+  "notes": "Repository reorganized with GitHub Actions build; Celestial Atlas icon preserved; 2024 rules and existing app maintained"
+}
