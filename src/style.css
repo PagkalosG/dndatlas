@@ -139,3 +139,11 @@ body.building{overflow:hidden!important}.atlas-builder{position:fixed;inset:0;ba
 /* v3.2 choice display — applies to every feature with a recorded selection */
 .atlas-reference-row small.atlas-feature-selected,.atlas-feature-selected{color:#e5c17a;font-weight:650;letter-spacing:.015em;}
 .atlas-student-panel{margin:14px 0 20px}.atlas-student-panel .atlas-mastery-alert{margin:8px 0}.atlas-student-panel .panel-content{display:grid;gap:8px}
+
+/* 2024 Tools: player selections and concrete nonmagical tool proficiencies */
+.atlas-tool-card{margin-top:12px;padding:14px;border:1px solid rgba(216,181,122,.48);border-radius:12px;background:rgba(216,181,122,.055);display:grid;gap:8px}
+.atlas-tool-card>strong{color:#e5c17a}
+.atlas-tool-card .rowline{align-items:flex-start;gap:12px;flex-wrap:wrap}
+.atlas-tool-card .rowline b{min-width:110px;color:#e5c17a}
+.atlas-tool-card .rowline span{flex:1;min-width:180px;white-space:normal}
+.atlas-tool-card a{color:#e5c17a}
