@@ -39,7 +39,7 @@
  // Only locally generated raster data URLs are rendered (never arbitrary URLs from an import).
  const safePortrait=(src)=>typeof src==='string' && /^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(src) && src.length<750000 ? src : '';
  const initials=(ch)=>esc((ch.name||'?').split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'?');
- const portraitMarkup=(ch)=>safePortrait(ch.portrait)?`<img class="portrait-image" src="${attr(ch.portrait)}" alt="${attr(ch.name)} portrait" draggable="false">`:`<span class="portrait-initials">${initials(ch)}</span>`;
+ const portraitMarkup=(ch)=>mediaSrc(ch.portrait)?`<img class="portrait-image" src="${attr(mediaSrc(ch.portrait))}" alt="${attr(ch.name)} portrait" draggable="false">`:`<span class="portrait-initials">${initials(ch)}</span>`;
  const signed=(n)=>n>=0?`+${n}`:`${n}`;
  const abilityMod=(v)=>Math.floor((Number(v||10)-10)/2);
  const formatLevel=(l)=>l===0?'Cantrip':`Level ${l}`;
@@ -873,13 +873,13 @@ document.addEventListener('submit',e=>{
       .replace('✎ Change portrait',tr('✎ Ρύθμιση εικόνας','✎ Adjust portrait'));
   };
   portraitDialog=function(){
-    const ch=c(),has=!!safePortrait(ch.portrait);portraitDraft={...portraitState(ch)};
-    const img=has?`<img class="overview-positioned-image" id="portrait-adjust-image" src="${attr(ch.portrait)}" alt="${attr(ch.name)}" style="${portraitStyle(portraitDraft)}">`:`<div class="atlas-portrait-fallback">${initials(ch)}</div>`;
+    const ch=c(),has=!!mediaSrc(ch.portrait);portraitDraft={...portraitState(ch)};
+    const img=has?`<img class="overview-positioned-image" id="portrait-adjust-image" src="${attr(mediaSrc(ch.portrait))}" alt="${attr(ch.name)}" style="${portraitStyle(portraitDraft)}">`:`<div class="atlas-portrait-fallback">${initials(ch)}</div>`;
     openModal(tr('Ρύθμιση εικόνας στην Επισκόπηση','Adjust Overview portrait'),`<div class="portrait-adjust-layout">
       <div><div class="portrait-adjust-frame" id="portrait-adjust-preview" aria-label="${tr('Σύρε την εικόνα για αλλαγή θέσης','Drag to reposition image')}">${img}</div><p class="muted small">${tr('Σύρε την εικόνα με ποντίκι ή δάχτυλο για να αλλάξεις το κάδρο.','Drag the image with a mouse or your finger to frame it.')}</p></div>
       <div class="portrait-controls"><label>${tr('Μεγέθυνση','Zoom')} <strong id="portrait-zoom-label">${Math.round(portraitDraft.zoom*100)}%</strong></label><input id="portrait-zoom-range" data-portrait-zoom type="range" min="1" max="3" step="0.05" value="${portraitDraft.zoom}" ${has?'':'disabled'}>
       <p class="muted small">${tr('Η ρύθμιση ισχύει ΜΟΝΟ για τη μεγάλη εικόνα της Επισκόπησης. Δεν αλλοιώνει το αρχικό αρχείο.','This adjustment affects ONLY the large Overview portrait. The original image is unchanged.')}</p>
-      <button type="button" class="btn sm" data-portrait-reset ${has?'':'disabled'}>${tr('Επαναφορά κάδρου','Reset framing')}</button><button type="button" class="btn sm" data-action="choose-portrait">${tr('Επιλογή / αλλαγή εικόνας','Choose / change image')}</button></div></div>`,
+      <button type="button" class="btn sm" data-portrait-reset ${has?'':'disabled'}>${tr('Επαναφορά κάδρου','Reset framing')}</button><button type="button" class="btn sm" data-action="choose-portrait">${tr('Επιλογή / αλλαγή εικόνας','Choose / change image')}</button><button type="button" class="btn sm" data-action="portrait-drive">${tr('Εικόνα από κοινό Drive','Choose from shared Drive')}</button></div></div>`,
       `${has?`<button class="btn primary" type="button" data-portrait-save>${tr('Αποθήκευση θέσης','Save framing')}</button><button class="btn warn" data-action="remove-portrait">${tr('Αφαίρεση εικόνας','Remove image')}</button>`:''}<button class="btn" data-action="close-modal">${tr('Κλείσιμο','Close')}</button>`,true);
   };
   const portraitRefresh=()=>{if(!portraitDraft)return;const image=document.getElementById('portrait-adjust-image');if(image)image.style.cssText=portraitStyle(portraitDraft);const z=document.getElementById('portrait-zoom-label');if(z)z.textContent=Math.round(portraitDraft.zoom*100)+'%';};
@@ -889,15 +889,25 @@ document.addEventListener('submit',e=>{
   const fighterGreek={'Fighting Style':'Στυλ μάχης','Second Wind':'Δεύτερη ανάσα','Weapon Mastery':'Εξειδίκευση όπλων','Action Surge':'Έκρηξη δράσης','Tactical Mind':'Τακτική σκέψη','Fighter Subclass':'Επιλογή υποκλάσης','Ability Score Improvement / Feat':'Αύξηση χαρακτηριστικών ή ειδικό προνόμιο','Extra Attack':'Επιπλέον επίθεση','Tactical Shift':'Τακτική μετακίνηση','Subclass Feature':'Ικανότητα υποκλάσης','Indomitable':'Ακατάβλητος','Tactical Master':'Κυρίαρχος τακτικής','Two Extra Attacks':'Δύο επιπλέον επιθέσεις','Studied Attacks':'Μελετημένες επιθέσεις','Epic Boon':'Επικό προνόμιο','Three Extra Attacks':'Τρεις επιπλέον επιθέσεις'};
   const fighterDescription={ 'Extra Attack':['Δύο επιθέσεις αντί για μία όταν εκτελείς την ενέργεια Επίθεσης.','Make two attacks instead of one when taking the Attack action.'], 'Ability Score Improvement / Feat':['Επιλέγεις το επιτρεπόμενο προνόμιο ή αύξηση χαρακτηριστικών για το επίπεδό σου.','Choose an eligible feat or ability score improvement for your level.'],'Fighter Subclass':['Επιλέγεις την υποκλάση σου. Οι διαθέσιμες ικανότητες εξαρτώνται από αυτήν.','Choose a subclass and gain its level-specific features.'],'Weapon Mastery':['Επιλέγεις τους νόμιμους τύπους όπλων των οποίων τις ιδιότητες εξειδίκευσης γνωρίζεις.','Choose eligible weapons whose mastery properties you can use.']};
   const sorcererMilestones={1:['Spellcasting','Innate Sorcery'],2:['Font of Magic','Metamagic'],3:['Sorcerer Subclass'],4:['Ability Score Improvement / Feat'],5:['Level 3 Spell Slots'],7:['Sorcery Incarnate'],10:['Metamagic Options'],17:['Level 9 Spell Slots'],19:['Epic Boon'],20:['Arcane Apotheosis']};
-  function progression(ch){const main=(ch.classes||[])[0]||{name:'Fighter',level:1},current=Number(main.level)||1;const isF=main.name==='Fighter', milestones=isF?fighterMilestones:main.name==='Sorcerer'?sorcererMilestones:{};
-    return `<div class="progression-grid">${Array.from({length:20},(_,j)=>{const lvl=j+1,names=milestones[lvl]||[],unmapped=!isF&&main.name!=='Sorcerer';return `<details class="level-row ${lvl===current?'current':''} ${lvl<current?'completed':''}" ${lvl===current||lvl===current+1?'open':''}><summary><span class="level-number">${lvl}</span><strong>${tr('Επίπεδο','Level')} ${lvl}</strong><span class="level-status">${lvl<current?'✓':lvl===current?tr('Τώρα','Current'):tr('Επόμενο','Upcoming')}</span></summary><div class="level-content">${names.length?names.map(n=>`<p><b>${esc(n)}${L.getLanguage()==='el'?' ('+esc(fighterGreek[n]||n)+')':''}</b><br><span class="muted">${esc((fighterDescription[n]||[tr('Αποκτάς τη δυνατότητα στο συγκεκριμένο επίπεδο. Για λεπτομέρειες δες τη Βιβλιοθήκη και τους κανόνες της υποκλάσης.','Feature becomes available at this level. Check the Library and subclass rules for details.'), 'Feature unlocks at this class level. Consult the class and subclass rules.'])[L.getLanguage()==='el'?0:1])}</span></p>`).join(''):`<p class="muted">${unmapped?tr('Δεν υπάρχει ακόμη πλήρως ελεγμένος πίνακας για αυτή την κλάση. Συμβουλεύσου τους κανόνες 2024.','A fully verified progression table is not yet implemented for this class. Consult the 2024 rules.'):tr('Περισσότερες βελτιώσεις και επιλογές εξαρτώνται από την κλάση και την υποκλάση.','Further improvements and choices depend on class and subclass.')}</p>`}</div></details>`;}).join('')}</div>`;
+  function progression(ch){
+    const main=(ch.classes||[])[0]||{name:'Fighter',level:1},current=Number(main.level)||1;
+    const levels=window.ATLAS_PROGRESSION_2024?.[main.name]||[];
+    return '<div class="progression-grid">'+levels.map(x=>{
+      const names=x.features||[],lvl=x.level;
+      return `<details class="level-row ${lvl===current?'current':''} ${lvl<current?'completed':''}" ${lvl===current||lvl===current+1?'open':''}>
+       <summary><span class="level-number">${lvl}</span><strong>${tr('Επίπεδο','Level')} ${lvl}</strong>
+       <span class="level-status">${lvl<current?'✓':lvl===current?tr('Τώρα','Current'):tr('Επόμενο','Upcoming')}</span></summary>
+       <div class="level-content"><p class="muted small">PB +${x.proficiencyBonus} · Hit Die d${x.hitDie} · ${lvl>1?'Fixed HP +'+x.fixedHpAfterFirst+' + CON':'Starting class HP'}</p>
+       ${names.length?names.map(n=>`<p><b>${esc(n)}</b></p>`).join(''):`<p class="muted">${tr('Εξέλιξη μέσω spell slots / class resources και subclass επιλογών.','Progression through spell slots / class resources and subclass choices.')}</p>`}
+       </div></details>`;
+    }).join('')+'</div>';
   }
   renderCharacter=function(ch){
     const group=ch.classes.map(x=>`${esc(pairedTerm(x.name))} ${x.level}${x.subclass?' · '+esc(pairedTerm(x.subclass)):''}`).join(' / ');
     return `<div class="page-title"><div><h2>${tr('Χαρακτήρας','Character')}</h2><p>${tr('Στοιχεία χαρακτήρα και εξέλιξη από το επίπεδο 1 έως το 20.','Character details and level progression from 1 to 20.')}</p></div>${btn(tr('Επεξεργασία','Edit'),'edit-character','sm')}</div>
     <div class="grid two">${section('Ταυτότητα','Identity',`<div class="rowline"><span>${tr('Όνομα','Name')}</span><strong>${esc(ch.name)}</strong></div><div class="rowline"><span>${tr('Είδος','Species')}</span><strong>${esc(ch.species)}</strong></div><div class="rowline"><span>${tr('Υπόβαθρο','Background')}</span><strong>${esc(ch.background||'—')}</strong></div><div class="rowline"><span>${tr('Κλάση / Υποκλάση','Class / Subclass')}</span><strong>${group}</strong></div><div class="rowline"><span>${tr('Ευθυγράμμιση','Alignment')}</span><strong>${esc(ch.alignment||'—')}</strong></div>`)}${section('Επάρκειες και γλώσσες','Proficiencies & languages',`<div class="detail-description">${esc(ch.proficiencies||tr('Δεν έχουν καταχωριστεί.','Not recorded.'))}</div><hr><div class="detail-description">${esc(ch.languages||tr('Δεν έχουν καταχωριστεί.','Not recorded.'))}</div>`)}</div>
     ${section('Εξέλιξη επιπέδων 1–20','Level progression 1–20',progression(ch),`<button class="btn sm" data-action="level-up">${tr('Αύξηση επιπέδου','Level Up')}</button>`)}
-    ${section('Εξαγωγή και αντίγραφα','Export & backups',`<div class="actions-inline"><button class="btn sm primary" data-atlas-print>${tr('Εκτύπωση φύλλου χαρακτήρα 2024 / PDF','Print 2024 character sheet / PDF')}</button><button class="btn sm" data-action="backup">${tr('Αντίγραφο JSON','JSON backup')}</button></div><p class="muted small">${tr('Η εκτυπώσιμη μορφή ακολουθεί τα δεδομένα και τους υπολογισμούς του 2024. Δεν είναι το επίσημο PDF της Wizards.','This printable layout uses 2024 rules and values. It is not the Wizards official PDF template.')}</p>`)}`;
+    ${section('Εξαγωγή και αντίγραφα','Export & backups',`<div class="actions-inline"><button class="btn sm primary" data-atlas-print>${tr('Εκτύπωση φύλλου χαρακτήρα 2024 / PDF','Print 2024 character sheet / PDF')}</button><button class="btn sm" data-action="download-character-docx">${tr('Εξαγωγή DOCX','Export DOCX')}</button><button class="btn sm" data-action="level-progression">${tr('Πίνακας όλων των κλάσεων','All classes reference')}</button></div><p class="muted small">${tr('Η εκτυπώσιμη μορφή ακολουθεί τα δεδομένα και τους υπολογισμούς του 2024. Δεν είναι το επίσημο PDF της Wizards.','This printable layout uses 2024 rules and values. It is not the Wizards official PDF template.')}</p>`)}`;
   };
 
   let combatSpellMode='combat';
@@ -1547,7 +1557,13 @@ document.addEventListener('submit',e=>{
         const hpDie=D.classes[cls]?.die||8,con=Math.floor(((q.abilities.CON||10)-10)/2),lev=Number(values.LEVEL);
         const maxhp=Math.max(1,hpDie+con+(lev-1)*(Math.floor(hpDie/2)+1+con));
         q.hp={max:maxhp,current:maxhp,temp:0};q.hitDice={max:lev,used:0};
-        q.pendingChoices2024=[{key:'docx-review',label:'Verify imported 2024 character choices',notes:'Confirm species, background boosts, class features, feats, spells, equipment and fixed HP with the DM.',status:'pending'}];
+        q.pendingChoices2024=[
+          {key:'docx-background',label:'Confirm 2024 background ability increases and Origin Feat',notes:'Check the 2024 background rules and Standard Array.',status:'pending'},
+          {key:'docx-species',label:'Confirm species traits and languages',notes:'Choose each option granted by the 2024 species.',status:'pending'},
+          {key:'docx-features',label:'Confirm class/subclass choices',notes:'Use the 2024 class progression for this level.',status:'pending'},
+          {key:'docx-spells',label:'Select spells and required proficiencies',notes:'Choose spells in the app; spell slots and prepared spells depend on the class.',status:'pending'},
+          {key:'docx-equipment',label:'Confirm equipment and fixed HP',notes:'Check armor training, weapon proficiencies, equipment and HP bonuses.',status:'pending'}
+        ];
         if(!confirm(tr('Να δημιουργηθεί χαρακτήρας από το DOCX: ','Create character from DOCX: ')+q.name+'?'))return;
         if(cloud.enabled){await cloudRequest('/characters/'+encodeURIComponent(q.id),'POST',{character:q});await cloudRefresh();}
         else{characters.push(q);selectedId=q.id;update();}
