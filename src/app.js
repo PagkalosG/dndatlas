@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.2.8';
+ const APP_VERSION='3.2.9';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -366,7 +366,27 @@
   const items=atlasAllFeatures(ch);
   return items.length?items.map(f=>`<button class="atlas-reference-row" data-feature-detail="${attr(f.id)}"><span><b>${esc(pairedTerm(f.name))}</b><small class="${f.selectedValue?'atlas-feature-selected':''}">${esc(f.selectedValue||f.subline||f.source||'')}${f.level?' · '+tr('Επίπεδο','Level')+' '+f.level:''}</small></span><span class="atlas-chevron">›</span></button>`).join(''):`<p class="muted">${tr('Δεν υπάρχουν καταχωρισμένες ικανότητες.','No features recorded.')}</p>`;
  }
- function renderOverview(ch){return `<div class="atlas-overview">${atlasOverviewHeader(ch)}<div class="atlas-rest-row"><button class="btn primary" data-action="short-rest">🪑 ${tr('Σύντομη ανάπαυση','Short Rest')}</button><button class="btn primary" data-action="long-rest">🛏️ ${tr('Παρατεταμένη ανάπαυση','Long Rest')}</button></div>${masteryAlert(ch)}${studentOverviewAlert(ch)}${atlasStory(ch)}${atlasCoreStats(ch)}${panel('ABILITY SCORES',atlasOverviewAbilities(ch),'<button class="btn sm" data-action="edit-abilities">Edit</button>')}${panel('SKILLS',atlasOverviewSkills(ch),'','All 18 skills')}<div class="atlas-overview-bottom">${panel('FEATS',atlasOverviewOwned(ch,'feat'))}${panel('FEATURES',atlasOverviewOwned(ch,'feature'))}</div><div class="atlas-overview-bottom-note">${tr('Κανόνες: D&D 2024. Τα εισαγόμενα φύλλα ίσως χρειάζονται έλεγχο εκκρεμών επιλογών.','Ruleset: D&D 2024 only. Existing/imported sheets may need review for unresolved character choices.')}</div></div>`;}
+
+ function pendingChoiceAlert(ch){
+  const choices=(ch.pendingChoices2024||[]).filter(x=>x.status!=='resolved');
+  if(!choices.length)return '';
+  const can= !cloud.enabled||canEditCharacter(ch);
+  return '<section class="atlas-mastery-alert" role="status"><div><strong>'+esc(tr('Εκκρεμείς επιλογές χαρακτήρα','Pending character choices'))+' ('+choices.length+')</strong><p>'+esc(tr('Ο χαρακτήρας χρειάζεται επιβεβαίωση πριν θεωρηθεί ολοκληρωμένος.','This character needs choices confirmed before it is complete.'))+'</p></div>'+(can?'<button class="btn primary" data-action="pending-choices">'+esc(tr('Διαχείριση επιλογών','Review choices'))+'</button>':'')+'</section>';
+ }
+ function showPendingChoices(){
+  const ch=c(),choices=ch.pendingChoices2024||[];
+  if(cloud.enabled&&!canEditCharacter(ch))return toast(tr('Δεν έχεις δικαίωμα επεξεργασίας.','You cannot edit this character.'));
+  const list=choices.map((p,i)=>'<div class="tile"><div><strong>'+esc(p.label||p.key)+'</strong><p class="muted small">'+esc(p.notes||'')+'</p><p class="small">'+esc(p.status==='resolved'?tr('Επιβεβαιωμένο','Confirmed'):tr('Εκκρεμεί','Pending'))+(p.value?' · '+esc(p.value):'')+'</p></div><button class="btn sm" data-action="pending-edit:'+i+'">'+esc(tr('Επιλογή','Choose'))+'</button></div>').join('');
+  openModal(tr('Εκκρεμείς επιλογές','Pending choices'),'<p class="muted">'+esc(tr('Οι επιλογές αποθηκεύονται στον χαρακτήρα. Για skills, feats και spells έλεγξε επίσης τις αντίστοιχες καρτέλες.','Choices are saved to this character. For skills, feats and spells, also verify the appropriate tabs.'))+'</p><div class="tile-list">'+list+'</div>',btn(tr('Κλείσιμο','Close'),'close-modal'),true);
+ }
+ function editPendingChoice(index){
+  const ch=c(),p=(ch.pendingChoices2024||[])[index];if(!p)return;
+  const options=Array.isArray(p.options)?p.options:[];
+  const control=options.length?'<select name="pendingValue" required><option value="">—</option>'+options.map(v=>'<option value="'+attr(v)+'" '+(p.value===v?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':'<textarea name="pendingValue" required maxlength="1000" rows="3" placeholder="'+attr(tr('Η επιλογή που επιβεβαιώνει ο παίκτης','Player-confirmed choice'))+'">'+esc(p.value||'')+'</textarea>';
+  openModal(p.label||p.key,'<form id="atlas-pending-choice-form" data-choice-index="'+index+'"><p class="muted">'+esc(p.notes||'')+'</p><label>'+esc(tr('Επιλογή / επιβεβαίωση','Choice / confirmation'))+control+'</label><div class="actions-inline"><button class="btn primary" type="submit">'+esc(tr('Αποθήκευση επιλογής','Save choice'))+'</button><button class="btn" type="button" data-action="pending-choices">'+esc(tr('Πίσω','Back'))+'</button></div></form>','',true);
+ }
+
+ function renderOverview(ch){return `<div class="atlas-overview">${atlasOverviewHeader(ch)}<div class="atlas-rest-row"><button class="btn primary" data-action="short-rest">🪑 ${tr('Σύντομη ανάπαυση','Short Rest')}</button><button class="btn primary" data-action="long-rest">🛏️ ${tr('Παρατεταμένη ανάπαυση','Long Rest')}</button></div>${masteryAlert(ch)}${studentOverviewAlert(ch)}${pendingChoiceAlert(ch)}${atlasStory(ch)}${atlasCoreStats(ch)}${panel('ABILITY SCORES',atlasOverviewAbilities(ch),'<button class="btn sm" data-action="edit-abilities">Edit</button>')}${panel('SKILLS',atlasOverviewSkills(ch),'','All 18 skills')}<div class="atlas-overview-bottom">${panel('FEATS',atlasOverviewOwned(ch,'feat'))}${panel('FEATURES',atlasOverviewOwned(ch,'feature'))}</div><div class="atlas-overview-bottom-note">${tr('Κανόνες: D&D 2024. Τα εισαγόμενα φύλλα ίσως χρειάζονται έλεγχο εκκρεμών επιλογών.','Ruleset: D&D 2024 only. Existing/imported sheets may need review for unresolved character choices.')}</div></div>`;}
 
  function quickDice(ch){return `<div class="actions-inline">${[4,6,8,10,12,20,100].map(n=>`<button class="btn sm" data-roll="1d${n}" data-roll-label="d${n}">d${n}</button>`).join('')}</div><div class="section-caption">RECENT ROLLS</div><div class="tile-list">${(ch.rolls||[]).slice(0,3).map(r=>`<div class="rowline"><div><span class="name">${esc(r.label)}</span><small>${esc(r.formula)} · [${esc(r.parts)}]</small></div><strong class="value">${r.total}</strong></div>`).join('')||'<span class="muted tiny">Roll a die to begin.</span>'}</div>`;}
  function featuredItems(ch){let items=[];for(const id of ch.feats||[]){let x=findReference(id);if(x)items.push({n:x.name,ref:id,k:'Feat'});}for(const id of ch.maneuvers||[]){let x=findReference(id);if(x)items.push({n:x.name,ref:id,k:'Maneuver'});}for(const f of ch.features||[])items.push({n:f.name,ref:f.id,k:'Feature'});return `<div class="tile-list">${items.slice(0,7).map(x=>`<button class="tile" ${x.k==='Feature'?`data-feature-detail="${attr(x.ref)}"`:`data-detail="${attr(x.ref)}"`}><span class="name">${esc(x.n)}</span><span class="right">${x.k} →</span></button>`).join('')||'<div class="empty">Πρόσθεσε features και feats.</div>'}</div>`;}
@@ -759,6 +779,8 @@ document.addEventListener('submit',e=>{
   case 'roll-manual':toast(tr('Δεν υπάρχουν ψηφιακές ζαριές. Χρησιμοποίησε πραγματικά ζάρια.','Digital dice are disabled. Use physical dice.'));break;
   case 'import':document.getElementById('import-file')?.click();break;
   case 'import-character':document.getElementById('import-character-file')?.click();break;
+  case 'pending-choices':showPendingChoices();break;
+  case 'pending-edit':editPendingChoice(Number(id));break;
   default:toast(`Unknown action ${action}`);
  }}
  function castSpell(token){const [id,type,level]=token.split(':');let ch=c(),s=ch.spellbook.find(x=>x.id===id);if(!s)return;let d=findReference(s.ref);if(type==='slot'){let slot=ch.slots?.[level];if(!slot||slot.used>=slot.max)return toast('No slots available.');slot.used++;}else if(type==='pact'){if(!ch.pact||ch.pact.used>=ch.pact.max)return toast('No pact slots.');ch.pact.used++;}if(d?.concentration||s.concentration)ch.concentrating=s.name;closeModal();update();toast('Cast: '+s.name+(type==='slot'?' using slot L'+level:type==='pact'?' using Pact Slot':' (cantrip)'));}
@@ -1357,6 +1379,15 @@ document.addEventListener('submit',e=>{
   },true);
   document.addEventListener('change',e=>{if(e.target.matches('[data-atlas-session-filter]')){campaignTagFilter=e.target.value;renderApp();return;}if(e.target.matches('[data-atlas-other-tag-filter]')){campaignOtherTagFilter=e.target.value;renderApp();}},true);
   document.addEventListener('submit',async e=>{
+   if(e.target.id==='atlas-pending-choice-form'){
+    e.preventDefault();const index=Number(e.target.dataset.choiceIndex),ch=c(),p=(ch.pendingChoices2024||[])[index];
+    const value=String(new FormData(e.target).get('pendingValue')||'').trim();
+    if(!p||!value)return toast(tr('Συμπλήρωσε την επιλογή.','Choose a value.'));
+    if(cloud.enabled&&!canEditCharacter(ch))return toast(tr('Δεν έχεις δικαίωμα επεξεργασίας.','Permission denied.'));
+    p.value=value;p.status='resolved';p.resolvedAt=new Date().toISOString();
+    update();showPendingChoices();return;
+   }
+
    if(e.target.id==='atlas-image-tags-form'){
     e.preventDefault();e.stopImmediatePropagation();
     const form=e.target, fileId=form.dataset.fileId, fd=new FormData(form);
@@ -1478,7 +1509,7 @@ document.addEventListener('submit',e=>{
    })().catch(err=>toast(tr('Αποτυχία εισαγωγής: ','Import failed: ')+(err.message||String(err))));
    return;
   }
-  if(e.target.matches('#import-file')){let file=e.target.files?.[0];if(!file)return;file.text().then(str=>{let doc;try{doc=JSON.parse(str);}catch{return toast('Invalid JSON backup.');}if(!Array.isArray(doc.characters)||!doc.characters.length||doc.characters.some(x=>!x.id||!x.name||!Array.isArray(x.classes)))return toast('Backup format not recognized.');if(!confirm('Import will replace all local characters in this browser. Continue?'))return;if(doc.journalPreferences){sharedHidden=Array.isArray(doc.journalPreferences.hiddenSharedSessions)?doc.journalPreferences.hiddenSharedSessions:[];sharedEdits=doc.journalPreferences.sharedSessionEdits||{};saveSharedPref();}characters=doc.characters;selectedId=characters[0].id;view='overview';closeModal();update();toast('Backup imported.');}).catch(()=>toast('Could not read file.'));return;}
+  if(e.target.matches('#import-file')){let file=e.target.files?.[0];if(!file)return;file.text().then(str=>{let doc;try{doc=JSON.parse(str);}catch{return toast('Invalid JSON backup.');}if(!Array.isArray(doc.characters)||!doc.characters.length||doc.characters.some(x=>!x.id||!x.name||!Array.isArray(x.classes)))return toast('Backup format not recognized.');if(!confirm(cloud.enabled?tr('Η εισαγωγή θα αντικαταστήσει τους χαρακτήρες του campaign στη D1. Μόνο ο Creator μπορεί να συνεχίσει. Εξήγαγε πρώτα backup.','This will replace campaign characters in D1. Creator only. Export a backup first.'):tr('Η εισαγωγή θα αντικαταστήσει όλους τους τοπικούς χαρακτήρες. Συνέχεια;','Import will replace all local characters. Continue?')))return;if(cloud.enabled){if(!cloud.ready||cloud.user?.role!=='creator')return toast(tr('Απαιτείται λογαριασμός Creator.','Creator account required.'));cloudRequest('/characters/replace','POST',{characters:doc.characters}).then(()=>cloudRefresh()).then(()=>{closeModal();toast(tr('Το party αντικαταστάθηκε.','Party replaced.'));}).catch(err=>toast(tr('Αποτυχία εισαγωγής: ','Import failed: ')+(err.message||String(err))));return;}if(doc.journalPreferences){sharedHidden=Array.isArray(doc.journalPreferences.hiddenSharedSessions)?doc.journalPreferences.hiddenSharedSessions:[];sharedEdits=doc.journalPreferences.sharedSessionEdits||{};saveSharedPref();}characters=doc.characters;selectedId=characters[0].id;view='overview';closeModal();update();toast('Backup imported.');}).catch(()=>toast('Could not read file.'));return;}
  });
  document.addEventListener('input',e=>{
   if(e.target.matches('[data-library-search]')){libraryQuery=e.target.value;let pos=e.target.selectionStart;renderApp();let q=document.querySelector('[data-library-search]');q?.focus();q?.setSelectionRange(pos,pos);return;}
