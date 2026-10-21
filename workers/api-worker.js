@@ -288,6 +288,45 @@ if(pathname==='/characters'&&method==='GET'){
 
   }
 
+
+  // Atomic campaign replacement, Creator only. Preserve ownership and private
+  // story fields for existing characters, including stories the Creator cannot read.
+  if(pathname==='/characters/replace'&&method==='POST'){
+   if(actor.role!=='creator')throw err(403,'Creator only');
+   const b=await jsonBody(request),incoming=b.characters;
+   if(!Array.isArray(incoming)||incoming.length<1||incoming.length>25||
+      incoming.some(c=>!validCharacter(c))||
+      new Set(incoming.map(c=>c.id)).size!==incoming.length)throw err(400,'Invalid character replacement');
+   const existing=(await env.DB.prepare('SELECT id,owner_user_id,data_json FROM characters').all()).results;
+   const existingMap=new Map(existing.map(row=>[row.id,row]));
+   const keep=new Set(incoming.map(c=>c.id));
+   const statements=[];
+   // Detach players from characters absent in the new campaign, without deleting accounts.
+   for(const row of existing){
+    if(!keep.has(row.id)){
+     statements.push(env.DB.prepare('UPDATE users SET owner_character_id=NULL WHERE owner_character_id=?').bind(row.id));
+     statements.push(env.DB.prepare('DELETE FROM characters WHERE id=?').bind(row.id));
+    }
+   }
+   for(const item of incoming){
+    const old=existingMap.get(item.id), next=structuredClone(item);
+    if(old){
+     const original=JSON.parse(old.data_json);
+     if(original.storyPublic!==true&&actor.id!==old.owner_user_id){
+      if(original.backgroundStory!==undefined)next.backgroundStory=original.backgroundStory;
+      else delete next.backgroundStory;
+      if(original.story!==undefined)next.story=original.story;
+      else delete next.story;
+      next.storyPublic=false;
+     }
+     statements.push(env.DB.prepare('UPDATE characters SET data_json=?,revision=revision+1,modified_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(JSON.stringify(next),actor.id,item.id));
+    }else statements.push(env.DB.prepare('INSERT INTO characters(id,data_json,modified_by) VALUES(?,?,?)').bind(item.id,JSON.stringify(next),actor.id));
+   }
+   await env.DB.batch(statements);
+   await audit(env,actor.id,'replace-party',String(incoming.length));
+   return respond({ok:true,characters:incoming.length});
+  }
+
   const characterRoute=pathname.match(/^\/characters\/([\w-]{1,80})$/);
 
   if(characterRoute){
