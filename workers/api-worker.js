@@ -294,9 +294,10 @@ if(pathname==='/characters'&&method==='GET'){
   if(pathname==='/characters/replace'&&method==='POST'){
    if(actor.role!=='creator')throw err(403,'Creator only');
    const b=await jsonBody(request),incoming=b.characters;
-   if(!Array.isArray(incoming)||incoming.length<1||incoming.length>25||
-      incoming.some(c=>!validCharacter(c))||
-      new Set(incoming.map(c=>c.id)).size!==incoming.length)throw err(400,'Invalid character replacement');
+   if(!Array.isArray(incoming)||incoming.length<1||incoming.length>25)throw err(400,'Expected 1 to 25 characters.');
+   const invalidIndex=incoming.findIndex(c=>!validCharacter(c));
+   if(invalidIndex>=0)throw err(400,'Invalid character at index '+(invalidIndex+1)+': id, name and classes[] are required.');
+   if(new Set(incoming.map(c=>c.id)).size!==incoming.length)throw err(400,'Duplicate character IDs in backup.');
    const existing=(await env.DB.prepare('SELECT id,owner_user_id,data_json FROM characters').all()).results;
    const existingMap=new Map(existing.map(row=>[row.id,row]));
    const keep=new Set(incoming.map(c=>c.id));
@@ -327,6 +328,52 @@ if(pathname==='/characters'&&method==='GET'){
    return respond({ok:true,characters:incoming.length});
   }
 
+
+  // Sessions live in a dedicated D1 table. Legacy GitHub sessions remain a read fallback.
+  // This table is created lazily so an existing D1 deployment needs no manual migration.
+  const ensureSessions=()=>env.DB.prepare(`CREATE TABLE IF NOT EXISTS campaign_sessions (
+    session_number INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    story TEXT NOT NULL DEFAULT '',
+    session_date TEXT NOT NULL DEFAULT '',
+    images_json TEXT NOT NULL DEFAULT '[]',
+    modified_by INTEGER,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`).run();
+  if(pathname==='/sessions'&&method==='GET'){
+    await ensureSessions();
+    const rows=(await env.DB.prepare('SELECT session_number,title,story,session_date,images_json,updated_at FROM campaign_sessions ORDER BY session_number').all()).results;
+    return respond({sessions:rows.map(r=>({id:'session-'+r.session_number,sessionNumber:r.session_number,title:r.title,text:r.story,date:r.session_date,images:JSON.parse(r.images_json),updatedAt:r.updated_at}))});
+  }
+  if(pathname==='/sessions/import'&&method==='POST'){
+    if(!['creator','dm'].includes(actor.role))throw err(403,'Only Creator or DM can import sessions.');
+    const body=await jsonBody(request);
+    const input=body.session&&typeof body.session==='object'?body.session:body;
+    const number=Number(input.sessionNumber??input.number??input.session);
+    const title=String(input.title||'').trim();
+    const story=String(input.text??input.story??'');
+    const date=String(input.date||'').trim();
+    const images=Array.isArray(input.images)?input.images:[];
+    if(!Number.isInteger(number)||number<1||number>9999||title.length<1||title.length>200||story.length>100000||date.length>40||
+       images.length>40||images.some(x=>typeof x!=='string'||x.length>300))throw err(400,'Session JSON requires sessionNumber (1–9999), title and story.');
+    await ensureSessions();
+    await env.DB.prepare(`INSERT INTO campaign_sessions(session_number,title,story,session_date,images_json,modified_by)
+      VALUES(?,?,?,?,?,?) ON CONFLICT(session_number) DO UPDATE SET
+      title=excluded.title,story=excluded.story,session_date=excluded.session_date,
+      images_json=excluded.images_json,modified_by=excluded.modified_by,updated_at=CURRENT_TIMESTAMP`)
+      .bind(number,title,story,date,JSON.stringify(images),actor.id).run();
+    await audit(env,actor.id,'import-session',String(number));
+    return respond({ok:true,sessionNumber:number});
+  }
+  const sessionRoute=pathname.match(/^\/sessions\/(\d{1,4})$/);
+  if(sessionRoute&&method==='DELETE'){
+    if(!['creator','dm'].includes(actor.role))throw err(403,'Only Creator or DM can delete sessions.');
+    await ensureSessions();
+    await env.DB.prepare('DELETE FROM campaign_sessions WHERE session_number=?').bind(Number(sessionRoute[1])).run();
+    await audit(env,actor.id,'delete-session',sessionRoute[1]);
+    return respond({ok:true});
+  }
+
   const characterRoute=pathname.match(/^\/characters\/([\w-]{1,80})$/);
 
   if(characterRoute){
@@ -346,6 +393,16 @@ if(pathname==='/characters'&&method==='GET'){
    if(!r)throw err(404,'Character not found');
 
    if(method==='GET')return respond({id,revision:r.revision,ownerUserId:r.owner_user_id,data:redact(JSON.parse(r.data_json),actor,r.owner_user_id)});
+
+   if(method==='DELETE'){
+    if(!['creator','dm'].includes(actor.role))throw err(403,'Only Creator or DM may delete party characters.');
+    await env.DB.batch([
+      env.DB.prepare('UPDATE users SET owner_character_id=NULL WHERE owner_character_id=?').bind(id),
+      env.DB.prepare('DELETE FROM characters WHERE id=?').bind(id)
+    ]);
+    await audit(env,actor.id,'delete-character',id);
+    return respond({ok:true,deleted:id});
+   }
 
    if(method==='PUT'){
 

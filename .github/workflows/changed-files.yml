@@ -1,0 +1,28 @@
+name: D&D Atlas Changed Files ZIP
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Package only files changed by this PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          mapfile -d '' files < <(git diff --diff-filter=ACMR --name-only -z origin/main...HEAD)
+          if (( ${#files[@]} == 0 )); then echo "No changed files" >&2; exit 1; fi
+          zip -q dndatlas-v3.3.0-changed-only.zip "${files[@]}"
+          unzip -l dndatlas-v3.3.0-changed-only.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dndatlas-v3.3.0-changed-only
+          path: dndatlas-v3.3.0-changed-only.zip
+          retention-days: 30

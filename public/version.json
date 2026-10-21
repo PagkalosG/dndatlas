@@ -1,6 +1,6 @@
 {
-  "version": "3.2.9",
-  "updated": "2026-10-21",
+  "version": "3.3.0",
+  "updated": "2026-10-22",
   "ruleset": "D&D 5e 2024",
-  "notes": "Campaign backup replacement and unresolved player choice prompts"
+  "notes": "Party JSON validation, 12-class progression, DOCX character sheets, D1 sessions, Drive portraits and secured deletion"
 }
