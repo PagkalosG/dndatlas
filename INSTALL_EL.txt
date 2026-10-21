@@ -1,1 +1,9 @@
-D&D Atlas v3.1.2 — Consumables. Ανέβασε τα app.js, index.html, sw.js, version.json στη ρίζα του GitHub repository. Δεν απαιτείται αλλαγή στον Cloudflare Worker ή στην D1. Διατήρησε αντίγραφο ασφαλείας. Οι εξηγήσεις είναι περιλήψεις από Basic Rules 2024, με σύνδεσμο στην επίσημη πηγή· όχι αυτούσιο κείμενο του εμπορικού PHB.\n
+D&D Atlas v3.1.7 — Rest Popups
+
+Αντικατάστησε ΜΟΝΟ τα app.js, index.html, sw.js, version.json στο root του GitHub repo.
+ΜΗΝ αντικαταστήσεις το pdf-export.js: διατήρησε την τελευταία διόρθωση v3.1.6.
+
+Short Rest: αναλυτικό report και προαιρετική θεραπεία με πραγματικά Hit Dice, ένα κάθε φορά.
+Long Rest: πλήρη HP και όλα τα ξοδεμένα Hit Dice (2024), rest resources και report.
+
+Κάνε backup των χαρακτήρων πριν από αλλαγές. Απαιτείται δοκιμή στο πραγματικό GitHub Pages και D1 περιβάλλον.

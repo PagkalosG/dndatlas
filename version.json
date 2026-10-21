@@ -1,4 +1,7 @@
 {
-  "version": "3.1.6",
-  "notes": "2024 PDF: readable multiline fields, correct Species Traits/Feats/Class Features, Languages and Tools mapping, bounded heading fonts."
+  "version": "3.1.7",
+  "updated": "2026-10-20",
+  "ruleset": "D&D 5e 2024",
+  "notes": "Short/Long Rest reporting, optional physical Hit Die healing, official 2024 full Hit Dice restoration on Long Rest",
+  "build": "2026-10-20"
 }
