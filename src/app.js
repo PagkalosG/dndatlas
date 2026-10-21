@@ -752,6 +752,9 @@ document.addEventListener('submit',e=>{
   case 'download-docx-template':window.ATLAS_DOCX?.template();break;
   case 'download-character-docx':window.ATLAS_DOCX?.exportCharacter(c());break;
   case 'edit-json':document.getElementById('edit-json-file')?.click();break;
+  case 'session-import':{if(!cloud.enabled||!['creator','dm'].includes(cloud.user?.role||''))return toast(tr('Μόνο Creator ή DM.','Creator/DM only.'));document.getElementById('session-import-file')?.click();break;}
+  case 'session-template':{const text=JSON.stringify({sessionNumber:1,title:'Session title',date:'',story:'Write the session narrative here',images:[]},null,2);const link=document.createElement('a'),url=URL.createObjectURL(new Blob([text],{type:'application/json'}));link.href=url;link.download='dndatlas-session-template.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);break;}
+
   case 'choose-docx':document.getElementById('import-docx-file')?.click();break;
   case 'portrait-drive':selectDrivePortrait();break;
   case 'portrait-drive-select':{const choice=campaignImages.find(x=>x.id===id);if(!choice)return;ch.portrait=choice.path;closeModal();update();toast(tr('Η εικόνα ενημερώθηκε.','Portrait updated.'));break;}case 'edit-character':editChar();break;case 'edit-abilities':editAbilities();break;case 'edit-classes':editClasses();break;case 'edit-loadouts':editLoadouts();break;
@@ -1133,6 +1136,17 @@ document.addEventListener('submit',e=>{
         const m=await fetch('./data/campaign-images.json',{cache:'no-store'});
         if(m.ok){const items=await m.json();campaignImages=(Array.isArray(items)?items:items.images||[]).filter(x=>x&&typeof x.path==='string'&&safeMediaPath(x.path)).map(x=>({id:x.id||x.path,title:x.title||x.path.split('/').pop(),path:x.path}));}
       }
+      if(cloud.enabled&&cloud.ready){
+        try{
+          const stored=await cloudRequest('/sessions');
+          const all=new Map(sharedSessions.map(x=>[x.id,x]));
+          for(const x of stored.sessions||[])if(x&&typeof x.id==='string'&&typeof x.title==='string'){
+            const safeImages=Array.isArray(x.images)?x.images.filter(v=>typeof v==='string'&&mediaSrc(v)):[];
+            all.set(x.id,{id:x.id,title:x.title,date:x.date||'',text:x.text||'',images:safeImages,sessionNumber:x.sessionNumber});
+          }
+          sharedSessions=[...all.values()].sort((a,b)=>(Number(a.sessionNumber)||Number((a.id||'').match(/\d+/)?.[0])||0)-(Number(b.sessionNumber)||Number((b.id||'').match(/\d+/)?.[0])||0));
+        }catch(error){console.warn('D1 sessions endpoint requires deployed Worker:',error.message);}
+      }
       sharedLoaded=true;
       sharedStatus=driveConfigured&&driveError?tr('Δεν φορτώθηκαν οι εικόνες μέσω Cloudflare. Εμφανίζεται η εναλλακτική συλλογή GitHub.','Cloudflare gallery images could not load. The GitHub fallback gallery is shown.')+' ('+driveError+')':'';
     }catch(err){sharedStatus=tr('Δεν ήταν δυνατή η λήψη. Τα τοπικά δεδομένα παραμένουν διαθέσιμα.','Shared data could not be loaded. Local entries remain available.');}
@@ -1143,7 +1157,7 @@ document.addEventListener('submit',e=>{
   function journalTiles(entries,remote){return entries.map(item=>{const j=remote?journalEntry(item.id,true):item;if(!j)return '';const hidden=remote&&sharedHidden.includes(j.id);if(hidden)return '';
     return `<article class="campaign-entry"><div class="campaign-entry-head"><button class="linklike" data-atlas-journal-open="${remote?'shared:':'local:'}${attr(j.id)}"><strong>${esc(j.title||'')}</strong><small>${esc(j.date||'')} · ${remote?tr('Κοινό από το GitHub','Shared from GitHub'):tr('Τοπικό στη συσκευή','Local on this device')}</small></button><button class="btn sm" data-atlas-journal-edit="${remote?'shared:':'local:'}${attr(j.id)}">${tr('Επεξεργασία','Edit')}</button><button class="btn sm ${remote?'':'warn'}" data-atlas-journal-remove="${remote?'shared:':'local:'}${attr(j.id)}">${remote?tr('Απόκρυψη','Hide'):tr('Διαγραφή','Delete')}</button></div>${mediaCards(j.images||[])}<p class="campaign-excerpt">${esc((j.text||'').slice(0,360))}</p></article>`;}).join('')||`<div class="empty">${tr('Δεν υπάρχουν καταχωρίσεις.','No entries available.')}</div>`;}
   renderJournal=function(ch){return `<div class="atlas-journal-page"><div class="page-title"><div><h2>${tr('Ημερολόγιο περιπέτειας','Campaign Journal')}</h2><p>${tr('Κοινά sessions και εικόνες από το GitHub ή το Google Drive, με προσωπικές αλλαγές.','Shared sessions and GitHub or Google Drive images, with personal customizations.')}</p></div><button class="btn primary sm" data-atlas-journal-new>${tr('+ Καταχώριση','+ Entry')}</button></div>
-    ${section('Κοινά sessions','Shared sessions',`<p class="muted small">${tr('Τα κοινά sessions φορτώνονται από το GitHub. Οι αλλαγές και αποκρύψεις εδώ ισχύουν μόνο στη συσκευή σου.','Shared sessions are loaded from GitHub. Your edits and hidden entries remain local to this device.')}</p>${sharedStatus?`<div class="notice">${esc(sharedStatus)}</div>`:''}${journalTiles(sharedSessions,true)}${sharedHidden.length?`<button class="btn sm" data-atlas-journal-restore>${tr('Επαναφορά κρυμμένων κοινών sessions','Restore hidden shared sessions')} (${sharedHidden.length})</button>`:''}`,`<button class="btn sm" data-atlas-journal-refresh>${tr('Ανανέωση κοινών δεδομένων','Refresh shared data')}</button>`)}
+    ${section('Κοινά sessions','Shared sessions',`<p class="muted small">${tr('Τα κοινά sessions φορτώνονται από το GitHub. Οι αλλαγές και αποκρύψεις εδώ ισχύουν μόνο στη συσκευή σου.','Shared sessions are loaded from GitHub. Your edits and hidden entries remain local to this device.')}</p>${sharedStatus?`<div class="notice">${esc(sharedStatus)}</div>`:''}${journalTiles(sharedSessions,true)}${sharedHidden.length?`<button class="btn sm" data-atlas-journal-restore>${tr('Επαναφορά κρυμμένων κοινών sessions','Restore hidden shared sessions')} (${sharedHidden.length})</button>`:''}`,`<button class="btn sm" data-atlas-journal-refresh>${tr('Ανανέωση κοινών δεδομένων','Refresh shared data')}</button>${(cloud.enabled&&['creator','dm'].includes(cloud.user?.role||''))?`<button class="btn sm" data-action="session-import">${tr('Εισαγωγή Session JSON','Import Session JSON')}</button>`:''}<button class="btn sm" data-action="session-template">${tr('Πρότυπο Session JSON','Session JSON template')}</button>`)}
     ${section(campaignImageSource==='drive'?'Κοινές εικόνες · Google Drive':'Κοινές εικόνες campaign',campaignImageSource==='drive'?'Shared images · Google Drive':'Shared campaign images',campaignImages.length?`${(()=>{const sessionOptions=[...new Set(Object.values(cloud.imageTags).flatMap(x=>x.sessions||[]))].sort((a,b)=>a.localeCompare(b));const otherTagOptions=[...new Set(Object.values(cloud.imageTags).flatMap(x=>x.tags||[]))].sort((a,b)=>a.localeCompare(b));const filteredImages=campaignImages.filter(x=>{const meta=cloud.imageTags[x.id]||{sessions:[],tags:[]};const sessionMatch=campaignTagFilter==='all'||(meta.sessions||[]).includes(campaignTagFilter);const otherTagMatch=campaignOtherTagFilter==='all'||(meta.tags||[]).includes(campaignOtherTagFilter);return sessionMatch&&otherTagMatch;});return `<div class="atlas-tag-filter"><label>${tr('Φίλτρο Session','Session filter')}</label><select style="max-width:250px" data-atlas-session-filter><option value="all">${tr('Όλες οι εικόνες','All images')}</option>${sessionOptions.map(t=>`<option value="${attr(t)}" ${campaignTagFilter===t?'selected':''}>${esc(t)}</option>`).join('')}</select><label>${tr('Φίλτρο Other Tags','Other tags filter')}</label><select style="max-width:250px" data-atlas-other-tag-filter><option value="all">${tr('Όλα τα tags','All tags')}</option>${otherTagOptions.map(t=>`<option value="${attr(t)}" ${campaignOtherTagFilter===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>${filteredImages.length?mediaCards(filteredImages.map(x=>x.path)):`<div class="empty">${tr('Δεν βρέθηκαν εικόνες με αυτά τα φίλτρα.','No images match these filters.')}</div>`}<div class="cloud-image-tag-list">${filteredImages.map(x=>`<div class="rowline"><span>${esc(x.title)} <small>${esc([...(cloud.imageTags[x.id]?.sessions||[]),...(cloud.imageTags[x.id]?.tags||[])].join(' · '))}</small></span>${cloud.user&&['creator','dm'].includes(cloud.user.role)?`<button type="button" class="btn sm" data-atlas-tags="${attr(x.id)}">${tr('Ετικέτες','Tags')}</button>`:''}</div>`).join('')}</div>`;})()}`:`<p class="muted">${tr('Πρόσθεσε φωτογραφίες στον δημόσιο φάκελο Drive που εξυπηρετεί ο Cloudflare Worker ή στο εναλλακτικό GitHub manifest.','Add photos to the public Drive folder served by the Cloudflare Worker or to the fallback GitHub manifest.')}</p>`)}
     ${section('Οι προσωπικές μου καταχωρίσεις','My personal entries',journalTiles((ch.journal||[]).slice().reverse(),false),`<button class="btn sm" data-atlas-journal-new>${tr('+ Προσθήκη','+ Add')}</button>`)}
     ${section('Προσωπικές σημειώσεις','Personal notes',`<textarea id="notes-editor" rows="5" placeholder="${tr('Σημειώσεις και παρατηρήσεις…','Notes and observations…')}">${esc(ch.notes||'')}</textarea><button class="btn sm primary" data-action="save-notes">${tr('Αποθήκευση','Save')}</button>`)}</div>`;
@@ -1499,6 +1513,62 @@ document.addEventListener('submit',e=>{
   if(e.target.matches('[data-library-level]')){libraryLevel=e.target.value;renderApp();return;}
   if(e.target.matches('[data-spell-level]')){spellLevel=e.target.value;renderApp();return;}
   if(e.target.matches('#f-weaponTemplate')){let w=D.weapons.find(x=>x.name===e.target.value);if(w){for(const [k,v] of Object.entries({name:w.name,ability:w.ability,damage:w.damage,type:w.type,mastery:w.mastery})){let t=document.getElementById('f-'+k);if(t)t.value=v;}toast('Weapon preset applied · edit fields as needed.');}return;}
+
+  if(e.target.matches('#edit-json-file')){
+    const file=e.target.files?.[0];e.target.value='';if(!file)return;
+    (async()=>{
+      const doc=JSON.parse(await file.text());
+      const data=doc?.character||(Array.isArray(doc?.characters)?doc.characters.find(x=>x.id===c().id):doc);
+      if(!data||typeof data.name!=='string'||!data.name.trim()||!Array.isArray(data.classes)||!data.classes.length||
+         data.classes.some(x=>!x.name||!Number.isInteger(Number(x.level))||Number(x.level)<1||Number(x.level)>20))throw Error(tr('Το JSON δεν περιέχει έγκυρο χαρακτήρα.','Invalid character JSON.'));
+      const old=c(),next=structuredClone(data);next.id=old.id;next.rulesVersion='2024';
+      if(!next.abilities||['STR','DEX','CON','INT','WIS','CHA'].some(k=>!Number.isInteger(Number(next.abilities[k]))||Number(next.abilities[k])<1||Number(next.abilities[k])>30))throw Error('Invalid ability scores');
+      if(cloud.enabled&&!canEditCharacter(old))throw Error('Permission denied');
+      if(!confirm(tr('Το JSON θα αντικαταστήσει τα δεδομένα αυτού του χαρακτήρα: ','Replace this character from JSON: ')+old.name+'?'))return;
+      atlasSetBusy(tr('Ενημέρωση χαρακτήρα…','Updating character…'));
+      try{if(cloud.enabled){const id=old.id,rev=cloud.revisions[id];if(!rev)throw Error('Character revision missing');const result=await cloudRequest('/characters/'+encodeURIComponent(id),'PUT',{character:next,revision:rev});cloud.revisions[id]=result.revision;await cloudRefresh();}
+      else{characters=characters.map(x=>x.id===old.id?next:x);update();}closeModal();toast(tr('Ο χαρακτήρας ενημερώθηκε.','Character updated.'));}
+      finally{atlasClearBusy();}
+    })().catch(error=>toast(tr('Αποτυχία JSON: ','JSON import failed: ')+error.message));return;
+  }
+  if(e.target.matches('#import-docx-file')){
+    const file=e.target.files?.[0];e.target.value='';if(!file)return;
+    (async()=>{
+      atlasSetBusy(tr('Ανάγνωση DOCX…','Reading DOCX…'));
+      try{
+        const values=await window.ATLAS_DOCX.parse(file);
+        const cls=values.CLASS.trim();if(!D.classes[cls])throw Error(tr('Άγνωστη κλάση: ','Unknown 2024 class: ')+cls);
+        if(cloud.enabled&&(!cloud.ready||!['creator','dm'].includes(cloud.user?.role||'')))throw Error(tr('Μόνο Creator ή DM μπορούν να προσθέσουν χαρακτήρα.','Creator or DM account required.'));
+        const q=defaultChar(values.NAME,cls);q.id='atlas-'+uid();q.player=values.PLAYER||'';q.species=values.SPECIES||q.species;q.background=values.BACKGROUND||q.background;q.alignment=values.ALIGNMENT||q.alignment;
+        q.classes=[{name:cls,level:Number(values.LEVEL),subclass:values.SUBCLASS||''}];
+        for(const k of ['STR','DEX','CON','INT','WIS','CHA'])if(values[k])q.abilities[k]=Number(values[k]);
+        q.skills=Object.fromEntries((values.SKILLS||'').split(',').map(x=>x.trim()).filter(Boolean).map(x=>[x,1]));
+        q.languages=(values.LANGUAGES||'').split(',').map(x=>x.trim()).filter(Boolean);q.notes=values.NOTES||'';
+        const hpDie=D.classes[cls]?.die||8,con=Math.floor(((q.abilities.CON||10)-10)/2),lev=Number(values.LEVEL);
+        const maxhp=Math.max(1,hpDie+con+(lev-1)*(Math.floor(hpDie/2)+1+con));
+        q.hp={max:maxhp,current:maxhp,temp:0};q.hitDice={max:lev,used:0};
+        q.pendingChoices2024=[{key:'docx-review',label:'Verify imported 2024 character choices',notes:'Confirm species, background boosts, class features, feats, spells, equipment and fixed HP with the DM.',status:'pending'}];
+        if(!confirm(tr('Να δημιουργηθεί χαρακτήρας από το DOCX: ','Create character from DOCX: ')+q.name+'?'))return;
+        if(cloud.enabled){await cloudRequest('/characters/'+encodeURIComponent(q.id),'POST',{character:q});await cloudRefresh();}
+        else{characters.push(q);selectedId=q.id;update();}
+        if(typeof bClose==='function')bClose();closeModal();toast(tr('Ο χαρακτήρας δημιουργήθηκε. Έλεγξε τις εκκρεμείς επιλογές.','Character created. Review pending choices.'));
+      }finally{atlasClearBusy();}
+    })().catch(error=>toast(tr('Αποτυχία DOCX: ','DOCX import failed: ')+error.message));return;
+  }
+  if(e.target.matches('#session-import-file')){
+    const file=e.target.files?.[0];e.target.value='';if(!file)return;
+    (async()=>{
+      if(!cloud.enabled||!['creator','dm'].includes(cloud.user?.role||''))throw Error('Creator/DM account required');
+      const obj=JSON.parse(await file.text());const d=obj.session&&typeof obj.session==='object'?obj.session:obj;
+      const num=Number(d.sessionNumber??d.number??d.session);
+      if(!Number.isInteger(num)||num<1||num>9999||typeof d.title!=='string'||!d.title.trim())throw Error(tr('Απαιτούνται sessionNumber και title.','sessionNumber and title are required.'));
+      if(!confirm(tr('Να ενημερωθεί το κοινό Session ','Update shared session ')+num+'?'))return;
+      await cloudRequest('/sessions/import','POST',{session:d});
+      await fetchSharedData();toast(tr('Το Session αποθηκεύτηκε στην D1.','Session saved to D1.'));
+    })().catch(error=>toast(tr('Αποτυχία Session import. Βεβαιώσου ότι ο Worker έχει δημοσιευτεί: ','Session import failed. Deploy the updated Worker: ')+error.message));return;
+  }
+  if(e.target.matches('#progression-class')){document.getElementById('progression-rows').innerHTML=progressionRows(e.target.value,c());return;}
+
   if(e.target.matches('#import-character-file')){
    const picker=e.target,file=picker.files?.[0];if(!file)return;picker.value='';
    (async()=>{
