@@ -51,3 +51,37 @@
 - Ο Human των κανόνων **2024** δεν δίνει +1 σε καθένα από τα έξι χαρακτηριστικά όπως ο Standard Human 2014. Οι αυξήσεις προέρχονται από Background.
 
 Οι τιμές στα PDF είχαν σημειωθεί ως τελικές από τον DM, αλλά μοιάζουν με αρχικό Standard Array. Απαιτείται επιβεβαίωση πριν αλλάξουν τα character records ή οι υπολογισμοί HP/AC/spells.
+
+## v3.2.4 — Έλεγχος D&D 5e 2024 (2026-10-21)
+
+**Επιβεβαιωμένα από τους επίσημους κανόνες 2024:**
+
+- Battle Master, Student of War (Fighter Level 3): αποκτά **και τα δύο**, μία επιπλέον Fighter Skill proficiency **και** μία Artisan’s Tool proficiency. Δεν είναι επιλογή «ή». Χωριστές επιλογές με tracking της πηγής τους.
+- Αλλαγή της επιλεγμένης Student of War Skill: επαναφέρεται η προηγούμενη βαθμίδα proficiency, εφόσον η εφαρμογή γνωρίζει την προέλευσή της, αντί να προστίθενται επιπλέον skills.
+- Proficiency όπλου: προστίθεται το PB στο **attack roll**, όχι στο weapon damage roll. Weapon Mastery δεν προσθέτει Proficiency Bonus ούτε από μόνο του damage.
+- Fighter/Barbarian/Paladin/Ranger: Simple και Martial weapons· Rogue: Simple και Martial με Finesse/Light· Monk: Simple και Martial με Light· Bard/Cleric/Druid/Sorcerer/Warlock/Wizard: Simple. Ειδικά feats και subclass grants μπορούν να οριστούν με ρητό override.
+- Multiclass Barbarian/Fighter/Paladin/Ranger: proficiency με Martial weapons (όχι αυτόματα όλες οι άλλες αρχικές proficiencies).
+- Επιλογές Weapon Mastery: ανά class, επίπεδο και επιτρεπόμενο είδος όπλου· Barbarian μόνο σε melee.
+- Tool proficiency είναι γνώση χρήσης, **όχι** δωρεάν φυσικό tool kit. Στον Εξοπλισμό εμφανίζονται Utilize / Craft, αλλά δεν προστίθεται αντικείμενο δωρεάν.
+- Smith’s Tools: Strength, παραβίαση πόρτας/δοχείου DC 20· ο κατάλογος Craft ακολουθεί τον επίσημο πίνακα 2024.
+
+**Περιορισμοί που παραμένουν και χρειάζονται επόμενα εξειδικευμένα audits:**
+
+- Τα subclasses, τα spells και οι υπόλοιπες προαιρετικές δυνατότητες όλων των classes δεν έχουν πλήρως υλοποιημένο αυτοματοποιημένο legality checker. Μη θεωρείς το Builder γενικό validator όλου του PHB 2024.
+- Character JSON από παλαιότερες εκδόσεις μπορεί να μην περιέχει πηγή για κάθε skill proficiency. Η πρώτη αλλαγή Student of War από τέτοια παλιά εγγραφή απαιτεί έλεγχο για τυχόν διπλή πηγή skill.
+- Custom/άγνωστα όπλα και proficiency από ειδικές ικανότητες απαιτούν manual override / DM επιβεβαίωση.
+- Ειδικά bonuses (π.χ. Rage, Great Weapon Master), conditional attacks, Monk Martial Arts dice και καταστάσεις μάχης δεν πρέπει να προστίθενται σε όλα τα damage rolls αυτόματα. Παραμένουν υπό τους ειδικούς κανόνες/χειροκίνητη ρύθμιση.
+
+Πηγές:
+- https://www.dndbeyond.com/sources/dnd/br-2024/character-classes
+- https://www.dndbeyond.com/sources/dnd/br-2024/creating-a-character
+- https://www.dndbeyond.com/sources/dnd/br-2024/playing-the-game
+- https://www.dndbeyond.com/sources/dnd/br-2024/equipment
+- https://roll20.net/compendium/dnd5e/Subclasses%3ABattle%20Master?expansion=32231
+
+- Spell attack damage: δεν προστίθεται αυτόματα ability modifier στη ζημιά ξορκιών· bonus από συγκεκριμένο feature απαιτεί ρητή καταχώριση.
+
+
+## v3.2.5
+- Greatsword: Two-Handed weapon, normal damage 2d6. If the active loadout uses Shield, Combat warns that this attack is unavailable; it never switches to a fabricated 1d8 one-handed mode.
+- Inventory new item: category first, then 2024 weapon list, curated consumables or a curated baseline equipment list; manual advanced fields restricted to Custom. Official lookup is based on bundled baseline data and is not a complete PHB catalog.
