@@ -1,0 +1,53 @@
+name: Deploy D&D Atlas to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/app.js
+          node --check src/data.js
+          node --check src/i18n.js
+          node --check src/pdf-export.js
+          node --check src/spell-effects.js
+      - name: Assemble static site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -a public/. _site/
+          cp -a src/. _site/
+          cp -a data _site/data
+          mkdir -p _site/assets
+          cp -a assets/campaign _site/assets/campaign
+          cp -a assets/icons/. _site/
+          cp assets/official-2024-character-sheet.pdf _site/official-2024-character-sheet.pdf
+          cp tests/demo-party.json _site/demo-party.json
+          cp docs/SRD_ATTRIBUTION.md _site/SRD_ATTRIBUTION.md
+          touch _site/.nojekyll
+          test -f _site/index.html && test -f _site/app.js && test -f _site/sw.js
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
