@@ -1,6 +1,6 @@
 {
-  "version": "3.2.7",
+  "version": "3.2.8",
   "updated": "2026-10-21",
   "ruleset": "D&D 5e 2024",
-  "notes": "Import one character without replacing the party; D1 Creator/DM permissions preserved"
+  "notes": "Single-character import restored; previous skill editor retained"
 }
