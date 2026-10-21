@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.2.6';
+ const APP_VERSION='3.2.7';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -541,7 +541,7 @@
    <div class="section-caption">${t('ΤΟΠΙΚΑ ΔΕΔΟΜΕΝΑ — ΠΡΟΣΟΧΗ','LOCAL DATA — DANGER')}</div>
    <div class="detail-description">${t('Η πλήρης επαναφορά διαγράφει τα τοπικά δεδομένα Character Atlas αυτής της συσκευής. Δημιούργησε νέο χαρακτήρα από τον Builder ή εισήγαγε αντίγραφο JSON. Πάρε πρώτα backup.','Full reset clears locally stored Character Atlas data on this device. Create a new character with the Builder or import a JSON backup. Back up first.')}</div>
    <div class="actions-inline"><button class="btn warn" data-action="reset-local-data">${t('Διαγραφή χαρακτήρων & επαναφορά','Delete characters & reset')}</button></div>`;
-  openModal(t('Ρυθμίσεις & Δεδομένα','Settings & Data'),`${updateInfo}<div class="section-caption">${t('BACKUP & RESTORE','BACKUP & RESTORE')}</div><div class="actions-inline"><button class="btn primary" data-action="backup">Export all characters (.json)</button><button class="btn" data-action="import">Import backup (.json)</button></div><div class="section-caption">${t('ΧΑΡΑΚΤΗΡΕΣ','CHARACTERS')}</div><div class="tile-list">${characters.map(x=>`<div class="tile"><span class="name">${esc(x.name)} · Level ${totalLevel(x)}</span><button class="btn sm warn" data-delete-character="${x.id}">${t('Διαγραφή','Delete')}</button></div>`).join('')}</div><div class="section-caption">${t('ΠΕΡΙΕΧΟΜΕΝΟ ΚΑΝΟΝΩΝ','RULES SCOPE')}</div><div class="detail-note">Content: short summaries of 5e/2024 rules. Optional, legacy, and homebrew features may require manual input; confirm with the DM.</div><input id="import-file" type="file" accept="application/json,.json" style="display:none"/>`,btn(t('Κλείσιμο','Close'),'close-modal'),true);
+  openModal(t('Ρυθμίσεις & Δεδομένα','Settings & Data'),`${updateInfo}<div class="section-caption">${t('BACKUP & RESTORE','BACKUP & RESTORE')}</div><div class="actions-inline"><button class="btn primary" data-action="backup">Export all characters (.json)</button><button class="btn" data-action="import">Import backup (.json)</button><button class="btn" data-action="import-character">${t('Εισαγωγή χαρακτήρα (.json)','Import character (.json)')}</button></div><div class="section-caption">${t('ΧΑΡΑΚΤΗΡΕΣ','CHARACTERS')}</div><div class="tile-list">${characters.map(x=>`<div class="tile"><span class="name">${esc(x.name)} · Level ${totalLevel(x)}</span><button class="btn sm warn" data-delete-character="${x.id}">${t('Διαγραφή','Delete')}</button></div>`).join('')}</div><div class="section-caption">${t('ΠΕΡΙΕΧΟΜΕΝΟ ΚΑΝΟΝΩΝ','RULES SCOPE')}</div><div class="detail-note">Content: short summaries of 5e/2024 rules. Optional, legacy, and homebrew features may require manual input; confirm with the DM.</div><input id="import-file" type="file" accept="application/json,.json" style="display:none"/><input id="import-character-file" type="file" accept="application/json,.json" style="display:none"/>`,btn(t('Κλείσιμο','Close'),'close-modal'),true);
  }
 
  function backup(){const str=JSON.stringify({application:'Character Atlas',schema:1,exportedAt:new Date().toISOString(),characters},null,2);const blob=new Blob([str],{type:'application/json'});let url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='character-atlas-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Backup exported.');}
@@ -697,6 +697,7 @@
   case 'spend-resource':{let r=ch.resources.find(x=>x.id===id);if(!r)return;if(r.current>0){r.current--;closeModal();update();}else toast('No uses remaining.');break;}
   case 'roll-manual':toast(tr('Δεν υπάρχουν ψηφιακές ζαριές. Χρησιμοποίησε πραγματικά ζάρια.','Digital dice are disabled. Use physical dice.'));break;
   case 'import':document.getElementById('import-file')?.click();break;
+  case 'import-character':document.getElementById('import-character-file')?.click();break;
   default:toast(`Unknown action ${action}`);
  }}
  function castSpell(token){const [id,type,level]=token.split(':');let ch=c(),s=ch.spellbook.find(x=>x.id===id);if(!s)return;let d=findReference(s.ref);if(type==='slot'){let slot=ch.slots?.[level];if(!slot||slot.used>=slot.max)return toast('No slots available.');slot.used++;}else if(type==='pact'){if(!ch.pact||ch.pact.used>=ch.pact.max)return toast('No pact slots.');ch.pact.used++;}if(d?.concentration||s.concentration)ch.concentrating=s.name;closeModal();update();toast('Cast: '+s.name+(type==='slot'?' using slot L'+level:type==='pact'?' using Pact Slot':' (cantrip)'));}
@@ -1395,6 +1396,34 @@
   if(e.target.matches('[data-library-level]')){libraryLevel=e.target.value;renderApp();return;}
   if(e.target.matches('[data-spell-level]')){spellLevel=e.target.value;renderApp();return;}
   if(e.target.matches('#f-weaponTemplate')){let w=D.weapons.find(x=>x.name===e.target.value);if(w){for(const [k,v] of Object.entries({name:w.name,ability:w.ability,damage:w.damage,type:w.type,mastery:w.mastery})){let t=document.getElementById('f-'+k);if(t)t.value=v;}toast('Weapon preset applied · edit fields as needed.');}return;}
+  if(e.target.matches('#import-character-file')){
+   const input=e.target,file=input.files?.[0];if(!file)return;
+   input.value='';
+   (async()=>{
+    let documentData;
+    try{documentData=JSON.parse(await file.text());}catch{throw Error(tr('Μη έγκυρο αρχείο JSON.','Invalid JSON file.'));}
+    const ch=documentData?.character||((Array.isArray(documentData?.characters)&&documentData.characters.length===1)?documentData.characters[0]:documentData);
+    if(!ch||typeof ch!=='object'||Array.isArray(ch)||typeof ch.id!=='string'||!/^[\\w-]{1,80}$/.test(ch.id)||typeof ch.name!=='string'||!ch.name.trim()||!Array.isArray(ch.classes)||!ch.classes.length){
+     throw Error(tr('Το αρχείο πρέπει να περιέχει έναν έγκυρο χαρακτήρα, όχι ολόκληρο party.','File must contain one valid character, not an entire party.'));
+    }
+    if(cloud.enabled&&(!cloud.ready||!['creator','dm'].includes(cloud.user?.role||''))){throw Error(tr('Μόνο Creator ή DM μπορούν να εισάγουν χαρακτήρες.','Only Creator or DM can import characters.'));}
+    if(characters.some(x=>x.id===ch.id))throw Error(tr('Υπάρχει ήδη χαρακτήρας με αυτό το ID. Δεν αντικαταστάθηκε.','A character with this ID already exists. Nothing was replaced.'));
+    if(!confirm(tr('Να προστεθεί ο χαρακτήρας '+ch.name+' χωρίς να αλλάξουν οι υπόλοιποι;','Add '+ch.name+' without changing existing characters?')))return;
+    const actionButton=document.querySelector('[data-action="import-character"]');
+    if(actionButton)actionButton.disabled=true;
+    try{
+     if(cloud.enabled){
+      await cloudRequest('/characters/'+encodeURIComponent(ch.id),'POST',{character:ch});
+      await cloudRefresh();
+     }else{
+      characters.push(structuredClone(ch));selectedId=ch.id;closeModal();update();
+     }
+     toast(tr('Ο χαρακτήρας προστέθηκε επιτυχώς.','Character imported successfully.'));
+     if(cloud.enabled)closeModal();
+    }finally{if(actionButton?.isConnected)actionButton.disabled=false;}
+   })().catch(err=>toast(tr('Η εισαγωγή απέτυχε: ','Import failed: ')+(err.message||String(err))));
+   return;
+  }
   if(e.target.matches('#import-file')){let file=e.target.files?.[0];if(!file)return;file.text().then(str=>{let doc;try{doc=JSON.parse(str);}catch{return toast('Invalid JSON backup.');}if(!Array.isArray(doc.characters)||!doc.characters.length||doc.characters.some(x=>!x.id||!x.name||!Array.isArray(x.classes)))return toast('Backup format not recognized.');if(!confirm('Import will replace all local characters in this browser. Continue?'))return;if(doc.journalPreferences){sharedHidden=Array.isArray(doc.journalPreferences.hiddenSharedSessions)?doc.journalPreferences.hiddenSharedSessions:[];sharedEdits=doc.journalPreferences.sharedSessionEdits||{};saveSharedPref();}characters=doc.characters;selectedId=characters[0].id;view='overview';closeModal();update();toast('Backup imported.');}).catch(()=>toast('Could not read file.'));return;}
  });
  document.addEventListener('input',e=>{
