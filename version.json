@@ -1,7 +1,6 @@
 {
-  "version": "3.2.0-partial",
+  "version": "3.2.3",
   "updated": "2026-10-21",
   "ruleset": "D&D 5e 2024",
-  "notes": "User rename and account revocation, journal thumbnails, weapon warning, cloud demo button removal",
-  "build": "2026-10-20"
+  "notes": "Repository reorganized with GitHub Actions build; Celestial Atlas icon preserved; 2024 rules and existing app maintained"
 }

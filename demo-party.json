@@ -1,0 +1,1640 @@
+{
+  "application": "Character Atlas",
+  "schema": 1,
+  "exportedAt": "2026-10-19T00:00:00Z",
+  "description": "Three player-sheet characters: Borruk Thunderfist (Battle Master), Luna Spellbrook (Aberrant Sorcery), Ammantyl Vythrax (Draconic Sorcery). PDF-derived values preserved where possible; unresolved selections and rules conflicts explicitly noted. Updated 2024 rules-derived Origin Feat and subclass feature annotations (v2.1).",
+  "dataProvenance": {
+    "Borruk": "Handwritten sheet and explicit Level 3 / 30 HP / Battle Master confirmations in conversation",
+    "Luna": "5E_CharacterSheet_Fillable luna.pdf",
+    "Ammantyl": "5E_CharacterSheet_Fillable ammantyl_no_background.pdf"
+  },
+  "campaignRules": {
+    "passivePerceptionOverride": 10,
+    "notes": "DM ruling: all players use Passive Perception 10; active Perception proficiency applies normally."
+  },
+  "characters": [
+    {
+      "id": "party-borruk-thunderfist",
+      "name": "Borruk Thunderfist",
+      "player": "",
+      "species": "Human",
+      "background": "Soldier",
+      "alignment": "Neutral Good",
+      "classes": [
+        {
+          "name": "Fighter",
+          "level": 3,
+          "subclass": "Battle Master"
+        }
+      ],
+      "abilities": {
+        "STR": 15,
+        "DEX": 14,
+        "CON": 13,
+        "INT": 8,
+        "WIS": 10,
+        "CHA": 12
+      },
+      "skills": {
+        "Athletics": 1,
+        "Intimidation": 1,
+        "Medicine": 1,
+        "Perception": 1,
+        "Survival": 1
+      },
+      "saves": [
+        "STR",
+        "CON"
+      ],
+      "hp": {
+        "max": 30,
+        "current": 30,
+        "temp": 0
+      },
+      "ac": 18,
+      "loadouts": [
+        {
+          "id": "borruk-shield",
+          "name": "Chain Mail + Shield (one-handed)",
+          "ac": 18
+        },
+        {
+          "id": "borruk-greatsword",
+          "name": "Chain Mail + Greatsword (two-handed)",
+          "ac": 16
+        }
+      ],
+      "activeLoadout": 0,
+      "speed": 30,
+      "initiativeBonus": 0,
+      "proficiencyOverride": "",
+      "inspiration": false,
+      "conditions": [],
+      "exhaustion": 0,
+      "attacks": [
+        {
+          "id": "borruk-greatsword-attack",
+          "name": "Greatsword",
+          "ability": "STR",
+          "damage": "2d6",
+          "type": "Slashing",
+          "mastery": "Graze",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Two-handed, Heavy. Requires shield unequipped. Greatsword mastery if selected.",
+          "equipped": false
+        },
+        {
+          "id": "borruk-spear-attack",
+          "name": "Spear",
+          "ability": "STR",
+          "damage": "1d6",
+          "type": "Piercing",
+          "mastery": "Sap",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Versatile 1d8, thrown 20/60. Main one-handed option; mastery if selected.",
+          "equipped": true
+        },
+        {
+          "id": "borruk-dagger-attack",
+          "name": "Dagger",
+          "ability": "DEX",
+          "damage": "1d4",
+          "type": "Piercing",
+          "mastery": "",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Finesse, thrown 20/60.",
+          "equipped": false
+        },
+        {
+          "id": "borruk-crossbow-attack",
+          "name": "Light Crossbow",
+          "ability": "DEX",
+          "damage": "1d8",
+          "type": "Piercing",
+          "mastery": "Slow",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Range 80/320, loading, ammunition. Requires bolts. Mastery if selected.",
+          "equipped": false
+        }
+      ],
+      "resources": [
+        {
+          "id": "b-resource-secondwind",
+          "name": "Second Wind",
+          "current": 2,
+          "max": 2,
+          "recharge": "short1",
+          "detail": "Bonus Action, heal 1d10+3"
+        },
+        {
+          "id": "b-resource-actionsurge",
+          "name": "Action Surge",
+          "current": 1,
+          "max": 1,
+          "recharge": "short",
+          "detail": "One extra action (not Magic action)"
+        },
+        {
+          "id": "b-resource-superiority",
+          "name": "Superiority Dice",
+          "current": 4,
+          "max": 4,
+          "recharge": "short",
+          "detail": "4d8; Battle Master maneuvers pending player selection"
+        }
+      ],
+      "features": [
+        {
+          "id": "b-feature-resourceful",
+          "name": "Resourceful",
+          "source": "Human",
+          "level": 1,
+          "action": "Passive",
+          "detail": "Gain Heroic Inspiration after completing a Long Rest under the 2024 Human rules."
+        },
+        {
+          "id": "b-feature-skillful",
+          "name": "Skillful",
+          "source": "Human",
+          "level": 1,
+          "action": "Passive",
+          "detail": "Gain one extra Skill Proficiency of your choice; Medicine recorded."
+        },
+        {
+          "id": "b-feature-versatile",
+          "name": "Versatile",
+          "source": "Human",
+          "level": 1,
+          "action": "Passive",
+          "detail": "One additional Origin Feat; Tough recorded."
+        },
+        {
+          "id": "b-feature-secondwind",
+          "name": "Second Wind",
+          "source": "Fighter",
+          "level": 1,
+          "action": "Bonus Action",
+          "detail": "2 uses. Regain 1d10 + Fighter level HP (1d10+3 at level 3); Short Rest restores one spent use."
+        },
+        {
+          "id": "b-feature-protection",
+          "name": "Protection Fighting Style",
+          "source": "Fighter",
+          "level": 1,
+          "action": "Reaction",
+          "detail": "With Shield equipped, protect an ally within 5 ft by imposing Disadvantage on qualifying attacks against them."
+        },
+        {
+          "id": "b-feature-weaponmastery",
+          "name": "Weapon Mastery",
+          "source": "Fighter",
+          "level": 1,
+          "action": "Passive",
+          "detail": "Choose 3 eligible weapons at Fighter level 3. Listed weapons have candidate masteries; confirm selections."
+        },
+        {
+          "id": "b-feature-actionsurge",
+          "name": "Action Surge",
+          "source": "Fighter",
+          "level": 2,
+          "action": "Special",
+          "detail": "One additional action (not Magic action), once per Short or Long Rest."
+        },
+        {
+          "id": "b-feature-tacticalmind",
+          "name": "Tactical Mind",
+          "source": "Fighter",
+          "level": 2,
+          "action": "Special",
+          "detail": "Use Second Wind to add 1d10 to a failed Ability Check; if it still fails, the use is not spent."
+        },
+        {
+          "id": "b-feature-superiority",
+          "name": "Combat Superiority",
+          "source": "Battle Master",
+          "level": 3,
+          "action": "Passive",
+          "detail": "3 maneuvers to select; 4 Superiority Dice d8 per Short/Long Rest. Maneuver Save DC 12."
+        },
+        {
+          "id": "b-feature-student",
+          "name": "Student of War",
+          "source": "Battle Master",
+          "level": 3,
+          "action": "Passive",
+          "detail": "Choose one additional Fighter Skill and one Artisan Tool proficiency (not yet specified)."
+        }
+      ],
+      "companions": [],
+      "feats": [
+        "feat-tough",
+        "feat-savageattacker"
+      ],
+      "maneuvers": [],
+      "spellbook": [],
+      "slots": {},
+      "pact": {
+        "level": 1,
+        "max": 0,
+        "used": 0
+      },
+      "spellAbility": "INT",
+      "spellDCOverride": "",
+      "spellAttackOverride": "",
+      "concentrating": "",
+      "inventory": [
+        {
+          "id": "b-inv-chain",
+          "name": "Chain Mail",
+          "qty": 1,
+          "weight": 55,
+          "description": "Heavy armor AC 16",
+          "equipped": true
+        },
+        {
+          "id": "b-inv-shield",
+          "name": "Shield",
+          "qty": 1,
+          "weight": 6,
+          "description": "+2 AC when wielded; not with Greatsword attacks",
+          "equipped": true
+        },
+        {
+          "id": "b-inv-spear",
+          "name": "Spear",
+          "qty": 1,
+          "weight": 3,
+          "description": "1d6 Piercing, versatile/thrown",
+          "equipped": true
+        },
+        {
+          "id": "b-inv-great",
+          "name": "Greatsword",
+          "qty": 1,
+          "weight": 6,
+          "description": "2d6 Slashing; two-handed",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-dagger",
+          "name": "Dagger",
+          "qty": 1,
+          "weight": 1,
+          "description": "Finesse, thrown",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-crossbow",
+          "name": "Light Crossbow",
+          "qty": 1,
+          "weight": 5,
+          "description": "Ranged, ammunition",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-backpack",
+          "name": "Backpack",
+          "qty": 1,
+          "weight": 0,
+          "description": "On handwritten sheet",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-bedroll",
+          "name": "Bedroll",
+          "qty": 1,
+          "weight": 0,
+          "description": "On handwritten sheet",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-blanket",
+          "name": "Blanket",
+          "qty": 1,
+          "weight": 0,
+          "description": "On handwritten sheet",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-rope",
+          "name": "Rope",
+          "qty": 1,
+          "weight": 0,
+          "description": "Length unspecified",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-tent",
+          "name": "Tent",
+          "qty": 1,
+          "weight": 0,
+          "description": "On handwritten sheet",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-torches",
+          "name": "Torches",
+          "qty": 9,
+          "weight": 0,
+          "description": "Handwritten quantity 9",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-rations",
+          "name": "Rations",
+          "qty": 2,
+          "weight": 0,
+          "description": "Handwritten quantity 2",
+          "equipped": false
+        },
+        {
+          "id": "b-inv-healing-potion",
+          "name": "Potion of Healing",
+          "qty": 1,
+          "weight": 0,
+          "description": "Handwritten sheet, one potion",
+          "equipped": false
+        }
+      ],
+      "currency": {
+        "gp": 9,
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "pp": 0
+      },
+      "notes": "ΠΗΓΗ: Το φύλλο χαρακτήρα του Borruk και οι επιβεβαιώσεις της συζήτησης. Fighter / Battle Master lvl 3; HP 30 (DM), AC 18 με Chain Mail + Shield, AC 16 με Greatsword. Ο DM έχει ορίσει Passive Perception 10 για όλους (το υπολογιζόμενο εδώ θα ήταν 12). ΕΚΚΡΕΜΕΙ: Επιλογή 1 επιπλέον Fighter Skill μέσω Student of War και 1 artisan tool, καθώς και οριστικοποίηση των 3 Battle Master Maneuvers. Προτεινόμενα, ΟΧΙ επιβεβαιωμένα: Precision Attack, Bait and Switch, Menacing Attack. Το Warhammer καταστράφηκε και ΔΕΝ περιλαμβάνεται στο inventory. Το 2024 Soldier Background μπορεί να δίνει ability score bonuses που δεν έχουν επιβεβαιωθεί στο αρχικό sheet.",
+      "journal": [],
+      "hitDice": {
+        "max": 3,
+        "used": 0
+      },
+      "death": {
+        "success": 0,
+        "fail": 0
+      },
+      "languages": "Common, Giant, Gnomish",
+      "proficiencies": "Armor: Light, Medium, Heavy, Shields. Weapons: Simple, Martial. Soldier: one gaming set (not specified). Battle Master Student of War: one artisan tool (not specified).",
+      "plan": "Next Fighter level 4: consider +1 STR / +1 CON via ASI, or Shield Master. No choice confirmed.",
+      "portrait": "",
+      "rolls": [],
+      "rulesVersion": "2024",
+      "passivePerceptionOverride": 10,
+      "backgroundStory": "Βετεράνος πολέμου, σκληροτράχηλος πολεμιστής που κουβαλά τις απώλειες του παρελθόντος του και προστατεύει τους συντρόφους του.",
+      "sourceWarnings": [
+        "One Student of War Fighter skill and one artisan tool not specified; 5 skills listed, 6 expected at Battle Master level 3 under 2024.",
+        "Three maneuvers not confirmed; suggestions recorded only in notes.",
+        "Ability score generation and application of 2024 Soldier background bonuses have not been verified.",
+        "Passive Perception overridden to 10 by DM (calculated value: 12)."
+      ],
+      "sourceDocuments": [
+        "Borruk handwritten character sheet (user photo)",
+        "User-confirmed Level 3/30 HP/Battle Master"
+      ],
+      "fightingStyle": "Protection",
+      "weaponMasteries": []
+    },
+    {
+      "id": "party-luna-spellbrook",
+      "name": "LUNA SPELLBROOK",
+      "player": "",
+      "species": "Aasimar",
+      "background": "Entertainer",
+      "alignment": "Neutral",
+      "classes": [
+        {
+          "name": "Sorcerer",
+          "level": 3,
+          "subclass": "Aberrant Sorcery"
+        }
+      ],
+      "abilities": {
+        "STR": 10,
+        "DEX": 13,
+        "CON": 14,
+        "INT": 8,
+        "WIS": 12,
+        "CHA": 15
+      },
+      "skills": {
+        "Acrobatics": 1,
+        "Insight": 1,
+        "Performance": 1,
+        "Persuasion": 1
+      },
+      "saves": [
+        "CON",
+        "CHA"
+      ],
+      "hp": {
+        "max": 19,
+        "current": 19,
+        "temp": 0
+      },
+      "ac": 12,
+      "loadouts": [
+        {
+          "id": "party-luna-spellbrook-armor",
+          "name": "AC from player sheet",
+          "ac": 12
+        }
+      ],
+      "activeLoadout": 0,
+      "speed": 30,
+      "initiativeBonus": 0,
+      "proficiencyOverride": "",
+      "passivePerceptionOverride": 10,
+      "inspiration": false,
+      "conditions": [],
+      "exhaustion": 0,
+      "attacks": [
+        {
+          "id": "luna-attack-dagger",
+          "name": "Dagger",
+          "ability": "DEX",
+          "damage": "1d4",
+          "type": "Piercing",
+          "mastery": "",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "Two daggers owned; thrown (20/60)",
+          "equipped": false
+        },
+        {
+          "id": "luna-attack-shortbow",
+          "name": "Shortbow",
+          "ability": "DEX",
+          "damage": "1d6",
+          "type": "Piercing",
+          "mastery": "",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "20 arrows on sheet",
+          "equipped": false
+        }
+      ],
+      "resources": [
+        {
+          "id": "party-luna-spellbrook-res-sorcery",
+          "name": "Sorcery Points",
+          "current": 3,
+          "max": 3,
+          "recharge": "long",
+          "detail": "As recorded in page 2 of source PDF"
+        },
+        {
+          "id": "party-luna-spellbrook-res-innate",
+          "name": "Innate Sorcery",
+          "current": 2,
+          "max": 2,
+          "recharge": "long",
+          "detail": "2 uses per Long Rest, as recorded in source PDF"
+        },
+        {
+          "id": "luna-res-healinghands",
+          "name": "Healing Hands",
+          "current": 1,
+          "max": 1,
+          "recharge": "long",
+          "detail": "2d4 healing (sheet)"
+        },
+        {
+          "id": "luna-res-revelation",
+          "name": "Celestial Revelation",
+          "current": 1,
+          "max": 1,
+          "recharge": "long",
+          "detail": "1 minute (sheet)"
+        }
+      ],
+      "features": [
+        {
+          "id": "party-luna-spellbrook-innatesorcery",
+          "name": "Innate Sorcery",
+          "source": "Sorcerer",
+          "level": 1,
+          "action": "Bonus Action",
+          "detail": "D&D 2024: As a Bonus Action, for 1 minute your Sorcerer spell save DC increases by 1 and you have Advantage on attack rolls made with Sorcerer spells. Twice per Long Rest."
+        },
+        {
+          "id": "party-luna-spellbrook-fontofmagic",
+          "name": "Font of Magic",
+          "source": "Sorcerer",
+          "level": 2,
+          "action": "Special",
+          "detail": "Convert Sorcery Points and spell slots under Sorcerer rules."
+        },
+        {
+          "id": "party-luna-spellbrook-metamagic",
+          "name": "Metamagic",
+          "source": "Sorcerer",
+          "level": 2,
+          "action": "Special",
+          "detail": "Selected options are listed as separate features."
+        },
+        {
+          "id": "luna-celestialresistance",
+          "name": "Celestial Resistance",
+          "source": "Aasimar",
+          "level": 1,
+          "action": "Passive",
+          "detail": "Resistance to Necrotic and Radiant damage, as recorded in PDF."
+        },
+        {
+          "id": "luna-darkvision",
+          "name": "Darkvision",
+          "source": "Aasimar",
+          "level": 1,
+          "action": "Passive",
+          "detail": "60 ft."
+        },
+        {
+          "id": "luna-lightbearer",
+          "name": "Light Bearer",
+          "source": "Aasimar",
+          "level": 1,
+          "action": "Passive",
+          "detail": "Light cantrip as species trait."
+        },
+        {
+          "id": "luna-healinghands",
+          "name": "Healing Hands",
+          "source": "Aasimar",
+          "level": 1,
+          "action": "Action",
+          "detail": "2d4 healing as specified on source sheet."
+        },
+        {
+          "id": "luna-revelation",
+          "name": "Celestial Revelation",
+          "source": "Aasimar",
+          "level": 3,
+          "action": "Bonus Action",
+          "detail": "Choose appropriate transformation; 1 min, once per Long Rest according to source sheet."
+        },
+        {
+          "id": "luna-telepathy",
+          "name": "Telepathic Speech",
+          "source": "Aberrant Sorcery",
+          "level": 3,
+          "action": "Special",
+          "detail": "Source PDF: once/long rest, 30ft, 3min, extend to 2 miles with CHA+2. Validate exact rules/limits."
+        },
+        {
+          "id": "luna-metam-transmuted",
+          "name": "Metamagic: Transmuted Spell",
+          "source": "Sorcerer",
+          "level": 2,
+          "action": "Metamagic",
+          "detail": "Change eligible spell damage type; source indicates 1 Sorcery Point."
+        },
+        {
+          "id": "luna-metam-distant",
+          "name": "Metamagic: Distant Spell",
+          "source": "Sorcerer",
+          "level": 2,
+          "action": "Metamagic",
+          "detail": "Extend spell range; source indicates 1 Sorcery Point."
+        },
+        {
+          "id": "luna-2024-psionic-spells",
+          "name": "Psionic Spells",
+          "detail": "D&D 2024 — Aberrant Sorcery Level 3: Arms of Hadar, Calm Emotions, Detect Thoughts, Dissonant Whispers and Mind Sliver are always prepared. These spells do not count against Sorcerer prepared-spell choices.",
+          "source": "Aberrant Sorcery",
+          "level": 3,
+          "action": "Passive"
+        }
+      ],
+      "companions": [],
+      "feats": [
+        "feat-musician"
+      ],
+      "maneuvers": [],
+      "spellbook": [
+        {
+          "id": "party-luna-spellbrook-spell-1",
+          "ref": "spell-light",
+          "name": "Light",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: LIGHT (1hr bright light 20ft/dim light 20ft)",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "LIGHT (1hr bright light 20ft/dim light 20ft)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-2",
+          "ref": "",
+          "name": "Sleep",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: SLEEP (60ft) | Note: appeared in cantrip column; Sleep is a level-1 spell.",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "SLEEP (60ft)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-3",
+          "ref": "spell-truestrike",
+          "name": "True Strike",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: TRUE STRIKE (30ft)",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "TRUE STRIKE (30ft)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-4",
+          "ref": "",
+          "name": "Message",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: MESSAGE (120ft)",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "MESSAGE (120ft)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-5",
+          "ref": "spell-firebolt",
+          "name": "Fire Bolt",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: FIRE BOLT 1d10 (Fire)",
+          "damage": "1d10",
+          "effectKind": "damage",
+          "damageType": "Fire",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "FIRE BOLT 1d10 (Fire)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-6",
+          "ref": "",
+          "name": "Mind Sliver",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: MIND SLIVER 1d6 (psychic)",
+          "damage": "1d6",
+          "effectKind": "damage",
+          "damageType": "Psychic",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "MIND SLIVER 1d6 (psychic)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-7",
+          "ref": "spell-mending",
+          "name": "Mending",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: MENDING",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "MENDING"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-8",
+          "ref": "spell-detectmagic",
+          "name": "Detect Magic",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: DETECT MAGIC (30ft/10min)",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "DETECT MAGIC (30ft/10min)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-9",
+          "ref": "spell-shield",
+          "name": "Shield",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: SHIELD (reaction) AC+5",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "SHIELD (reaction) AC+5"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-10",
+          "ref": "",
+          "name": "Chromatic Orb",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: CHROMATIC ORB (90ft) 3d8",
+          "damage": "3d8",
+          "effectKind": "damage",
+          "damageType": "Variable",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "CHROMATIC ORB (90ft) 3d8"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-11",
+          "ref": "",
+          "name": "Arms of Hadar",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: ARMS OF HADAR 2d4 (necrotic)",
+          "damage": "2d4",
+          "effectKind": "damage",
+          "damageType": "Necrotic",
+          "upcastBonus": "",
+          "damageNote": "PDF shows 2d4; 2024 published version may differ. Source value preserved.",
+          "sourceText": "ARMS OF HADAR 2d4 (necrotic)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-12",
+          "ref": "",
+          "name": "Dissonant Whispers",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: DISSONANT WHISPERS 3d6 (psychic)",
+          "damage": "3d6",
+          "effectKind": "damage",
+          "damageType": "Psychic",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "DISSONANT WHISPERS 3d6 (psychic)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-13",
+          "ref": "spell-scorchingray",
+          "name": "Scorching Ray",
+          "level": 2,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: SCORCHING RAY 3x2d6 (fire)",
+          "damage": "3 × 2d6",
+          "effectKind": "damage",
+          "damageType": "Fire",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "SCORCHING RAY 3x2d6 (fire)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-14",
+          "ref": "",
+          "name": "Calm Emotions",
+          "level": 2,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: CALM EMOTIONS (concentration)",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "CALM EMOTIONS (concentration)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-15",
+          "ref": "",
+          "name": "Detect Thoughts",
+          "level": 2,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: DETECT THOUGHTS (concentration)",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "DETECT THOUGHTS (concentration)"
+        },
+        {
+          "id": "party-luna-spellbrook-spell-16",
+          "ref": "",
+          "name": "Mind Spike",
+          "level": 2,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: MIND SPIKE 3d8 (psychic)",
+          "damage": "3d8",
+          "effectKind": "damage",
+          "damageType": "Psychic",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "MIND SPIKE 3d8 (psychic)"
+        }
+      ],
+      "slots": {
+        "1": {
+          "max": 4,
+          "used": 0
+        },
+        "2": {
+          "max": 2,
+          "used": 0
+        }
+      },
+      "pact": {
+        "level": 1,
+        "max": 0,
+        "used": 0
+      },
+      "spellAbility": "CHA",
+      "spellDCOverride": 12,
+      "spellAttackOverride": 4,
+      "concentrating": "",
+      "inventory": [
+        {
+          "id": "party-luna-spellbrook-item-0",
+          "name": "Arcane Focus/Crystal",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "party-luna-spellbrook-item-1",
+          "name": "Dungeoneers Pack",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "party-luna-spellbrook-item-2",
+          "name": "Leather Armor",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "party-luna-spellbrook-item-4",
+          "name": "Food Supplies",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "luna-inv-daggers",
+          "name": "Dagger",
+          "qty": 2,
+          "weight": 1,
+          "description": "Thrown 20/60 ft",
+          "equipped": false
+        },
+        {
+          "id": "luna-inv-shortbow",
+          "name": "Shortbow",
+          "qty": 1,
+          "weight": 2,
+          "description": "1d6 piercing",
+          "equipped": false
+        },
+        {
+          "id": "luna-inv-arrows20",
+          "name": "Arrows",
+          "qty": 20,
+          "weight": 0,
+          "description": "20 arrows on sheet",
+          "equipped": false
+        }
+      ],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 0,
+        "pp": 0
+      },
+      "notes": "Source: user-supplied fillable PDF, all listed spells retained. Spell lists and feat prerequisites not yet independently validated. Used slots and current HP were not filled, initialized to full. DM campaign rule sets Passive Perception 10; PDF recorded 11.\nOriginal PDF spell list includes Sleep in the Cantrips area; recorded as Level 1. Spell list contains more entries than a basic Sorcerer normally prepares, possibly due to subclass/species; verify with DM.",
+      "journal": [],
+      "hitDice": {
+        "max": 3,
+        "used": 0
+      },
+      "death": {
+        "success": 0,
+        "fail": 0
+      },
+      "languages": "Common, Orcish, Celestial",
+      "proficiencies": "See original sheet for other proficiencies; exact tool proficiencies not indicated.",
+      "plan": "Verify Origin Feat and subclass-provided spells with the DM (Entertainer background, 2024).",
+      "portrait": "",
+      "rolls": [],
+      "rulesVersion": "2024",
+      "backgroundStory": "",
+      "sourceDocuments": [
+        "5E_CharacterSheet_Fillable luna.pdf"
+      ],
+      "sourceWarnings": [
+        "PDF passive perception 11; overwritten to 10 per confirmed campaign-wide DM house rule.",
+        "Spell levels and prepared-spell entitlement require rules verification; spells transcribed as recorded, not silently removed.",
+        "Current HP and expended spell slots were not specified; initialized to maximum / zero used for a fresh session.",
+        "Sleep is printed among cantrips; classified as level 1, preserving PDF original in sourceText.",
+        "Aberrant Sorcery source and Sorcerer prepared-spell limits need verification against selected 2024 books.",
+        "PDF lists all spells but does not clearly identify which are prepared versus merely available; all listed entries are marked prepared pending confirmation."
+      ],
+      "appearance": {
+        "age": "25",
+        "height": "1.85",
+        "weight": "75",
+        "eyes": "GREEN",
+        "skin": "WHITE",
+        "hair": "BLONDE"
+      },
+      "spellbookStatus": "Transcribed from PDF as listed; verify which spells are actually prepared with 2024 rules before play.",
+      "resourceStateAssumption": "Full-resource starting state; unknown current usage.",
+      "passivePerceptionOriginalPdf": 11
+    },
+    {
+      "id": "party-ammantyl-vythrax",
+      "name": "AMMANTYL VYTHRAX",
+      "player": "",
+      "species": "Dragonborn",
+      "background": "Noble",
+      "alignment": "Chaotic Good",
+      "classes": [
+        {
+          "name": "Sorcerer",
+          "level": 3,
+          "subclass": "Draconic Sorcery"
+        }
+      ],
+      "abilities": {
+        "STR": 10,
+        "DEX": 13,
+        "CON": 14,
+        "INT": 8,
+        "WIS": 12,
+        "CHA": 15
+      },
+      "skills": {
+        "Arcana": 1,
+        "History": 1,
+        "Persuasion": 1
+      },
+      "saves": [
+        "CON",
+        "CHA"
+      ],
+      "hp": {
+        "max": 22,
+        "current": 22,
+        "temp": 0
+      },
+      "ac": 13,
+      "loadouts": [
+        {
+          "id": "amm-draconic-ac",
+          "name": "AC 13 from source sheet — verify armor calculation",
+          "ac": 13
+        },
+        {
+          "id": "amm-leather-ac",
+          "name": "Leather Armor (11 + DEX)",
+          "ac": 12
+        }
+      ],
+      "activeLoadout": 0,
+      "speed": 30,
+      "initiativeBonus": 0,
+      "proficiencyOverride": "",
+      "passivePerceptionOverride": 10,
+      "inspiration": false,
+      "conditions": [],
+      "exhaustion": 0,
+      "attacks": [
+        {
+          "id": "amm-dagger-attack",
+          "name": "Dagger",
+          "ability": "DEX",
+          "damage": "1d4",
+          "type": "Piercing",
+          "mastery": "",
+          "proficient": true,
+          "magicBonus": 0,
+          "damageBonus": 0,
+          "bonusOverride": "",
+          "notes": "2 daggers, thrown (20/60)",
+          "equipped": false
+        }
+      ],
+      "resources": [
+        {
+          "id": "party-ammantyl-vythrax-res-sorcery",
+          "name": "Sorcery Points",
+          "current": 3,
+          "max": 3,
+          "recharge": "long",
+          "detail": "As recorded in page 2 of source PDF"
+        },
+        {
+          "id": "party-ammantyl-vythrax-res-innate",
+          "name": "Innate Sorcery",
+          "current": 2,
+          "max": 2,
+          "recharge": "long",
+          "detail": "2 uses per Long Rest, as recorded in source PDF"
+        }
+      ],
+      "features": [
+        {
+          "id": "party-ammantyl-vythrax-innatesorcery",
+          "name": "Innate Sorcery",
+          "source": "Sorcerer",
+          "level": 1,
+          "action": "Bonus Action",
+          "detail": "D&D 2024: As a Bonus Action, for 1 minute your Sorcerer spell save DC increases by 1 and you have Advantage on attack rolls made with Sorcerer spells. Twice per Long Rest."
+        },
+        {
+          "id": "party-ammantyl-vythrax-fontofmagic",
+          "name": "Font of Magic",
+          "source": "Sorcerer",
+          "level": 2,
+          "action": "Special",
+          "detail": "Convert Sorcery Points and spell slots under Sorcerer rules."
+        },
+        {
+          "id": "party-ammantyl-vythrax-metamagic",
+          "name": "Metamagic",
+          "source": "Sorcerer",
+          "level": 2,
+          "action": "Special",
+          "detail": "Selected options are listed as separate features."
+        },
+        {
+          "id": "amm-draconicancestry",
+          "name": "Draconic Ancestry (Black)",
+          "source": "Dragonborn",
+          "level": 1,
+          "action": "Passive",
+          "detail": "Black Dragonborn ancestry noted in source PDF."
+        },
+        {
+          "id": "amm-breath",
+          "name": "Breath Weapon",
+          "source": "Dragonborn",
+          "level": 1,
+          "action": "Special",
+          "detail": "D&D 2024 Dragonborn Level 3: replace one attack during the Attack action with a 15-foot Cone or 30-foot Line (5 feet wide), dealing 1d10 Acid damage; targets make a Dexterity save against DC 8 + CON modifier + Proficiency Bonus (half damage on success). Uses equal to Proficiency Bonus per Long Rest. Damage becomes 2d10 at character Level 5."
+        },
+        {
+          "id": "amm-resistance",
+          "name": "Damage Resistance: Acid",
+          "source": "Dragonborn",
+          "level": 1,
+          "action": "Passive",
+          "detail": "Resistance to Acid damage."
+        },
+        {
+          "id": "amm-darkvision",
+          "name": "Darkvision",
+          "source": "Dragonborn",
+          "level": 1,
+          "action": "Passive",
+          "detail": "60 ft, per player PDF."
+        },
+        {
+          "id": "amm-draconicresilience",
+          "name": "Draconic Resilience",
+          "source": "Draconic Sorcery",
+          "level": 3,
+          "action": "Passive",
+          "detail": "D&D 2024 Draconic Sorcery Level 3: maximum Hit Points increase by 3, and by 1 for each additional Sorcerer level. While not wearing armor, base AC equals 10 + Dexterity modifier + Charisma modifier. The current 22 HP and AC 13 were recorded on the sheet."
+        },
+        {
+          "id": "amm-metam-empowered",
+          "name": "Metamagic: Empowered Spell",
+          "source": "Sorcerer",
+          "level": 2,
+          "action": "Metamagic",
+          "detail": "Reroll damage dice; source indicates 1 Sorcery Point."
+        },
+        {
+          "id": "amm-metam-seeking",
+          "name": "Metamagic: Seeking Spell",
+          "source": "Sorcerer",
+          "level": 2,
+          "action": "Metamagic",
+          "detail": "Reroll a missed spell attack under feat rules; source indicates 1 Sorcery Point."
+        },
+        {
+          "id": "ammantyl-2024-draconic-spells",
+          "name": "Draconic Spells",
+          "detail": "D&D 2024 — Draconic Sorcery Level 3: Alter Self, Chromatic Orb, Command and Dragon’s Breath are always prepared. They do not count against your Sorcerer prepared-spell choices.",
+          "source": "Draconic Sorcery",
+          "level": 3,
+          "action": "Passive"
+        }
+      ],
+      "companions": [],
+      "feats": [
+        "feat-skilled"
+      ],
+      "maneuvers": [],
+      "spellbook": [
+        {
+          "id": "party-ammantyl-vythrax-spell-1",
+          "ref": "spell-light",
+          "name": "Light",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: LIGHT (1 hour bright light 20ft)",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "LIGHT (1 hour bright light 20ft)"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-2",
+          "ref": "",
+          "name": "Alter Self",
+          "level": 2,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: ALTER SELF (concentration) | Note: appeared in cantrip column; Alter Self is a level-2 spell.",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "PDF listed this as a cantrip; level 2 is standard.",
+          "sourceText": "ALTER SELF (concentration)"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-3",
+          "ref": "spell-prestidigitation",
+          "name": "Prestidigitation",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: PRESTIDIGITATION (10ft create minor effect)",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "PRESTIDIGITATION (10ft create minor effect)"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-4",
+          "ref": "",
+          "name": "Sorcerous Burst",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: SORCERER'S BURST (120ft) 1d8 any damage | PDF uses label SORCERER'S BURST.",
+          "damage": "1d8",
+          "effectKind": "damage",
+          "damageType": "Variable",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "SORCERER'S BURST (120ft) 1d8 any damage"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-5",
+          "ref": "spell-firebolt",
+          "name": "Fire Bolt",
+          "level": 0,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: FIRE BOLT1d10 (Fire)",
+          "damage": "1d10",
+          "effectKind": "damage",
+          "damageType": "Fire",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "FIRE BOLT1d10 (Fire)"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-6",
+          "ref": "spell-command",
+          "name": "Command",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: COMMAND",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "COMMAND"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-7",
+          "ref": "",
+          "name": "Dragon's Breath",
+          "level": 2,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: DRAGONS BREATH 3d6 (any damage)",
+          "damage": "3d6",
+          "effectKind": "damage",
+          "damageType": "Variable",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "DRAGONS BREATH 3d6 (any damage)"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-8",
+          "ref": "",
+          "name": "Ice Knife",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: ICE KNIFE 1d10 + 2d6 (cold/5ft explosion)",
+          "damage": "1d10 + 2d6",
+          "effectKind": "damage",
+          "damageType": "Piercing + Cold",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "ICE KNIFE 1d10 + 2d6 (cold/5ft explosion)"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-9",
+          "ref": "",
+          "name": "Ray of Sickness",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: RAY OF SICKNESS 2d8 (poison/necrotic)",
+          "damage": "2d8",
+          "effectKind": "damage",
+          "damageType": "Poison / Necrotic",
+          "upcastBonus": "",
+          "damageNote": "Sheet says poison/necrotic; verify actual damage type.",
+          "sourceText": "RAY OF SICKNESS 2d8 (poison/necrotic)"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-10",
+          "ref": "spell-magicmissile",
+          "name": "Magic Missile",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: MAGIC MISSILE (120ft) 3d4+3",
+          "damage": "3 × (1d4+1)",
+          "effectKind": "damage",
+          "damageType": "Force",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "MAGIC MISSILE (120ft) 3d4+3"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-11",
+          "ref": "spell-shield",
+          "name": "Shield",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: SHIELD (reaction) AC+5",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "SHIELD (reaction) AC+5"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-12",
+          "ref": "",
+          "name": "Chromatic Orb",
+          "level": 1,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: CHROMATIC ORB (90ft) 3d8 any damage",
+          "damage": "3d8",
+          "effectKind": "damage",
+          "damageType": "Variable",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "CHROMATIC ORB (90ft) 3d8 any damage"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-13",
+          "ref": "spell-scorchingray",
+          "name": "Scorching Ray",
+          "level": 2,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: SCORCHING RAY 3x2d6 (fire)",
+          "damage": "3 × 2d6",
+          "effectKind": "damage",
+          "damageType": "Fire",
+          "upcastBonus": "",
+          "damageNote": "Source transcription; verify detailed 2024 wording and available preparation count.",
+          "sourceText": "SCORCHING RAY 3x2d6 (fire)"
+        },
+        {
+          "id": "party-ammantyl-vythrax-spell-14",
+          "ref": "spell-mistystep",
+          "name": "Misty Step",
+          "level": 2,
+          "school": "",
+          "cast": "Action",
+          "range": "",
+          "duration": "",
+          "components": "",
+          "prepared": true,
+          "summary": "As written on PDF: MISTY STEP (bonus action/teleport 30ft)",
+          "damage": "",
+          "effectKind": "utility",
+          "damageType": "",
+          "upcastBonus": "",
+          "damageNote": "",
+          "sourceText": "MISTY STEP (bonus action/teleport 30ft)"
+        }
+      ],
+      "slots": {
+        "1": {
+          "max": 4,
+          "used": 0
+        },
+        "2": {
+          "max": 2,
+          "used": 0
+        }
+      },
+      "pact": {
+        "level": 1,
+        "max": 0,
+        "used": 0
+      },
+      "spellAbility": "CHA",
+      "spellDCOverride": 12,
+      "spellAttackOverride": 4,
+      "concentrating": "",
+      "inventory": [
+        {
+          "id": "party-ammantyl-vythrax-item-0",
+          "name": "Dungeoneers Pack",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "party-ammantyl-vythrax-item-1",
+          "name": "Arcane Focus",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "party-ammantyl-vythrax-item-2",
+          "name": "Three Dragon Ante",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "party-ammantyl-vythrax-item-3",
+          "name": "Nobles Clothes",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "party-ammantyl-vythrax-item-4",
+          "name": "Perfume",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "party-ammantyl-vythrax-item-5",
+          "name": "Leather Armor",
+          "qty": 1,
+          "description": "As written in source PDF",
+          "weight": 0,
+          "equipped": false
+        },
+        {
+          "id": "amm-daggers",
+          "name": "Dagger",
+          "qty": 2,
+          "weight": 1,
+          "description": "Thrown 20/60 ft",
+          "equipped": false
+        }
+      ],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 0,
+        "pp": 0
+      },
+      "notes": "Source: user-supplied fillable PDF, all listed spells retained. Spell lists and feat prerequisites not yet independently validated. Used slots and current HP were not filled, initialized to full. DM campaign rule sets Passive Perception 10; PDF recorded 11.\nDraconic Flight is noted on PDF as Level 5, not currently active. PDF places Alter Self in the Cantrips section; entered as level 2. Skilled Origin Feat is listed but its 3 extra proficiency choices are not specified by the actual skill bonuses.",
+      "journal": [],
+      "hitDice": {
+        "max": 3,
+        "used": 0
+      },
+      "death": {
+        "success": 0,
+        "fail": 0
+      },
+      "languages": "Draconic, Common, Elvish",
+      "proficiencies": "See original sheet for other proficiencies; exact tool proficiencies not indicated.",
+      "plan": "Draconic Flight noted on PDF as Level 5 future feature (NOT unlocked at level 3). Verify sorcerer progression.",
+      "portrait": "",
+      "rolls": [],
+      "rulesVersion": "2024",
+      "backgroundStory": "Personality Traits: Ο Ammantyl έχει διατηρήσει τους τρόπους και την αυτοπεποίθηση της αριστοκρατικής του ανατροφής. Είναι παρατηρητικός, περίεργος και δεν εμπιστεύεται εύκολα κάποιον μόνο και μόνο επειδή κατέχει μια σημαντική θέση.\n\nIdeals: Πιστεύει ότι κανείς δεν βρίσκεται υπεράνω αμφισβήτησης, ούτε καν η οικογένειά του. Θέλει να χαράξει τη δική του πορεία και να αποδείξει ότι η αξία του δεν καθορίζεται από το όνομα του.\n\nBonds: Όσοι κερδίσουν την εμπιστοσύνη μου θα έχουν πάντα την προστασία μου, όποιο κι αν είναι το τίμημα.\n\nFlaws: Η αριστοκρατική ανατροφή του τον έχει κάνει υπερήφανο, ίσως και λίγο αλαζόνα. Δυσκολεύεται να παραδεχτεί τα λάθη του και η ανάγκη του να ανακαλύπτει μυστικά μπορεί να τον οδηγήσει σε επικίνδυνες αποφάσεις.",
+      "sourceDocuments": [
+        "5E_CharacterSheet_Fillable ammantyl_no_background.pdf"
+      ],
+      "sourceWarnings": [
+        "PDF passive perception 11; overwritten to 10 per confirmed campaign-wide DM house rule.",
+        "Spell levels and prepared-spell entitlement require rules verification; spells transcribed as recorded, not silently removed.",
+        "Current HP and expended spell slots were not specified; initialized to maximum / zero used for a fresh session.",
+        "Alter Self is printed among cantrips; classified as level 2, preserving original text.",
+        "Only Arcana, History, Persuasion have +2 proficiency reflected in provided skill bonus values, despite Skilled feat: unlisted remaining proficiencies require confirmation.",
+        "AC 13 from source may derive from Draconic Resilience; PDF also lists Leather Armor, which would yield AC 12 with DEX +1. Player should confirm active AC.",
+        "Draconic Flight marked for level 5, omitted from active features.",
+        "Spells of different levels and spell counts require confirmation with DM."
+      ],
+      "appearance": {
+        "age": "25",
+        "height": "1.85",
+        "weight": "80",
+        "eyes": "GREEN",
+        "skin": "BLACK",
+        "hair": "NO"
+      },
+      "spellbookStatus": "Transcribed from PDF as listed; verify which spells are actually prepared with 2024 rules before play.",
+      "resourceStateAssumption": "Full-resource starting state; unknown current usage.",
+      "passivePerceptionOriginalPdf": 11
+    }
+  ]
+}
