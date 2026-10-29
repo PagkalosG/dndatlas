@@ -19,10 +19,10 @@ jobs:
           git fetch origin main --no-tags
           mapfile -d '' files < <(git diff --diff-filter=ACMR --name-only -z origin/main...HEAD)
           if (( ${#files[@]} == 0 )); then echo "No changed files" >&2; exit 1; fi
-          zip -q dndatlas-v3.3.0-changed-only.zip "${files[@]}"
-          unzip -l dndatlas-v3.3.0-changed-only.zip
+          zip -q dndatlas-v3.3.1-changed-only.zip "${files[@]}"
+          unzip -l dndatlas-v3.3.1-changed-only.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: dndatlas-v3.3.0-changed-only
-          path: dndatlas-v3.3.0-changed-only.zip
+          name: dndatlas-v3.3.1-changed-only
+          path: dndatlas-v3.3.1-changed-only.zip
           retention-days: 30
