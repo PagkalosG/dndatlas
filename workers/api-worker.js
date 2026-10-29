@@ -91,7 +91,7 @@ async function markChanged(env){
 }
 async function snapshotParty(env,version){
  const rows=(await env.DB.prepare('SELECT id,data_json FROM characters ORDER BY id').all()).results;
- const doc={application:'Character Atlas',schema:1,rulesVersion:'2024',syncVersion:version,exportedAt:new Date().toISOString(),characters:rows.map(row=>JSON.parse(row.data_json))};
+ const doc={application:'Character Atlas',schema:1,rulesVersion:'2024',syncVersion:version,exportedAt:new Date().toISOString(),characters:rows.map(row=>{const ch=JSON.parse(row.data_json);if(ch.storyPublic!==true){delete ch.backgroundStory;delete ch.story;ch.storyPrivate=true;}return ch;})};
  try{
   const rows=(await env.DB.prepare('SELECT session_number,title,story,session_date,images_json FROM campaign_sessions ORDER BY session_number').all()).results;
   doc.sessions=rows.map(r=>({sessionNumber:r.session_number,title:r.title,story:r.story,date:r.session_date,images:JSON.parse(r.images_json)}));
@@ -378,7 +378,7 @@ if(b.pin!==undefined){if(!allowedPin(b.pin,target.role))throw err(400,'Invalid P
       throw err(400,'Invalid Character Atlas JSON in private Drive file');
    const existing=(await env.DB.prepare('SELECT id FROM characters').all()).results;
    const keep=new Set(existing.map(x=>x.id));
-   const missing=list.filter(x=>!keep.has(x.id));
+   const missing=list.filter(x=>!keep.has(x.id)).map(item=>{const ch=structuredClone(item);if(ch.storyPublic!==true){delete ch.backgroundStory;delete ch.story;ch.storyPrivate=true;}return ch;});
    if(missing.length){
     await env.DB.batch(missing.map(ch=>env.DB.prepare('INSERT INTO characters(id,data_json,modified_by) VALUES(?,?,?)').bind(ch.id,JSON.stringify(ch),actor.id)));
     await markChanged(env);scheduleDrive(env,ctx);
