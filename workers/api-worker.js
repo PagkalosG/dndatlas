@@ -28,7 +28,7 @@ const err=(code,message)=>Object.assign(new Error(message),{code});
 
 const jsonBody=async req=>{if(Number(req.headers.get('content-length')||0)>1800000)throw err(413,'Payload too large');const raw=await req.text();if(raw.length>1800000)throw err(413,'Payload too large');try{return JSON.parse(raw||'{}')}catch{throw err(400,'Invalid JSON')}};
 
-const redact=(ch,actor,ownerId)=>{const out=structuredClone(ch);if(out.storyPublic!==true && actor.role!=='dm' && actor.id!==ownerId){delete out.backgroundStory;delete out.story;out.storyPrivate=true;}return out;};
+const redact=(ch,actor,ownerId)=>{const out=structuredClone(ch);if(actor.role!=='dm'&&actor.id!==ownerId){delete out.notes;delete out.journal;if(out.storyPublic!==true){delete out.backgroundStory;delete out.story;out.storyPrivate=true;}}return out;};
 
 const audit=async(env,actor,action,subject)=>env.DB.prepare('INSERT INTO audit_log(actor_user_id,action,subject) VALUES(?,?,?)').bind(actor||null,action,String(subject).slice(0,180)).run();
 
@@ -560,7 +560,11 @@ if(pathname==='/characters'&&method==='GET'){
 
     // Creator may edit abilities, equipment etc. but cannot read/replace another player's private story.
 
-    if(actor.role==='creator'&&actor.id!==r.owner_user_id&&actor.role!=='dm'&&original.storyPublic!==true){next.backgroundStory=original.backgroundStory;next.storyPublic=false;}
+    if(actor.role==='creator'&&actor.id!==r.owner_user_id){
+     next.notes=original.notes;
+     next.journal=original.journal;
+     if(original.storyPublic!==true){next.backgroundStory=original.backgroundStory;next.story=original.story;next.storyPublic=false;}
+    }
 
     const result=await env.DB.prepare('UPDATE characters SET data_json=?,revision=revision+1,modified_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND revision=?').bind(JSON.stringify(next),actor.id,id,b.revision).run();
 
