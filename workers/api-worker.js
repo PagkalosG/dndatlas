@@ -53,7 +53,7 @@ async function googleAccessToken(env){
  if(!email||!raw)throw Error('Google Drive service-account credentials are missing');
  const key=await crypto.subtle.importKey('pkcs8',Uint8Array.from(atob(raw),c=>c.charCodeAt(0)),{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign']);
  const now=Math.floor(Date.now()/1000);
- const unsigned=jwtPart({alg:'RS256',typ:'JWT'})+'.'+jwtPart({iss:email,scope:'https://www.googleapis.com/auth/drive.file',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3500});
+ const unsigned=jwtPart({alg:'RS256',typ:'JWT'})+'.'+jwtPart({iss:email,scope:'https://www.googleapis.com/auth/drive',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3500});
  const signature=new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key,enc.encode(unsigned)));
  const reply=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion:unsigned+'.'+b64url(signature)})});
  if(!reply.ok)throw Error('Google OAuth rejected service-account credentials: '+reply.status);
@@ -82,8 +82,8 @@ async function driveWrite(env,doc){
  if(!reply.ok)throw Error('Cannot update Drive JSON: '+reply.status);
 }
 async function syncState(env){
- await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_sync_state (id INTEGER PRIMARY KEY, version INTEGER NOT NULL DEFAULT 0, published_version INTEGER NOT NULL DEFAULT 0, lease_until INTEGER NOT NULL DEFAULT 0)').run();
- await env.DB.prepare('INSERT OR IGNORE INTO atlas_sync_state(id,version,published_version,lease_until) VALUES(1,0,0,0)').run();
+ await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_sync_state (id INTEGER PRIMARY KEY, version INTEGER NOT NULL DEFAULT 0, published_version INTEGER NOT NULL DEFAULT -1, lease_until INTEGER NOT NULL DEFAULT 0)').run();
+ await env.DB.prepare('INSERT OR IGNORE INTO atlas_sync_state(id,version,published_version,lease_until) VALUES(1,0,-1,0)').run();
 }
 async function markChanged(env){
  await syncState(env);
@@ -92,6 +92,10 @@ async function markChanged(env){
 async function snapshotParty(env,version){
  const rows=(await env.DB.prepare('SELECT id,data_json FROM characters ORDER BY id').all()).results;
  const doc={application:'Character Atlas',schema:1,rulesVersion:'2024',syncVersion:version,exportedAt:new Date().toISOString(),characters:rows.map(row=>JSON.parse(row.data_json))};
+ try{
+  const rows=(await env.DB.prepare('SELECT session_number,title,story,session_date,images_json FROM campaign_sessions ORDER BY session_number').all()).results;
+  doc.sessions=rows.map(r=>({sessionNumber:r.session_number,title:r.title,story:r.story,date:r.session_date,images:JSON.parse(r.images_json)}));
+ }catch{doc.sessions=[];}
  // No user accounts, credentials, D1 session tokens, recovery codes or permissions.
  return doc;
 }
@@ -355,7 +359,8 @@ if(b.pin!==undefined){if(!allowedPin(b.pin,target.role))throw err(400,'Invalid P
   // Lightweight authenticated version check for all connected PWA clients.
   if(pathname==='/sync/revisions'&&method==='GET'){
    const rows=(await env.DB.prepare('SELECT id,revision FROM characters ORDER BY id').all()).results;
-   return respond({revisions:Object.fromEntries(rows.map(r=>[r.id,r.revision])),checkedAt:Date.now()});
+   await syncState(env);const state=await env.DB.prepare('SELECT version FROM atlas_sync_state WHERE id=1').first();
+   return respond({revisions:Object.fromEntries(rows.map(r=>[r.id,r.revision])),syncVersion:state.version,checkedAt:Date.now()});
   }
   if(pathname==='/sync/drive/status'&&method==='GET'){
    await syncState(env);
