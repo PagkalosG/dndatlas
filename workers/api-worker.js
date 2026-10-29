@@ -38,9 +38,94 @@ const publicUser=u=>({id:u.id,username:u.username,role:u.role,active:!!u.active,
 
 const validCharacter=c=>c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.id==='string'&&/^[\w-]{1,80}$/.test(c.id)&&typeof c.name==='string'&&c.name.length>0&&c.name.length<160&&Array.isArray(c.classes);
 
+
+// D1 is the authority for live data. Drive is a private, whole-party JSON mirror.
+// Google Service Account must be granted Editor on an existing user-owned JSON file.
+let googleAccessCache=null;
+const driveReady=env=>Boolean(env.GOOGLE_SERVICE_ACCOUNT_EMAIL&&env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY&&env.GOOGLE_DRIVE_PARTY_FILE_ID);
+const b64url=data=>btoa(String.fromCharCode(...data)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const jwtPart=value=>b64url(enc.encode(JSON.stringify(value)));
+async function googleAccessToken(env){
+ if(googleAccessCache&&googleAccessCache.exp>Date.now()+60000)return googleAccessCache.token;
+ const email=String(env.GOOGLE_SERVICE_ACCOUNT_EMAIL||'');
+ const pem=String(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY||'').replace(/\\n/g,'\n');
+ const raw=pem.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g,'');
+ if(!email||!raw)throw Error('Google Drive service-account credentials are missing');
+ const key=await crypto.subtle.importKey('pkcs8',Uint8Array.from(atob(raw),c=>c.charCodeAt(0)),{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign']);
+ const now=Math.floor(Date.now()/1000);
+ const unsigned=jwtPart({alg:'RS256',typ:'JWT'})+'.'+jwtPart({iss:email,scope:'https://www.googleapis.com/auth/drive.file',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3500});
+ const signature=new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key,enc.encode(unsigned)));
+ const reply=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion:unsigned+'.'+b64url(signature)})});
+ if(!reply.ok)throw Error('Google OAuth rejected service-account credentials: '+reply.status);
+ const token=await reply.json();if(!token.access_token)throw Error('Google OAuth response omitted access token');
+ googleAccessCache={token:token.access_token,exp:Date.now()+(Number(token.expires_in)||3300)*1000};return token.access_token;
+}
+const driveId=env=>{
+ const id=String(env.GOOGLE_DRIVE_PARTY_FILE_ID||'');
+ if(!/^[a-zA-Z0-9_-]{10,160}$/.test(id))throw Error('Invalid GOOGLE_DRIVE_PARTY_FILE_ID');
+ return id;
+};
+async function driveRead(env){
+ const access=await googleAccessToken(env);
+ const reply=await fetch('https://www.googleapis.com/drive/v3/files/'+driveId(env)+'?alt=media&supportsAllDrives=true',{headers:{Authorization:'Bearer '+access},cache:'no-store'});
+ if(!reply.ok)throw Error('Cannot read private Drive JSON: '+reply.status);
+ const raw=await reply.text();if(raw.length>1800000)throw Error('Drive JSON exceeds size limit');
+ try{return JSON.parse(raw)}catch{throw Error('Drive file does not contain valid JSON')}
+}
+async function driveWrite(env,doc){
+ const access=await googleAccessToken(env);
+ const raw=JSON.stringify(doc,null,2);
+ if(raw.length>1800000)throw Error('Party JSON too large for Drive mirror');
+ const reply=await fetch('https://www.googleapis.com/upload/drive/v3/files/'+driveId(env)+'?uploadType=media&supportsAllDrives=true',{
+   method:'PATCH',headers:{Authorization:'Bearer '+access,'Content-Type':'application/json; charset=utf-8'},body:raw
+ });
+ if(!reply.ok)throw Error('Cannot update Drive JSON: '+reply.status);
+}
+async function syncState(env){
+ await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_sync_state (id INTEGER PRIMARY KEY, version INTEGER NOT NULL DEFAULT 0, published_version INTEGER NOT NULL DEFAULT 0, lease_until INTEGER NOT NULL DEFAULT 0)').run();
+ await env.DB.prepare('INSERT OR IGNORE INTO atlas_sync_state(id,version,published_version,lease_until) VALUES(1,0,0,0)').run();
+}
+async function markChanged(env){
+ await syncState(env);
+ await env.DB.prepare('UPDATE atlas_sync_state SET version=version+1 WHERE id=1').run();
+}
+async function snapshotParty(env,version){
+ const rows=(await env.DB.prepare('SELECT id,data_json FROM characters ORDER BY id').all()).results;
+ const doc={application:'Character Atlas',schema:1,rulesVersion:'2024',syncVersion:version,exportedAt:new Date().toISOString(),characters:rows.map(row=>JSON.parse(row.data_json))};
+ // No user accounts, credentials, D1 session tokens, recovery codes or permissions.
+ return doc;
+}
+// A short D1 lease keeps parallel Worker requests from replacing a newer snapshot
+// with an older one. A following save or explicit sync retries after failures.
+async function publishDrive(env){
+ if(!driveReady(env))return {configured:false};
+ await syncState(env);
+ const now=Date.now();
+ const acquired=await env.DB.prepare('UPDATE atlas_sync_state SET lease_until=? WHERE id=1 AND lease_until<?').bind(now+25000,now).run();
+ if(!acquired.meta.changes)return {queued:true};
+ try{
+  let exportedVersion=0;
+  for(let turn=0;turn<3;turn++){
+   const state=await env.DB.prepare('SELECT version,published_version FROM atlas_sync_state WHERE id=1').first();
+   if(state.published_version>=state.version)return {publishedVersion:state.published_version};
+   const doc=await snapshotParty(env,state.version);
+   await driveWrite(env,doc);
+   exportedVersion=state.version;
+   await env.DB.prepare('UPDATE atlas_sync_state SET published_version=MAX(published_version,?) WHERE id=1').bind(exportedVersion).run();
+  }
+  return {publishedVersion:exportedVersion};
+ }finally{
+  await env.DB.prepare('UPDATE atlas_sync_state SET lease_until=0 WHERE id=1').run();
+ }
+}
+const scheduleDrive=(env,ctx)=>{
+ if(!ctx?.waitUntil||!driveReady(env))return;
+ ctx.waitUntil(publishDrive(env).catch(error=>console.error('D&D Atlas Drive mirror failed:',String(error))));
+};
+
 const validImageId=id=>/^[a-zA-Z0-9_-]{10,120}$/.test(id||'');
 
-export default {async fetch(request,env){
+export default {async fetch(request,env,ctx){
 
  const origin=env.ALLOWED_ORIGIN||'https\://pagkalosg.github.io';
 
@@ -266,6 +351,44 @@ if(b.pin!==undefined){if(!allowedPin(b.pin,target.role))throw err(400,'Invalid P
     return respond({ok:true,deleted:true,mode:'soft-delete'});
    }
 
+
+  // Lightweight authenticated version check for all connected PWA clients.
+  if(pathname==='/sync/revisions'&&method==='GET'){
+   const rows=(await env.DB.prepare('SELECT id,revision FROM characters ORDER BY id').all()).results;
+   return respond({revisions:Object.fromEntries(rows.map(r=>[r.id,r.revision])),checkedAt:Date.now()});
+  }
+  if(pathname==='/sync/drive/status'&&method==='GET'){
+   await syncState(env);
+   const row=await env.DB.prepare('SELECT version,published_version FROM atlas_sync_state WHERE id=1').first();
+   return respond({configured:driveReady(env),version:row.version,publishedVersion:row.published_version,upToDate:row.version<=row.published_version});
+  }
+  // Creator can seed missing party characters from the private Drive JSON.
+  // Existing D1 characters are deliberately NEVER overwritten by this action.
+  if(pathname==='/sync/drive/import'&&method==='POST'){
+   if(actor.role!=='creator')throw err(403,'Creator only');
+   if(!driveReady(env))throw err(503,'Google Drive service account/file ID not configured');
+   const doc=await driveRead(env),list=doc?.characters;
+   if(doc?.application!=='Character Atlas'||!Array.isArray(list)||list.length<1||list.length>25||
+      list.some(ch=>!validCharacter(ch))||new Set(list.map(ch=>ch.id)).size!==list.length)
+      throw err(400,'Invalid Character Atlas JSON in private Drive file');
+   const existing=(await env.DB.prepare('SELECT id FROM characters').all()).results;
+   const keep=new Set(existing.map(x=>x.id));
+   const missing=list.filter(x=>!keep.has(x.id));
+   if(missing.length){
+    await env.DB.batch(missing.map(ch=>env.DB.prepare('INSERT INTO characters(id,data_json,modified_by) VALUES(?,?,?)').bind(ch.id,JSON.stringify(ch),actor.id)));
+    await markChanged(env);scheduleDrive(env,ctx);
+   }
+   await audit(env,actor.id,'import-drive-party',String(missing.length));
+   return respond({ok:true,added:missing.length,unchanged:list.length-missing.length,existingD1Protected:true});
+  }
+  // Save Now button explicitly waits for a Drive mirror attempt.
+  if(pathname==='/sync/drive/publish'&&method==='POST'){
+   if(!['creator','dm','player'].includes(actor.role))throw err(403,'Account required');
+   if(!driveReady(env))throw err(503,'Google Drive mirror not configured');
+   const result=await publishDrive(env);
+   return respond({ok:true,...result});
+  }
+
 if(pathname==='/characters'&&method==='GET'){
 
    const rows=(await env.DB.prepare('SELECT id,owner_user_id,data_json,revision FROM characters ORDER BY updated_at DESC').all()).results;
@@ -284,7 +407,7 @@ if(pathname==='/characters'&&method==='GET'){
 
    for(const item of b.characters){if(!validCharacter(item))continue;const result=await env.DB.prepare('INSERT OR IGNORE INTO characters(id,data_json,modified_by) VALUES(?,?,?)').bind(item.id,JSON.stringify(item),actor.id).run();if(result.meta.changes)created++;}
 
-   await audit(env,actor.id,'import-party',created);return respond({created});
+   if(created){await markChanged(env);scheduleDrive(env,ctx);}await audit(env,actor.id,'import-party',created);return respond({created});
 
   }
 
@@ -324,6 +447,7 @@ if(pathname==='/characters'&&method==='GET'){
     }else statements.push(env.DB.prepare('INSERT INTO characters(id,data_json,modified_by) VALUES(?,?,?)').bind(item.id,JSON.stringify(next),actor.id));
    }
    await env.DB.batch(statements);
+   await markChanged(env);scheduleDrive(env,ctx);
    await audit(env,actor.id,'replace-party',String(incoming.length));
    return respond({ok:true,characters:incoming.length});
   }
@@ -362,6 +486,7 @@ if(pathname==='/characters'&&method==='GET'){
       title=excluded.title,story=excluded.story,session_date=excluded.session_date,
       images_json=excluded.images_json,modified_by=excluded.modified_by,updated_at=CURRENT_TIMESTAMP`)
       .bind(number,title,story,date,JSON.stringify(images),actor.id).run();
+    await markChanged(env);scheduleDrive(env,ctx);
     await audit(env,actor.id,'import-session',String(number));
     return respond({ok:true,sessionNumber:number});
   }
@@ -370,6 +495,7 @@ if(pathname==='/characters'&&method==='GET'){
     if(!['creator','dm'].includes(actor.role))throw err(403,'Only Creator or DM can delete sessions.');
     await ensureSessions();
     await env.DB.prepare('DELETE FROM campaign_sessions WHERE session_number=?').bind(Number(sessionRoute[1])).run();
+    await markChanged(env);scheduleDrive(env,ctx);
     await audit(env,actor.id,'delete-session',sessionRoute[1]);
     return respond({ok:true});
   }
@@ -386,7 +512,7 @@ if(pathname==='/characters'&&method==='GET'){
 
     const b=await jsonBody(request);if(!validCharacter(b.character)||b.character.id!==id)throw err(400,'Invalid character');
 
-    await env.DB.prepare('INSERT INTO characters(id,data_json,modified_by) VALUES(?,?,?)').bind(id,JSON.stringify(b.character),actor.id).run();await audit(env,actor.id,'create-character',id);return respond({revision:1},201);
+    await env.DB.prepare('INSERT INTO characters(id,data_json,modified_by) VALUES(?,?,?)').bind(id,JSON.stringify(b.character),actor.id).run();await markChanged(env);scheduleDrive(env,ctx);await audit(env,actor.id,'create-character',id);return respond({revision:1},201);
 
    }
 
@@ -400,6 +526,7 @@ if(pathname==='/characters'&&method==='GET'){
       env.DB.prepare('UPDATE users SET owner_character_id=NULL WHERE owner_character_id=?').bind(id),
       env.DB.prepare('DELETE FROM characters WHERE id=?').bind(id)
     ]);
+    await markChanged(env);scheduleDrive(env,ctx);
     await audit(env,actor.id,'delete-character',id);
     return respond({ok:true,deleted:id});
    }
@@ -422,7 +549,7 @@ if(pathname==='/characters'&&method==='GET'){
 
     if(!result.meta.changes)throw err(409,'Character changed elsewhere. Refresh before saving.');
 
-    await audit(env,actor.id,'save-character',id);return respond({revision:b.revision+1});
+    await markChanged(env);scheduleDrive(env,ctx);await audit(env,actor.id,'save-character',id);return respond({revision:b.revision+1});
 
    }
 
