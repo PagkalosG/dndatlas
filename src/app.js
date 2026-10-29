@@ -1252,7 +1252,7 @@ document.addEventListener('submit',e=>{
     }
     cloud.url=cfg.apiUrl.replace(/\/$/,'');cloud.enabled=true;
     cloud.token=sessionStorage.getItem('dndatlas:session')||localStorage.getItem('dndatlas:remember')||'';
-    if(cloud.token){try{cloud.user=(await cloudRequest('/auth/me')).me;await cloudRefresh();await cloudTagsRefresh();cloudUnlock();return;}catch{cloud.token='';sessionStorage.removeItem('dndatlas:session');localStorage.removeItem('dndatlas:remember');}}
+    if(cloud.token){try{cloud.user=(await cloudRequest('/auth/me')).me;await cloudRefresh();await cloudTagsRefresh();cloudUnlock();cloudStartLive();return;}catch{cloud.token='';sessionStorage.removeItem('dndatlas:session');localStorage.removeItem('dndatlas:remember');}}
     cloudLoginScreen();
    }catch(e){cloudOverlay(`<h1>D&D Atlas</h1><div class="notice">${cloudMsg('Δεν είναι διαθέσιμο το API.','API unavailable.')} ${esc(e.message)}</div><button class="btn" onclick="location.reload()">Retry</button>`);}
   }
@@ -1266,6 +1266,57 @@ document.addEventListener('submit',e=>{
    selectedId=characters.find(x=>x.id===prev)?.id||characters[0].id;
    cloud.ready=true;renderApp();
   }
+
+  // Multi-device synchronization: Cloudflare D1 is canonical; the Google Drive
+  // JSON is a private mirror/initial seed, never downloaded directly by players.
+  async function cloudSaveNow(){
+    if(!cloud.enabled||!cloud.ready)return toast(tr('Συνδέσου στο campaign.','Sign in to your campaign.'));
+    try{
+      await Promise.all([...cloud.queues.values()]);
+      const result=await cloudRequest('/sync/drive/publish','POST',{});
+      toast(result.queued?
+        tr('Αποθηκεύτηκε στη D1. Το Drive ενημερώνεται.','Saved to D1. Drive update is already running.'):
+        tr('Αποθηκεύτηκε στη D1 και στο ιδιωτικό JSON του Drive.','Saved to D1 and the private Drive JSON.'));
+    }catch(e){toast(tr('Η αποθήκευση στη D1 είναι ανεξάρτητη από το Drive. Έλεγξε: ','D1 and Drive saves are independent. Check: ')+e.message);}
+  }
+  async function cloudPullLatest(){
+    if(!cloud.enabled||!cloud.ready)return;
+    try{
+      await Promise.all([...cloud.queues.values()]);
+      await cloudRefresh();await fetchSharedData();
+      toast(tr('Τα δεδομένα συγχρονίστηκαν.','Campaign data synchronized.'));
+    }catch(e){toast(tr('Σφάλμα συγχρονισμού: ','Sync failed: ')+e.message);}
+  }
+  async function cloudImportFromDrive(){
+    if(!cloud.enabled||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
+    if(!confirm(tr('Να εισαχθούν από το Drive μόνο οι χαρακτήρες που ΔΕΝ υπάρχουν στη D1; Οι υπάρχοντες δεν θα αντικατασταθούν.','Import only characters missing from D1? Existing characters will NOT be overwritten.')))return;
+    try{
+      const result=await cloudRequest('/sync/drive/import','POST',{});
+      await cloudRefresh();closeModal();
+      toast(tr('Νέοι χαρακτήρες: ','Added: ')+result.added+', '+tr('χωρίς αλλαγή: ','unchanged: ')+result.unchanged);
+    }catch(e){toast(tr('Δεν ήταν δυνατή η ανάγνωση του Drive: ','Drive import failed: ')+e.message);}
+  }
+  // Check lightweight revisions every seven seconds; do not discard active edits.
+  function cloudStartLive(){
+    if(cloud.liveTimer)return;
+    cloud.liveTimer=setInterval(async()=>{
+      if(!cloud.enabled||!cloud.ready||!cloud.token||cloud.polling||cloud.pendingWrites||
+         modalOpen||document.visibilityState==='hidden'||document.body.classList.contains('building'))return;
+      cloud.polling=true;
+      try{
+        const resp=await fetch(cloud.url+'/sync/revisions',{headers:cloudHeaders(),cache:'no-store'});
+        if(!resp.ok)return;
+        const data=await resp.json();if(!data.revisions)return;
+        const normalize=o=>JSON.stringify(Object.entries(o||{}).sort(([a],[b])=>a.localeCompare(b)));
+        if(normalize(data.revisions)!==normalize(cloud.revisions))await cloudRefresh();
+        const version=Number(data.syncVersion)||0;
+        if(version>cloud.lastSyncVersion&&view==='journal')await fetchSharedData();
+        cloud.lastSyncVersion=Math.max(cloud.lastSyncVersion,version);
+      }catch(error){console.warn('Campaign live sync:',error.message);}
+      finally{cloud.polling=false;}
+    },7000);
+  }
+
   function cloudPush(character){
    if(!cloud.enabled||!cloud.ready||!cloud.user||!character)return;
    if(!canEditCharacter(character)){toast(cloudMsg('Δεν έχεις δικαίωμα επεξεργασίας αυτού του χαρακτήρα.','You cannot edit this character.'));cloudRefresh().catch(()=>{});return;}
@@ -1449,7 +1500,7 @@ document.addEventListener('submit',e=>{
     try{const info=await cloudRequest('/auth/login','POST',{username:fd.get('username'),pin:fd.get('pin')},false);
       cloud.user=info.me;cloud.token=info.token;
       if(fd.get('remember'))localStorage.setItem('dndatlas:remember',info.token);else sessionStorage.setItem('dndatlas:session',info.token);
-      await cloudRefresh();cloudUnlock();cloudTagsRefresh().catch(e=>console.warn('Image tags unavailable',e));
+      await cloudRefresh();cloudUnlock();cloudStartLive();cloudTagsRefresh().catch(e=>console.warn('Image tags unavailable',e));
     }catch(ex){cloudLoginScreen(ex.message);}
    }
    if(e.target.id==='cloud-reset-pin-form'){
