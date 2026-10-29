@@ -43,6 +43,13 @@ const validCharacter=c=>c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.id==
 // Google Service Account must be granted Editor on an existing user-owned JSON file.
 let googleAccessCache=null;
 const driveReady=env=>Boolean(env.GOOGLE_SERVICE_ACCOUNT_EMAIL&&env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY&&env.GOOGLE_DRIVE_PARTY_FILE_ID);
+const driveSafeCharacter=raw=>{
+ const ch=structuredClone(raw);
+ // Player-private notes, journals and personal story never leave the server's D1.
+ delete ch.notes;delete ch.journal;delete ch.rolls;
+ if(ch.storyPublic!==true){delete ch.backgroundStory;delete ch.story;ch.storyPrivate=true;}
+ return ch;
+};
 const b64url=data=>btoa(String.fromCharCode(...data)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const jwtPart=value=>b64url(enc.encode(JSON.stringify(value)));
 async function googleAccessToken(env){
@@ -82,8 +89,8 @@ async function driveWrite(env,doc){
  if(!reply.ok)throw Error('Cannot update Drive JSON: '+reply.status);
 }
 async function syncState(env){
- await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_sync_state (id INTEGER PRIMARY KEY, version INTEGER NOT NULL DEFAULT 0, published_version INTEGER NOT NULL DEFAULT -1, lease_until INTEGER NOT NULL DEFAULT 0)').run();
- await env.DB.prepare('INSERT OR IGNORE INTO atlas_sync_state(id,version,published_version,lease_until) VALUES(1,0,-1,0)').run();
+ await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_sync_state (id INTEGER PRIMARY KEY, version INTEGER NOT NULL DEFAULT 0, published_version INTEGER NOT NULL DEFAULT -1, lease_until INTEGER NOT NULL DEFAULT 0, mirror_enabled INTEGER NOT NULL DEFAULT 0)').run();
+ await env.DB.prepare('INSERT OR IGNORE INTO atlas_sync_state(id,version,published_version,lease_until,mirror_enabled) VALUES(1,0,-1,0,0)').run();
 }
 async function markChanged(env){
  await syncState(env);
@@ -91,7 +98,7 @@ async function markChanged(env){
 }
 async function snapshotParty(env,version){
  const rows=(await env.DB.prepare('SELECT id,data_json FROM characters ORDER BY id').all()).results;
- const doc={application:'Character Atlas',schema:1,rulesVersion:'2024',syncVersion:version,exportedAt:new Date().toISOString(),characters:rows.map(row=>{const ch=JSON.parse(row.data_json);if(ch.storyPublic!==true){delete ch.backgroundStory;delete ch.story;ch.storyPrivate=true;}return ch;})};
+ const doc={application:'Character Atlas',schema:1,rulesVersion:'2024',syncVersion:version,exportedAt:new Date().toISOString(),characters:rows.map(row=>driveSafeCharacter(JSON.parse(row.data_json)))};
  try{
   const rows=(await env.DB.prepare('SELECT session_number,title,story,session_date,images_json FROM campaign_sessions ORDER BY session_number').all()).results;
   doc.sessions=rows.map(r=>({sessionNumber:r.session_number,title:r.title,story:r.story,date:r.session_date,images:JSON.parse(r.images_json)}));
@@ -104,6 +111,8 @@ async function snapshotParty(env,version){
 async function publishDrive(env){
  if(!driveReady(env))return {configured:false};
  await syncState(env);
+ const enabled=await env.DB.prepare('SELECT mirror_enabled FROM atlas_sync_state WHERE id=1').first();
+ if(!enabled.mirror_enabled)return {notActivated:true};
  const now=Date.now();
  const acquired=await env.DB.prepare('UPDATE atlas_sync_state SET lease_until=? WHERE id=1 AND lease_until<?').bind(now+25000,now).run();
  if(!acquired.meta.changes)return {queued:true};
@@ -364,8 +373,8 @@ if(b.pin!==undefined){if(!allowedPin(b.pin,target.role))throw err(400,'Invalid P
   }
   if(pathname==='/sync/drive/status'&&method==='GET'){
    await syncState(env);
-   const row=await env.DB.prepare('SELECT version,published_version FROM atlas_sync_state WHERE id=1').first();
-   return respond({configured:driveReady(env),version:row.version,publishedVersion:row.published_version,upToDate:row.version<=row.published_version});
+   const row=await env.DB.prepare('SELECT version,published_version,mirror_enabled FROM atlas_sync_state WHERE id=1').first();
+   return respond({configured:driveReady(env),activated:!!row.mirror_enabled,version:row.version,publishedVersion:row.published_version,upToDate:row.version<=row.published_version});
   }
   // Creator can seed missing party characters from the private Drive JSON.
   // Existing D1 characters are deliberately NEVER overwritten by this action.
@@ -378,11 +387,14 @@ if(b.pin!==undefined){if(!allowedPin(b.pin,target.role))throw err(400,'Invalid P
       throw err(400,'Invalid Character Atlas JSON in private Drive file');
    const existing=(await env.DB.prepare('SELECT id FROM characters').all()).results;
    const keep=new Set(existing.map(x=>x.id));
-   const missing=list.filter(x=>!keep.has(x.id)).map(item=>{const ch=structuredClone(item);if(ch.storyPublic!==true){delete ch.backgroundStory;delete ch.story;ch.storyPrivate=true;}return ch;});
+   const missing=list.filter(x=>!keep.has(x.id)).map(driveSafeCharacter);
    if(missing.length){
     await env.DB.batch(missing.map(ch=>env.DB.prepare('INSERT INTO characters(id,data_json,modified_by) VALUES(?,?,?)').bind(ch.id,JSON.stringify(ch),actor.id)));
-    await markChanged(env);scheduleDrive(env,ctx);
    }
+   // Activate the mirror only after the Creator safely imports the original seed.
+   await syncState(env);
+   await env.DB.prepare('UPDATE atlas_sync_state SET mirror_enabled=1 WHERE id=1').run();
+   await markChanged(env);scheduleDrive(env,ctx);
    await audit(env,actor.id,'import-drive-party',String(missing.length));
    return respond({ok:true,added:missing.length,unchanged:list.length-missing.length,existingD1Protected:true});
   }
