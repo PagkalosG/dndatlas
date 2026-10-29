@@ -1,6 +1,6 @@
 {
-  "version": "3.3.0",
-  "updated": "2026-10-22",
+  "version": "3.3.1",
+  "updated": "2026-10-29",
   "ruleset": "D&D 5e 2024",
-  "notes": "Party JSON validation, 12-class progression, DOCX character sheets, D1 sessions, Drive portraits and secured deletion"
+  "notes": "Private Drive JSON mirror, creator seed import, Save button and live D1 revision polling"
 }
