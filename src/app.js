@@ -1303,7 +1303,8 @@ document.addEventListener('submit',e=>{
     if(cloud.liveTimer)return;
     cloud.liveTimer=setInterval(async()=>{
       if(!cloud.enabled||!cloud.ready||!cloud.token||cloud.polling||cloud.pendingWrites||
-         modalOpen||document.visibilityState==='hidden'||document.body.classList.contains('building'))return;
+         modalOpen||document.visibilityState==='hidden'||document.body.classList.contains('building')||
+         document.activeElement?.matches?.('input,textarea,select,[contenteditable]'))return;
       cloud.polling=true;
       try{
         const resp=await fetch(cloud.url+'/sync/revisions',{headers:cloudHeaders(),cache:'no-store'});
