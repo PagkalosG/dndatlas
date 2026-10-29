@@ -1274,7 +1274,9 @@ document.addEventListener('submit',e=>{
     try{
       await Promise.all([...cloud.queues.values()]);
       const result=await cloudRequest('/sync/drive/publish','POST',{});
-      toast(result.queued?
+      toast(result.notActivated?
+        tr('Αποθηκεύτηκε στη D1. Ο Creator πρέπει πρώτα να ενεργοποιήσει το Drive JSON από Account → Import missing.','Saved to D1. Creator must initialize Drive JSON via Account → Import missing first.'):
+        result.queued?
         tr('Αποθηκεύτηκε στη D1. Το Drive ενημερώνεται.','Saved to D1. Drive update is already running.'):
         tr('Αποθηκεύτηκε στη D1 και στο ιδιωτικό JSON του Drive.','Saved to D1 and the private Drive JSON.'));
     }catch(e){toast(tr('Η αποθήκευση στη D1 είναι ανεξάρτητη από το Drive. Έλεγξε: ','D1 and Drive saves are independent. Check: ')+e.message);}
