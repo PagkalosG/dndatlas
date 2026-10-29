@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.3.0';
+ const APP_VERSION='3.3.1';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -179,7 +179,7 @@
  function makeRogueDemo(){const c=defaultChar('Kestrel','Rogue');c.classes=[{name:'Rogue',level:3,subclass:'Thief'}];c.abilities={STR:10,DEX:17,CON:12,INT:12,WIS:13,CHA:14};c.species='Halfling';c.background='Criminal';c.hp={max:24,current:24,temp:0};c.hitDice={max:3,used:0};c.loadouts=[{id:uid(),name:'Leather Armor',ac:14}];c.skills={Stealth:2,'Sleight of Hand':2,Acrobatics:1,Deception:1,Perception:1};c.attacks=[{id:uid(),name:'Shortsword',ability:'DEX',damage:'1d6',type:'Piercing',mastery:'Vex',proficient:true,magicBonus:0,damageBonus:0,bonusOverride:'',notes:'Finesse, Light'}, {id:uid(),name:'Shortbow',ability:'DEX',damage:'1d6',type:'Piercing',mastery:'Vex',proficient:true,magicBonus:0,damageBonus:0,bonusOverride:'',notes:'Ranged'}];c.features=[{id:uid(),name:'Sneak Attack',detail:'Προσθέτεις damage μία φορά ανά turn σε κατάλληλο hit εφόσον ικανοποιούνται οι προϋποθέσεις (Finesse ή ranged, Advantage ή κατάλληλος σύμμαχος). Για Rogue level 3: 2d6.',action:'Once per turn',source:'Rogue',level:1}];c.notes='Demo character to illustrate skill Expertise and noncaster classes.';return c;}
  let characters,selectedId,view='overview',libraryCategory='all',libraryQuery='',libraryLevel='all',spellQuery='',spellLevel='all';
  let lastFocus=null,modalOpen=false;
- const cloud={enabled:false,ready:false,url:'',token:'',user:null,revisions:{},queues:new Map(),imageTags:{}};
+ const cloud={enabled:false,ready:false,url:'',token:'',user:null,revisions:{},queues:new Map(),imageTags:{},pendingWrites:0,lastSyncVersion:0,polling:false,liveTimer:null};
  try{const s=JSON.parse(localStorage.getItem(KEY));characters=Array.isArray(s?.characters)&&s.characters.length?s.characters:null;selectedId=s?.selectedId;}catch{}
  if(!characters){characters=[defaultChar('New Adventurer')];selectedId=characters[0].id;}
  try{const u=JSON.parse(localStorage.getItem(VIEWKEY));if(navigation.some(x=>x[0]===u.view))view=u.view;}catch{}
@@ -196,7 +196,7 @@
  function renderApp(){
   const ch=c();if(!ch)return;
   const lvl=totalLevel(ch);document.title=`${ch.name} · Character Atlas`;
-  document.getElementById('app').innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="logo">A</div><div><strong>CHARACTER ATLAS</strong><small>D&D 2024 · Shared party</small></div></div><div class="top-actions"><select class="language-select" data-language-select aria-label="Language"><option value="en" ${L.getLanguage()==="en"?"selected":""}>EN</option><option value="el" ${L.getLanguage()==="el"?"selected":""}>ΕΛ</option></select><select class="select-character" aria-label="Επιλογή χαρακτήρα" data-char-select>${characters.map(x=>`<option value="${attr(x.id)}" ${x.id===ch.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><button class="btn sm" data-action="new-character" title="New Character">+ ${tr('Νέος Χαρακτήρας','New Character')}</button><button class="btn sm" type="button" data-atlas-session title="Cloud account">☁ ${tr('Σύνδεση','Account')}</button><button class="btn sm" data-action="settings" aria-label="Settings">${svg('settings')} ${tr('Ρυθμίσεις','Settings')}</button></div></header><div class="shell"><aside class="sidebar"><div class="side-head">ADVENTURE DESK</div><nav class="nav-list">${navigation.map(([id,name])=>`<button data-tab="${id}" class="nav-item ${id===view?'active':''}">${svg(id)} ${name}</button>`).join('')}</nav><div class="side-footer"><span class="chip gold">2024 Rules Only</span><br/>Οι χαρακτήρες συγχρονίζονται από Cloudflare D1 όταν έχεις συνδεθεί.</div></aside><main class="main"><div class="content">${view==='overview'?'':hero(ch)}${renderPage(ch)}<footer class="footer">D&D Atlas v${APP_VERSION} · Fan-made, unofficial companion · Summaries only · Rulebook/DM have final say · <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener">SRD 5.2.1</a> (CC BY 4.0). Not affiliated with Wizards of the Coast.</footer></div></main></div><nav class="mobile-nav">${navigation.map(([id,name])=>`<button data-tab="${id}" class="${id===view?'active':''}">${svg(id)}<span>${name}</span></button>`).join('')}</nav><input id="edit-json-file" type="file" accept="application/json,.json" hidden><input id="import-docx-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><input id="session-import-file" type="file" accept=".json,application/json" hidden><input id="portrait-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" aria-label="Choose character image" hidden /></div>`;
+  document.getElementById('app').innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="logo">A</div><div><strong>CHARACTER ATLAS</strong><small>D&D 2024 · Shared party</small></div></div><div class="top-actions"><select class="language-select" data-language-select aria-label="Language"><option value="en" ${L.getLanguage()==="en"?"selected":""}>EN</option><option value="el" ${L.getLanguage()==="el"?"selected":""}>ΕΛ</option></select><select class="select-character" aria-label="Επιλογή χαρακτήρα" data-char-select>${characters.map(x=>`<option value="${attr(x.id)}" ${x.id===ch.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><button class="btn sm" data-action="new-character" title="New Character">+ ${tr('Νέος Χαρακτήρας','New Character')}</button><button class="btn sm" type="button" data-atlas-session title="Cloud account">☁ ${tr('Σύνδεση','Account')}</button>${cloud.enabled&&cloud.ready&&canEditCharacter(ch)?`<button class="btn sm primary" data-action="cloud-save-now">💾 ${tr('Αποθήκευση','Save')}</button>`:''}<button class="btn sm" data-action="settings" aria-label="Settings">${svg('settings')} ${tr('Ρυθμίσεις','Settings')}</button></div></header><div class="shell"><aside class="sidebar"><div class="side-head">ADVENTURE DESK</div><nav class="nav-list">${navigation.map(([id,name])=>`<button data-tab="${id}" class="nav-item ${id===view?'active':''}">${svg(id)} ${name}</button>`).join('')}</nav><div class="side-footer"><span class="chip gold">2024 Rules Only</span><br/>Οι χαρακτήρες συγχρονίζονται από Cloudflare D1 όταν έχεις συνδεθεί.</div></aside><main class="main"><div class="content">${view==='overview'?'':hero(ch)}${renderPage(ch)}<footer class="footer">D&D Atlas v${APP_VERSION} · Fan-made, unofficial companion · Summaries only · Rulebook/DM have final say · <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener">SRD 5.2.1</a> (CC BY 4.0). Not affiliated with Wizards of the Coast.</footer></div></main></div><nav class="mobile-nav">${navigation.map(([id,name])=>`<button data-tab="${id}" class="${id===view?'active':''}">${svg(id)}<span>${name}</span></button>`).join('')}</nav><input id="edit-json-file" type="file" accept="application/json,.json" hidden><input id="import-docx-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><input id="session-import-file" type="file" accept=".json,application/json" hidden><input id="portrait-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" aria-label="Choose character image" hidden /></div>`;
   L.translateRoot(document.getElementById('app'));
  }
  function hero(ch){let load=activeLoadout(ch);return `<section class="hero"><div class="hero-title"><button class="avatar portrait-trigger" type="button" data-action="portrait" aria-label="Character portrait" title="Character portrait">${portraitMarkup(ch)}<span class="portrait-camera" aria-hidden="true">✎</span></button><div><h1>${esc(ch.name)}</h1><div class="subline">${esc(ch.species)} · ${esc(classLabel(ch))}</div><div class="hero-meta"><span class="chip gold">LVL ${totalLevel(ch)}</span><span class="chip">${esc(ch.background||'No background')}</span><span class="chip">PB ${signed(prof(ch))}</span>${ch.inspiration?'<span class="chip good">✧ Inspired</span>':''}${ch.concentrating?`<span class="chip good">◉ Conc: ${esc(ch.concentrating)}</span>`:''}</div></div></div><div class="hero-tools"><button class="btn sm" data-action="edit-character">${svg('edit')} Edit</button><button class="btn sm" data-action="level-up">Level ↑</button></div></section>`;}
@@ -738,6 +738,8 @@ document.addEventListener('submit',e=>{
  function atlasEditStory(){formModal(tr('Ιστορία χαρακτήρα','Background Story'),`<div class="field wide"><label>${tr('Πλήρης ιστορία','Full character history')}</label><textarea name="story" rows="12" style="min-height:260px">${esc(c().backgroundStory||'')}</textarea></div><div class="field wide"><label>${tr('Ορατότητα','Visibility')}</label><select name="storyPublic"><option value="false" ${c().storyPublic!==true?'selected':''}>${tr('Ιδιωτική — τη βλέπω εγώ και ο DM','Private — only me and DM')}</option><option value="true" ${c().storyPublic===true?'selected':''}>${tr('Δημόσια — τη βλέπουν όλοι','Public — visible to everyone')}</option></select></div>`,'atlas-save-story',tr('Η ιδιωτικότητα επιβάλλεται από τον server.','Privacy is enforced server-side.'));}
  function eventAction(action){const ch=c(),[key,id]=action.split(':');switch(key){
   case 'check-updates':checkUpdates(true);break;
+  case 'cloud-save-now':cloudSaveNow();break;
+  case 'cloud-drive-import':cloudImportFromDrive();break;
   case 'reload-app':refreshApp(false);break;
   case 'clear-app-cache':refreshApp(true);break;
   case 'reset-local-data':resetLocalData();break;
@@ -1202,7 +1204,7 @@ document.addEventListener('submit',e=>{
     if(el.dataset.atlasJournalEdit){let [origin,id]=el.dataset.atlasJournalEdit.split(':');journalEdit(id,origin==='shared');return;}
     if(el.dataset.atlasJournalRemove){let [origin,id]=el.dataset.atlasJournalRemove.split(':');if(!confirm(origin==='shared'?tr('Να κρύψεις αυτό το κοινό session μόνο στη συσκευή σου;','Hide this shared session only on your device?'):tr('Να διαγραφεί η προσωπική καταχώριση;','Delete your local entry?')))return;if(origin==='shared'){sharedHidden=[...new Set([...sharedHidden,id])];saveSharedPref();}else{c().journal=c().journal.filter(x=>x.id!==id);save();}renderApp();return;}
     if(el.hasAttribute('data-atlas-journal-restore')){sharedHidden=[];saveSharedPref();renderApp();return;}
-    if(el.hasAttribute('data-atlas-journal-refresh')){fetchSharedData();return;}
+    if(el.hasAttribute('data-atlas-journal-refresh')){cloudPullLatest();return;}
     if(el.hasAttribute('data-atlas-print')){if(window.ATLAS_EXPORT_PDF){window.ATLAS_EXPORT_PDF(c(),{proficiency:prof(c()),armorClass:AC(c()),initiative:initMod(c()),spellDC:spellDC(c()),spellAttack:spellAttack(c()),skillMod:skillMod,saveMod:saveMod,abilityMod:ability}).catch(e=>toast('PDF: '+e.message));}else print2024(c());return;}
   },true);
   document.addEventListener('input',e=>{if(e.target.matches('[data-portrait-zoom]')&&portraitDraft){portraitDraft.zoom=clamp(Number(e.target.value),1,3);const max=(portraitDraft.zoom-1)*50;portraitDraft.x=Math.max(-max,Math.min(max,portraitDraft.x));portraitDraft.y=Math.max(-max,Math.min(max,portraitDraft.y));portraitRefresh();}},true);
@@ -1250,7 +1252,7 @@ document.addEventListener('submit',e=>{
     }
     cloud.url=cfg.apiUrl.replace(/\/$/,'');cloud.enabled=true;
     cloud.token=sessionStorage.getItem('dndatlas:session')||localStorage.getItem('dndatlas:remember')||'';
-    if(cloud.token){try{cloud.user=(await cloudRequest('/auth/me')).me;await cloudRefresh();await cloudTagsRefresh();cloudUnlock();return;}catch{cloud.token='';sessionStorage.removeItem('dndatlas:session');localStorage.removeItem('dndatlas:remember');}}
+    if(cloud.token){try{cloud.user=(await cloudRequest('/auth/me')).me;await cloudRefresh();await cloudTagsRefresh();cloudUnlock();cloudStartLive();return;}catch{cloud.token='';sessionStorage.removeItem('dndatlas:session');localStorage.removeItem('dndatlas:remember');}}
     cloudLoginScreen();
    }catch(e){cloudOverlay(`<h1>D&D Atlas</h1><div class="notice">${cloudMsg('Δεν είναι διαθέσιμο το API.','API unavailable.')} ${esc(e.message)}</div><button class="btn" onclick="location.reload()">Retry</button>`);}
   }
@@ -1264,12 +1266,67 @@ document.addEventListener('submit',e=>{
    selectedId=characters.find(x=>x.id===prev)?.id||characters[0].id;
    cloud.ready=true;renderApp();
   }
+
+  // Multi-device synchronization: Cloudflare D1 is canonical; the Google Drive
+  // JSON is a private mirror/initial seed, never downloaded directly by players.
+  async function cloudSaveNow(){
+    if(!cloud.enabled||!cloud.ready)return toast(tr('Συνδέσου στο campaign.','Sign in to your campaign.'));
+    try{
+      await Promise.all([...cloud.queues.values()]);
+      const result=await cloudRequest('/sync/drive/publish','POST',{});
+      toast(result.notActivated?
+        tr('Αποθηκεύτηκε στη D1. Ο Creator πρέπει πρώτα να ενεργοποιήσει το Drive JSON από Account → Import missing.','Saved to D1. Creator must initialize Drive JSON via Account → Import missing first.'):
+        result.queued?
+        tr('Αποθηκεύτηκε στη D1. Το Drive ενημερώνεται.','Saved to D1. Drive update is already running.'):
+        tr('Αποθηκεύτηκε στη D1 και στο ιδιωτικό JSON του Drive.','Saved to D1 and the private Drive JSON.'));
+    }catch(e){toast(tr('Η αποθήκευση στη D1 είναι ανεξάρτητη από το Drive. Έλεγξε: ','D1 and Drive saves are independent. Check: ')+e.message);}
+  }
+  async function cloudPullLatest(){
+    if(!cloud.enabled||!cloud.ready)return;
+    try{
+      await Promise.all([...cloud.queues.values()]);
+      await cloudRefresh();await fetchSharedData();
+      toast(tr('Τα δεδομένα συγχρονίστηκαν.','Campaign data synchronized.'));
+    }catch(e){toast(tr('Σφάλμα συγχρονισμού: ','Sync failed: ')+e.message);}
+  }
+  async function cloudImportFromDrive(){
+    if(!cloud.enabled||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
+    if(!confirm(tr('Να εισαχθούν από το Drive μόνο οι χαρακτήρες που ΔΕΝ υπάρχουν στη D1; Οι υπάρχοντες δεν θα αντικατασταθούν.','Import only characters missing from D1? Existing characters will NOT be overwritten.')))return;
+    try{
+      const result=await cloudRequest('/sync/drive/import','POST',{});
+      await cloudRefresh();closeModal();
+      toast(tr('Νέοι χαρακτήρες: ','Added: ')+result.added+', '+tr('χωρίς αλλαγή: ','unchanged: ')+result.unchanged);
+    }catch(e){toast(tr('Δεν ήταν δυνατή η ανάγνωση του Drive: ','Drive import failed: ')+e.message);}
+  }
+  // Check lightweight revisions every seven seconds; do not discard active edits.
+  function cloudStartLive(){
+    if(cloud.liveTimer)return;
+    cloud.liveTimer=setInterval(async()=>{
+      if(!cloud.enabled||!cloud.ready||!cloud.token||cloud.polling||cloud.pendingWrites||
+         modalOpen||document.visibilityState==='hidden'||document.body.classList.contains('building')||
+         document.activeElement?.matches?.('input,textarea,select,[contenteditable]'))return;
+      cloud.polling=true;
+      try{
+        const resp=await fetch(cloud.url+'/sync/revisions',{headers:cloudHeaders(),cache:'no-store'});
+        if(!resp.ok)return;
+        const data=await resp.json();if(!data.revisions)return;
+        const normalize=o=>JSON.stringify(Object.entries(o||{}).sort(([a],[b])=>a.localeCompare(b)));
+        if(normalize(data.revisions)!==normalize(cloud.revisions))await cloudRefresh();
+        const version=Number(data.syncVersion)||0;
+        if(version>cloud.lastSyncVersion&&view==='journal')await fetchSharedData();
+        cloud.lastSyncVersion=Math.max(cloud.lastSyncVersion,version);
+      }catch(error){console.warn('Campaign live sync:',error.message);}
+      finally{cloud.polling=false;}
+    },7000);
+  }
+
   function cloudPush(character){
    if(!cloud.enabled||!cloud.ready||!cloud.user||!character)return;
    if(!canEditCharacter(character)){toast(cloudMsg('Δεν έχεις δικαίωμα επεξεργασίας αυτού του χαρακτήρα.','You cannot edit this character.'));cloudRefresh().catch(()=>{});return;}
    const snapshot=structuredClone(character);delete snapshot._ownerId;
    const id=snapshot.id;
    const previous=cloud.queues.get(id)||Promise.resolve();
+   cloud.pendingWrites++;
    const next=previous.catch(()=>{}).then(async()=>{
     if(cloud.revisions[id]){
      const updated=await cloudRequest('/characters/'+encodeURIComponent(id),'PUT',{character:snapshot,revision:cloud.revisions[id]});
@@ -1280,11 +1337,12 @@ document.addEventListener('submit',e=>{
     }
    });
    cloud.queues.set(id,next);
+   next.finally(()=>{cloud.pendingWrites=Math.max(0,cloud.pendingWrites-1);}).catch(()=>{});
    next.catch(e=>{toast((e.status===409?cloudMsg('Σύγκρουση αλλαγών. Ανανέωσε τα δεδομένα.','Conflicting changes. Refresh before editing.'):'Save failed: ')+e.message);});
   }
   function cloudAccount(){
    if(!cloud.enabled)return;
-   let u=cloud.user;const options=`<button class="btn" data-cloud-refresh>${cloudMsg('Ανανέωση χαρακτήρων','Refresh characters')}</button>${u.role==='creator'?`<button class="btn primary" data-cloud-admin>${cloudMsg('Διαχείριση χρηστών','Manage users')}</button>`:''}<button class="btn warn" data-cloud-logout>${cloudMsg('Αποσύνδεση','Sign out')}</button>`;
+   let u=cloud.user;const options=`<button class="btn" data-cloud-refresh>${cloudMsg('↻ Συγχρονισμός δεδομένων party','↻ Sync party data')}</button>${u.role==='creator'?`<button class="btn" data-action="cloud-drive-import">${cloudMsg('Εισαγωγή ελλειπόντων από Drive JSON','Import missing from Drive JSON')}</button>`:''}${u.role==='creator'?`<button class="btn primary" data-cloud-admin>${cloudMsg('Διαχείριση χρηστών','Manage users')}</button>`:''}<button class="btn warn" data-cloud-logout>${cloudMsg('Αποσύνδεση','Sign out')}</button>`;
    openModal(cloudMsg('Λογαριασμός','Account'),`<p>${cloudMsg('Συνδεδεμένος ως','Signed in as')} <strong>${esc(u.username)}</strong> (${esc(u.role)})</p><p>${cloudMsg('Τα δεδομένα της παρέας είναι κοινά στη Cloudflare D1.','Party data is shared in Cloudflare D1.')}</p><div class="cloud-account-grid">${options}</div>`, `<button class="btn" data-action="close-modal">${cloudMsg('Κλείσιμο','Close')}</button>`);
   }
   async function cloudResetPinScreen(id){
@@ -1377,7 +1435,7 @@ document.addEventListener('submit',e=>{
    if(el){e.preventDefault();e.stopImmediatePropagation();const d=el.dataset;
     if(d.atlasSession!==undefined){cloudAccount();return;}
     if(d.cloudAdmin!==undefined){cloudUsers().catch(e=>toast(e.message));return;}
-    if(d.cloudRefresh!==undefined){cloudRefresh().then(()=>toast('Synced')).catch(e=>toast(e.message));return;}
+    if(d.cloudRefresh!==undefined){cloudPullLatest();return;}
     if(d.cloudLogout!==undefined){cloudRequest('/auth/logout','POST',{}).catch(()=>{});cloud.user=null;cloud.token='';cloud.ready=false;sessionStorage.removeItem('dndatlas:session');localStorage.removeItem('dndatlas:remember');closeModal();cloudLoginScreen();return;}
     if(d.cloudEdit!==undefined){
      if(!canManageUsers())return;
@@ -1445,7 +1503,7 @@ document.addEventListener('submit',e=>{
     try{const info=await cloudRequest('/auth/login','POST',{username:fd.get('username'),pin:fd.get('pin')},false);
       cloud.user=info.me;cloud.token=info.token;
       if(fd.get('remember'))localStorage.setItem('dndatlas:remember',info.token);else sessionStorage.setItem('dndatlas:session',info.token);
-      await cloudRefresh();cloudUnlock();cloudTagsRefresh().catch(e=>console.warn('Image tags unavailable',e));
+      await cloudRefresh();cloudUnlock();cloudStartLive();cloudTagsRefresh().catch(e=>console.warn('Image tags unavailable',e));
     }catch(ex){cloudLoginScreen(ex.message);}
    }
    if(e.target.id==='cloud-reset-pin-form'){
