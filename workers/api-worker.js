@@ -38,6 +38,15 @@ const publicUser=u=>({id:u.id,username:u.username,role:u.role,active:!!u.active,
 
 const validCharacter=c=>c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.id==='string'&&/^[\w-]{1,80}$/.test(c.id)&&typeof c.name==='string'&&c.name.length>0&&c.name.length<160&&Array.isArray(c.classes);
 
+// The Creator sees every party; other accounts see only parties they own or have joined.
+const publicParty=(p,actor)=>({
+ id:p.id,name:p.name,description:p.description,status:p.status,
+ ownerUserId:p.owner_user_id,
+ memberRole:actor.role==='creator'?'admin':(p.member_role||(p.owner_user_id===actor.id?'dm':null)),
+ createdAt:p.created_at,updatedAt:p.updated_at
+});
+
+
 
 // D1 is the authority for live data. Drive is a private, whole-party JSON mirror.
 // Google Service Account must be granted Editor on an existing user-owned JSON file.
@@ -284,6 +293,46 @@ export default {async fetch(request,env,ctx){
 
    await env.DB.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(tokenHash).run();return respond({ok:true});
 
+  }
+
+
+  // Multi-party API foundation. Existing character/session/image APIs are not yet
+  // party-scoped: invites and player onboarding must remain disabled until they are.
+  if(pathname==='/parties'){
+
+   if(method==='GET'){
+    const rows=(await env.DB.prepare("SELECT p.*,m.role AS member_role FROM atlas_parties p LEFT JOIN atlas_party_members m ON m.party_id=p.id AND m.user_id=? AND m.status='active' WHERE (?='creator' OR p.owner_user_id=? OR m.user_id IS NOT NULL) ORDER BY p.created_at DESC,p.id DESC LIMIT 100").bind(actor.id,actor.role,actor.id).all()).results;
+    return respond({parties:rows.map(p=>publicParty(p,actor))});
+   }
+
+   if(method==='POST'){
+    if(!['creator','dm'].includes(actor.role))throw err(403,'Only DM or Creator may create a party');
+
+    const b=await jsonBody(request);
+    const name=typeof b?.name==='string'?b.name.trim():'';
+    const description=typeof b?.description==='string'?b.description.trim():'';
+    if(name.length<2||name.length>100||/[\\u0000-\\u001f\\u007f]/.test(name)||b?.description!==undefined&&typeof b.description!=='string'||description.length>500)throw err(400,'Invalid party name or description');
+
+    const id=crypto.randomUUID();
+    await env.DB.batch([
+     env.DB.prepare('INSERT INTO atlas_parties(id,name,description,owner_user_id) VALUES(?,?,?,?)').bind(id,name,description,actor.id),
+     env.DB.prepare("INSERT INTO atlas_party_members(party_id,user_id,role,status,approved_by_user_id,approved_at) VALUES(?,?,'dm','active',?,CURRENT_TIMESTAMP)").bind(id,actor.id,actor.id)
+    ]);
+
+    await audit(env,actor.id,'create-party',id);
+    const party=await env.DB.prepare("SELECT p.*,m.role AS member_role FROM atlas_parties p JOIN atlas_party_members m ON m.party_id=p.id AND m.user_id=? WHERE p.id=?").bind(actor.id,id).first();
+    return respond({party:publicParty(party,actor)},201);
+   }
+  }
+
+  const partyRoute=pathname.match(/^\\/parties\\/([0-9a-f-]{36})$/);
+  if(partyRoute){
+
+   if(method!=='GET')throw err(405,'Method not allowed');
+
+   const party=await env.DB.prepare("SELECT p.*,m.role AS member_role FROM atlas_parties p LEFT JOIN atlas_party_members m ON m.party_id=p.id AND m.user_id=? AND m.status='active' WHERE p.id=? AND (?='creator' OR p.owner_user_id=? OR m.user_id IS NOT NULL)").bind(actor.id,partyRoute[1],actor.role,actor.id).first();
+   if(!party)throw err(404,'Party not found');
+   return respond({party:publicParty(party,actor)});
   }
 
   if(pathname==='/users'){
