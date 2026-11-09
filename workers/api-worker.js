@@ -311,7 +311,7 @@ export default {async fetch(request,env,ctx){
     const b=await jsonBody(request);
     const name=typeof b?.name==='string'?b.name.trim():'';
     const description=typeof b?.description==='string'?b.description.trim():'';
-    if(name.length<2||name.length>100||/[\\u0000-\\u001f\\u007f]/.test(name)||b?.description!==undefined&&typeof b.description!=='string'||description.length>500)throw err(400,'Invalid party name or description');
+    if(name.length<2||name.length>100||/[\u0000-\u001f\u007f]/.test(name)||(b?.description!==undefined&&typeof b.description!=='string')||description.length>500)throw err(400,'Invalid party name or description');
 
     const id=crypto.randomUUID();
     await env.DB.batch([
@@ -325,7 +325,7 @@ export default {async fetch(request,env,ctx){
    }
   }
 
-  const partyRoute=pathname.match(/^\\/parties\\/([0-9a-f-]{36})$/);
+  const partyRoute=pathname.match(/^\/parties\/([0-9a-f-]{36})$/);
   if(partyRoute){
 
    if(method!=='GET')throw err(405,'Method not allowed');
