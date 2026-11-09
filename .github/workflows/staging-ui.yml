@@ -1,0 +1,39 @@
+name: Validate and package D&D Atlas staging party UI
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'src/app.js'
+      - '.github/workflows/staging-ui.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check frontend JavaScript
+        run: |
+          node --check src/app.js
+          node --check src/i18n.js
+          node --check src/rules-2024.js
+          node --test tests/rules-2024.test.cjs tests/progression-2024.test.cjs
+      - name: Validate Party UI wiring
+        shell: bash
+        run: |
+          node - <<'JS'
+          const fs = require('node:fs');
+          const s = fs.readFileSync('src/app.js','utf8');
+          for(const pattern of ['async function cloudParties()', 'async function cloudPartyDetails(id)', 'async function cloudCreateParty(form)', "if(e.target.id==='cloud-create-party')", "if(d.cloudParties!==undefined)", "if(d.cloudPartyDetail!==undefined)"]){
+            if(!s.includes(pattern))throw Error('Missing Party UI: '+pattern);
+          }
+          console.log('Party UI hooks OK');
+          JS
+      - name: Package only staging UI changes
+        run: zip -q dndatlas-staging-party-ui-changed-only.zip src/app.js .github/workflows/staging-ui.yml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dndatlas-staging-party-ui-changed-only
+          path: dndatlas-staging-party-ui-changed-only.zip
+          retention-days: 30
