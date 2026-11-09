@@ -1,0 +1,43 @@
+name: Validate and package D&D Atlas staging API
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'workers/api-worker.js'
+      - 'workers/migrations/**'
+      - '.github/workflows/staging-api.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Worker JavaScript
+        run: node --check workers/api-worker.js
+      - name: Test multi-party D1 schema
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          conn = sqlite3.connect(':memory:')
+          conn.execute('PRAGMA foreign_keys=ON')
+          conn.executescript('CREATE TABLE users(id INTEGER PRIMARY KEY); CREATE TABLE characters(id TEXT PRIMARY KEY);')
+          sql = Path('workers/migrations/001_multi_party_foundation.sql').read_text()
+          conn.executescript(sql)
+          conn.executescript(sql)
+          conn.execute('INSERT INTO users(id) VALUES(1)')
+          conn.execute("INSERT INTO atlas_parties(id,name,owner_user_id) VALUES('p-test','Test Party',1)")
+          conn.execute("INSERT INTO atlas_party_members(party_id,user_id,role,status) VALUES('p-test',1,'dm','active')")
+          assert conn.execute('SELECT COUNT(*) FROM atlas_party_members').fetchone()[0] == 1
+          print('Multi-party migration OK')
+          PY
+      - name: Package changed staging API Worker
+        run: zip -q dndatlas-staging-party-api-changed-only.zip workers/api-worker.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dndatlas-staging-party-api-changed-only
+          path: dndatlas-staging-party-api-changed-only.zip
+          retention-days: 30
