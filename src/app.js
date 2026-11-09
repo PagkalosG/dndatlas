@@ -1,5 +1,6 @@
 (() => {
  'use strict';
+ // D&D Atlas staging deployment trigger - Party Management UI (2026-11-09).
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
