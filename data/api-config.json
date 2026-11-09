@@ -1,5 +1,4 @@
-
 {
   "enabled": true,
-  "apiUrl": "https://dndatlas-api.pagkalosgeo.workers.dev"
+  "apiUrl": "https://dndatlas-api-staging.pagkalosgeo.workers.dev"
 }
