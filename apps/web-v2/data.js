@@ -365,5 +365,15 @@
     shopUnvalidated:'Μόνο προεπισκόπηση UI: η νομιμότητα αντικειμένων, τα weapon properties και οι επιδράσεις αποθήκης θα ελέγχονται στον server.',
     srdSource:'SRD 5.2.1',
   });
+  Object.assign(strings.en,{
+    stepSubclass:'Subclass',stepSubclassHint:'Choose your 2024 subclass when your class reaches level 3.',
+    subclass2024Hint:'A subclass begins at class level 3 under the 2024 rules. Only installed and permitted content appears.',
+    levelThree:'Class level 3'
+  });
+  Object.assign(strings.el,{
+    stepSubclass:'Υποκλάση (Subclass)',stepSubclassHint:'Επίλεξε υποκλάση 2024 όταν η κλάση σου φτάσει στο επίπεδο 3.',
+    subclass2024Hint:'Οι υποκλάσεις ξεκινούν στο επίπεδο 3 της συγκεκριμένης κλάσης με τους κανόνες 2024. Εμφανίζεται μόνο επιτρεπόμενο περιεχόμενο.',
+    levelThree:'Επίπεδο κλάσης 3'
+  });
   window.ATLAS_V2_DEMO = Object.freeze({ species, classes, backgrounds, equipment, strings });
 })();
