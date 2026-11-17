@@ -28,7 +28,8 @@ jobs:
             'apps/web-v2/README.md',
             'apps/web-v2/components/ability-allocation.js',
             'tests/web-v2-ability-allocation.test.cjs',
-            '.github/workflows/atlas-v2-ui-concept-test.yml'
+            '.github/workflows/atlas-v2-ui-concept-test.yml',
+            '.github/workflows/atlas-v2-ui-preview-deploy.yml'
           ]
           with zipfile.ZipFile('DND_Atlas_2_Ability_Allocation_v0.5_Changed_Files.zip','w',zipfile.ZIP_DEFLATED) as z:
             for file in files:
