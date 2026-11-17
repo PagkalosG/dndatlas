@@ -49,3 +49,10 @@ Integration contracts: replace `window.ATLAS_V2_CAMPAIGN_FLOW` renderers with sh
 - **No real save, approval, authentication or authorization exists.** Frontend data and fixture checks are display logic; all legality, source entitlements and privacy must be enforced on the Cloudflare Worker before live use.
 
 2024 SRD adapted under CC BY 4.0, Wizards of the Coast LLC; see `docs/SRD_ATTRIBUTION.md`. This application is unofficial.
+
+
+## Campaign Libraries (v0.4, frontend prototype)
+
+In the **DM Demo → Campaign Settings** screen, the reusable `Campaign Libraries` section shows the always-on SRD 5.2.1, a local `.json` file picker, pack metadata/entry count preview, a rights-confirmation checkbox and local staging/removal of pack summaries. No actual upload or install is performed. The preview uses a subset of the format checks; the authoritative shared validator is `packages/content-packs/validate-pack.mjs`, and the real Worker must enforce DM-only access and entitlement/legality checks.
+
+The complete original homebrew test fixture is `content/examples/starward-homebrew-2024.json`. It is a sample for the upcoming room-creation Library step, **not** a source of official PHB material. Staged mock selections disappear on refresh. The backend-first deployment is intentional: no unauthenticated JSON upload API is exposed.

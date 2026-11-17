@@ -3,9 +3,11 @@
   'use strict';
   const catalog = window.ATLAS_V2_DEMO;
   const campaignUI = window.ATLAS_V2_CAMPAIGN_FLOW;
+  const libraryUI = window.ATLAS_V2_LIBRARY_UI;
   const builderUI = window.ATLAS_V2_BUILDER;
   if (!builderUI) throw new Error('Missing 2024 Builder components');
   if (!campaignUI) throw new Error('Missing campaign UI components');
+  if (!libraryUI) throw new Error('Missing library UI components');
   if (!catalog) throw new Error('Missing Atlas UI fixtures');
 
   const array = [15, 14, 13, 12, 10, 8];
@@ -14,7 +16,7 @@
   const defaultDraft = () => ({ name: '', species: null, class: null, background: null, equipment: null, abilities: [15, 14, 13, 12, 10, 8],
     classChoices: {}, backgroundChoices: {}, fightingStyle: null, weaponMasteries: [], bonusMode: 'split', bonusTwo: null, bonusOne: null,
     classPackage: null, backgroundPackage: null, packageChoices: {}, purchases: {} });
-  const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false };
+  const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false, libraryPreview: null, libraryError: null, libraryStaged: [], libraryBusy: false, libraryRights: false };
   const main = document.getElementById('main');
   const text = (key) => catalog.strings[state.locale][key] ?? key;
   const label = (item) => item?.title?.[state.locale] ?? text('notChosen');
@@ -211,7 +213,7 @@
     main.innerHTML = ({
       home, builder, sheet,
       party: () => campaignUI.renderParty({ role: state.role, status: state.status, draft: state.draft, campaign: state.savedCampaign, inviteCreated: state.inviteCreated, busy: state.campaignBusy, locale: state.locale, t: text, esc: escape, label, lookup: entry }),
-      campaign: () => state.role === 'dm' ? campaignUI.renderCampaign({ campaign: state.campaign, busy: state.campaignBusy, locale: state.locale, t: text, esc: escape }) : stub('partyTitle','dmOnlyDemo'),
+      campaign: () => state.role === 'dm' ? campaignUI.renderCampaign({ campaign: state.campaign, busy: state.campaignBusy, locale: state.locale, t: text, esc: escape }) + libraryUI.render({locale:state.locale,role:state.role,preview:state.libraryPreview,error:state.libraryError,staged:state.libraryStaged,busy:state.libraryBusy,rights:state.libraryRights}) : stub('partyTitle','dmOnlyDemo'),
       journal: () => stub('journalTitle','journalIntro'),
       settings: () => stub('settingsTitle','settingsIntro',true),
     })[state.view]();
@@ -373,7 +375,17 @@
     if (action === 'review') mockReview(trigger.dataset.decision);
     if (action === 'create-invite' && state.role === 'dm') { state.inviteCreated = true; render(); notify(text('inviteGeneratedDemo')); }
     if (action === 'preview-join' && state.role === 'dm') { state.role = 'player'; render(); notify(text('joinedDemo')); }
-    if (action === 'reset') { state.draft=defaultDraft();state.saved=null;state.dirty=false;state.status='draft';state.step=0;state.inviteCreated=false;state.campaign=campaignUI.originalSettings();state.savedCampaign=campaignUI.originalSettings();state.campaignDirty=false;render();notify(text('resetDone')); }
+    if (action === 'library-demo-stage' && state.role === 'dm' && state.libraryPreview?.valid && state.libraryRights && !state.libraryBusy) {
+      state.libraryStaged.push({ ...state.libraryPreview });
+      state.libraryPreview = null; state.libraryRights = false; state.libraryError = null;
+      render(); notify(libraryUI.dictionary[state.locale].localOnly);
+    }
+    if (action === 'library-demo-clear' && state.role === 'dm') { state.libraryPreview=null;state.libraryError=null;state.libraryRights=false;render(); }
+    if (action === 'library-demo-remove' && state.role === 'dm') {
+      const i=Number(trigger.dataset.packIndex);
+      if (Number.isInteger(i) && i>=0 && i<state.libraryStaged.length) { state.libraryStaged.splice(i,1);render(); }
+    }
+    if (action === 'reset') { state.libraryPreview=null;state.libraryError=null;state.libraryStaged=[];state.libraryBusy=false;state.libraryRights=false;  state.draft=defaultDraft();state.saved=null;state.dirty=false;state.status='draft';state.step=0;state.inviteCreated=false;state.campaign=campaignUI.originalSettings();state.savedCampaign=campaignUI.originalSettings();state.campaignDirty=false;render();notify(text('resetDone')); }
     if (action === 'rest') notify(text('restDemo'));
   });
 
@@ -386,6 +398,22 @@
   });
   document.addEventListener('change',(event)=>{
     const target=event.target;
+    if (target.id === 'library-rights-confirm') { state.libraryRights=target.checked; render(); return; }
+    if (target.id === 'library-json-file' && state.role === 'dm') {
+      const file=target.files?.[0]; if (!file) return;
+      state.libraryBusy=true;state.libraryError=null;state.libraryPreview=null;state.libraryRights=false;render();
+      Promise.resolve().then(async () => {
+        if (file.size>512*1024) return {valid:false,error:'tooBig'};
+        return libraryUI.inspectJSON(await file.text(),file.size);
+      }).then(result => {
+        state.libraryPreview=result.valid?result:null;
+        state.libraryError=result.valid?null:result.error;
+      }).catch(() => {state.libraryError='invalidJson';}).finally(()=>{
+        state.libraryBusy=false;render();
+      });
+      return;
+    }
+
     if (target.id==='lang-select') { state.locale=target.value==='el'?'el':'en'; render(); }
     if (target.dataset.packageChoice !== undefined) {
       state.draft.packageChoices[target.dataset.packageChoice]=target.value;markDirty();render();
