@@ -54,17 +54,19 @@ export function mergeGrants(grants) {
   return [...items.values()];
 }
 
-export function validateChoices(choices, selectedIds) {
-  if (!Array.isArray(choices) || !Array.isArray(selectedIds)) {
-    throw new TypeError('Choices and selection must be arrays');
+export function validateChoices(choice, selectedIds) {
+  if (!choice || !Array.isArray(choice.options) || !Array.isArray(selectedIds)) {
+    throw new TypeError('Choice options and selection must be arrays');
   }
   const chosen = new Set(selectedIds);
   if (chosen.size !== selectedIds.length) return { valid: false, reason: 'DUPLICATE_SELECTION' };
-  const allowed = new Set(choices.map(item => item.id));
-  const unavailable = selectedIds.filter(id => !allowed.has(id));
-  if (unavailable.length) return { valid: false, reason: 'UNKNOWN_SELECTION', unavailable };
-  const minimum = choices.minimum ?? 0;
-  const maximum = choices.maximum ?? choices.length;
+  const options = new Map(choice.options.map(option => [option.id, option]));
+  const unknown = selectedIds.filter(id => !options.has(id));
+  if (unknown.length) return { valid: false, reason: 'UNKNOWN_SELECTION', unavailable: unknown };
+  const blocked = selectedIds.filter(id => options.get(id).disabledReason);
+  if (blocked.length) return { valid: false, reason: 'DISABLED_SELECTION', unavailable: blocked };
+  const minimum = choice.minChoices ?? 0;
+  const maximum = choice.maxChoices ?? choice.options.length;
   if (!Number.isInteger(minimum) || !Number.isInteger(maximum) || minimum < 0 || maximum < minimum) {
     throw new TypeError('Invalid choice bounds');
   }
