@@ -6,6 +6,7 @@ on:
       - atlas-2.0
     paths:
       - .github/workflows/atlas-v2-staging-bootstrap.yml
+      - 'workers/atlas-v2-staging/**'
   workflow_dispatch:
 
 permissions:
