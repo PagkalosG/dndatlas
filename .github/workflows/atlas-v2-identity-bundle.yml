@@ -37,6 +37,7 @@ jobs:
             'apps/web-v2/styles.css',
             'apps/web-v2/data.js',
             'apps/web-v2/components/identity-cards.js',
+            'apps/web-v2/assets/portraits/species-grid.webp',
             'apps/web-v2/README.md',
             'tests/web-v2-identity-flow.test.cjs',
             '.github/workflows/atlas-v2-ui-concept-test.yml',
