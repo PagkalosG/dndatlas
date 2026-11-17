@@ -1,0 +1,35 @@
+name: Inspect Atlas 2024 Builder source shapes
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - '.github/workflows/atlas-v2-builder-source-shapes.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    if: github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Review 2024 class, background and equipment shapes
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const urls = [
+            'classes/fighter','classes/sorcerer','classes/rogue','classes/wizard','classes/paladin',
+            'backgrounds/acolyte','backgrounds/soldier',
+            'equipment/spear','equipment/chain-mail','equipment/healing-potion',
+            'equipment','equipment-categories'
+          ];
+          const base = 'https://www.dnd5eapi.co/api/2024/';
+          for (const slug of urls) {
+            const res=await fetch(base+slug); if(!res.ok){console.log(slug,'HTTP',res.status);continue}
+            const x=await res.json();
+            const shape = Object.fromEntries(Object.entries(x).map(([k,v])=>[k, Array.isArray(v)?('array('+v.length+')'):v===null?'null':typeof v]));
+            const subset=Object.fromEntries(Object.entries(x).filter(([k])=>/proficiency|starting_equipment|equipment|cost|class_specific|background|category|skill|money|gold|feat|feature|saving_throw|hit_die/.test(k)));
+            console.log('\n',slug, 'keys',JSON.stringify(shape));
+            console.log('relevant',JSON.stringify(subset).slice(0,6500));
+          }
+          JS
