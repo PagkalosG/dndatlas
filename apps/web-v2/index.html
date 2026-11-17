@@ -14,6 +14,7 @@
   <script defer src="components/builder-2024.js"></script>
   <script defer src="components/builder-insights.js"></script>
   <script defer src="components/ability-allocation.js"></script>
+  <script defer src="components/identity-cards.js"></script>
   <script defer src="components/campaign-flows.js"></script>
   <script defer src="components/campaign-libraries.js"></script>
   <script defer src="app.js"></script>
@@ -32,7 +33,7 @@
         <div class="topbar-left"><div class="breadcrumbs"><span data-i18n="campaignLabel">Campaign</span><span class="chevron">/</span><strong id="current-view-label">Character Builder</strong></div></div>
         <div class="topbar-actions">
           <label class="language-control" for="lang-select"><span data-i18n="language">Language</span><select id="lang-select" aria-label="Language"><option value="en">English</option><option value="el">Ελληνικά</option></select></label>
-          <span class="role-pill" id="role-pill">PLAYER</span>
+          <div class="role-switch" role="group" aria-label="Preview role"><button type="button" data-action="role-mode" data-role-mode="player" aria-pressed="true" class="active">Player</button><button type="button" data-action="role-mode" data-role-mode="dm" aria-pressed="false">DM</button></div>
           <div class="user-avatar" aria-label="Demo account">G</div>
         </div>
       </header>
