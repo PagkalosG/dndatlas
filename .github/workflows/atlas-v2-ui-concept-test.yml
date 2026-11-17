@@ -30,6 +30,7 @@ jobs:
           node --check apps/web-v2/components/builder-2024.js
           node --check apps/web-v2/components/builder-insights.js
           node --check apps/web-v2/components/ability-allocation.js
+          node --check apps/web-v2/components/identity-cards.js
           node --check apps/web-v2/components/campaign-flows.js
           node --check apps/web-v2/components/campaign-libraries.js
           node --test tests/web-v2-*.test.cjs
