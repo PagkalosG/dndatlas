@@ -1,0 +1,13 @@
+{
+  "name": "dndatlas-v2-staging",
+  "main": "./index.js",
+  "compatibility_date": "2026-11-17",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dndatlas-v2-staging-db",
+      "database_id": "__GENERATED_BY_GITHUB_ACTIONS__"
+    }
+  ]
+}
