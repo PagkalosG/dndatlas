@@ -26,5 +26,7 @@ jobs:
         run: |
           node --check apps/web-v2/app.js
           node --check apps/web-v2/data.js
+          node --check apps/web-v2/catalog/srd-2024.js
+          node --check apps/web-v2/components/builder-2024.js
           node --check apps/web-v2/components/campaign-flows.js
           node --test tests/web-v2-*.test.cjs

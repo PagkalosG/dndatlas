@@ -3,22 +3,26 @@
   'use strict';
   const catalog = window.ATLAS_V2_DEMO;
   const campaignUI = window.ATLAS_V2_CAMPAIGN_FLOW;
+  const builderUI = window.ATLAS_V2_BUILDER;
+  if (!builderUI) throw new Error('Missing 2024 Builder components');
   if (!campaignUI) throw new Error('Missing campaign UI components');
   if (!catalog) throw new Error('Missing Atlas UI fixtures');
 
   const array = [15, 14, 13, 12, 10, 8];
   const abilityKeys = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-  const stepKeys = ['Species', 'Class', 'Background', 'Ability', 'Equipment', 'Review'];
-  const defaultDraft = () => ({ name: '', species: null, class: null, background: null, equipment: null, abilities: [15, 14, 13, 12, 10, 8] });
-  const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false };
+  const stepKeys = ['Species', 'Class', 'ClassTraining', 'Background', 'BackgroundTraining', 'Ability', 'StartingEquipment', 'Inventory', 'Review'];
+  const defaultDraft = () => ({ name: '', species: null, class: null, background: null, equipment: null, abilities: [15, 14, 13, 12, 10, 8],
+    classChoices: {}, backgroundChoices: {}, fightingStyle: null, weaponMasteries: [], bonusMode: 'split', bonusTwo: null, bonusOne: null,
+    classPackage: null, backgroundPackage: null, packageChoices: {}, purchases: {} });
+  const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false };
   const main = document.getElementById('main');
   const text = (key) => catalog.strings[state.locale][key] ?? key;
   const label = (item) => item?.title?.[state.locale] ?? text('notChosen');
   const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   const image = (item) => `<img src="${escape(item.art)}" alt="${escape(text('originalArt'))}" loading="lazy" decoding="async">`;
   const entry = (group, id) => catalog[group].find((item) => item.id === id);
-  const completion = () => ['species', 'class', 'background', 'equipment'].filter((key) => !!state.draft[key]).length;
-  const selectable = () => ['species', 'class', 'background', 'equipment'].every((key) => Boolean(state.draft[key]));
+  const completion = () => [!!state.draft.species, !!state.draft.class, (builderUI.classChoicesValid(state.draft)&&builderUI.fighterChoicesValid(state.draft)), !!state.draft.background, builderUI.backgroundChoicesValid(state.draft), builderUI.bonusesValid(state.draft), builderUI.packReady(state.draft)].filter(Boolean).length;
+  const selectable = () => completion() === 7 && validAbilities() && builderUI.wallet(state.draft).remaining >= 0;
   const validAbilities = () => [...state.draft.abilities].sort((a,b)=>a-b).join(',') === [...array].sort((a,b)=>a-b).join(',');
   const markDirty = () => { state.dirty = true; state.status = 'draft'; };
   const icon = (symbol) => `<span class="nav-symbol" aria-hidden="true">${symbol}</span>`;
@@ -37,6 +41,7 @@
     if (state.view === 'campaign' && view !== 'campaign' && state.campaignDirty && !window.confirm(text('leaveWarning'))) return;
     state.view = view;
     state.query = '';
+    state.gearQuery = '';
     state.filter = 'all';
     render();
     main.focus({ preventScroll: true });
@@ -121,10 +126,20 @@
 
   function reviewStep() {
     const d=state.draft;
-    const rows=[['stepSpecies','species'],['stepClass','class'],['stepBackground','background'],['stepEquipment','equipment']];
+    const rows=[['stepSpecies','species'],['stepClass','class'],['stepBackground','background']];
+    const chosenClass=builderUI.classInfo(d.class), chosenBg=builderUI.backgroundInfo(d.background);
+    const selectedSkills=Object.values(d.classChoices).flat().map(id=>id.replace(/^skill-/, '').replaceAll('-',' ')).join(', ') || '—';
+    const gold=builderUI.wallet(d);
     return `<div class="review-panel"><div class="review-head"><h2>${escape(text('reviewTitle'))}</h2>${badge(text(({approved:'approvedStatus',changes_requested:'changesRequestedStatus',rejected:'rejectedStatus',pending:'pending',draft:'draft'})[state.status] || 'draft'), state.status==='pending'?'gold':'muted')}</div>
       <label class="form-field"><span>${escape(text('name'))}</span><input id="character-name" type="text" maxlength="80" autocomplete="off" placeholder="${escape(text('namePlaceholder'))}" value="${escape(d.name)}"><small>${escape(text('nameHint'))}</small></label>
-      <div class="review-rows">${rows.map(([key,id])=>`<div class="review-row"><span>${escape(text(key))}</span><strong>${escape(label(entry(id==='class'?'classes':id==='background'?'backgrounds':id==='equipment'?'equipment':id, d[id])))}</strong></div>`).join('')}</div>
+      <div class="review-rows">${rows.map(([key,id])=>`<div class="review-row"><span>${escape(text(key))}</span><strong>${escape(label(entry(id==='class'?'classes':id==='background'?'backgrounds':id, d[id])))}</strong></div>`).join('')}
+        <div class="review-row"><span>${escape(text('classProficiencies'))}</span><strong>${escape(selectedSkills)}</strong></div>
+        ${d.class==='fighter'?`<div class="review-row"><span>${escape(text('fightingStyle'))}</span><strong>${escape(d.fightingStyle||'—')}</strong></div><div class="review-row"><span>${escape(text('weaponMastery'))}</span><strong>${escape(d.weaponMasteries.join(', ')||'—')}</strong></div>`:''}
+        <div class="review-row"><span>${escape(text('originFeat'))}</span><strong>${escape(chosenBg?.feat?.name||'—')}</strong></div>
+        <div class="review-row"><span>${escape(text('stepClassTraining'))}</span><strong>${escape(chosenClass?.name||'—')}</strong></div>
+        <div class="review-row"><span>${escape(text('stepStartingEquipment'))}</span><strong>${builderUI.pack(d,'class')?'✓':'—'} / ${builderUI.pack(d,'background')?'✓':'—'}</strong></div>
+        <div class="review-row"><span>${escape(text('remainingMoney'))}</span><strong>${builderUI.gb(gold.remaining)}</strong></div>
+        <div class="review-row"><span>${escape(text('purchasedItems'))}</span><strong>${Object.values(d.purchases).reduce((a,b)=>a+b,0)}</strong></div></div>
       <div class="inline-info">✧ ${escape(text('selectionInfo'))}</div></div>`;
   }
 
@@ -136,26 +151,33 @@
       <div class="preview-avatar">${d.species?image(entry('species',d.species)):'<span aria-hidden="true">✧</span>'}</div>
       <h3>${escape(d.name.trim()||text('characterLabel'))}</h3>
       <p>${escape(text('levelOne'))}</p>
-      <div class="preview-progress"><div class="preview-progress-title"><span>${escape(text('progress'))}</span><strong>${completion()}/4</strong></div><div class="progress-track"><span style="width:${completion()*25}%"></span></div></div>
+      <div class="preview-progress"><div class="preview-progress-title"><span>${escape(text('progress'))}</span><strong>${completion()}/7</strong></div><div class="progress-track"><span style="width:${completion()*100/7}%"></span></div></div>
       <dl class="preview-details"><div><dt>${escape(text('stepSpecies'))}</dt><dd>${escape(chosen('species',d.species))}</dd></div>
       <div><dt>${escape(text('stepClass'))}</dt><dd>${escape(chosen('classes',d.class))}</dd></div>
       <div><dt>${escape(text('stepBackground'))}</dt><dd>${escape(chosen('backgrounds',d.background))}</dd></div>
-      <div><dt>${escape(text('stepEquipment'))}</dt><dd>${escape(chosen('equipment',d.equipment))}</dd></div></dl>
+      <div><dt>${escape(text('classProficiencies'))}</dt><dd>${Object.values(d.classChoices).flat().length}</dd></div>
+       <div><dt>${escape(text('remainingMoney'))}</dt><dd>${builderUI.gb(builderUI.wallet(d).remaining)}</dd></div></dl>
       <div class="preview-disclaimer">${escape(text('statSample'))}</div>
     </aside>`;
   }
 
   function builder() {
     const step=state.step, kind=stepKeys[step];
-    const descriptions = ['stepSpeciesHint','stepClassHint','stepBackgroundHint','stepAbilityHint','stepEquipmentHint','stepReviewHint'];
-    const panel = step===0?optionCards('species','species') : step===1?optionCards('classes','class') : step===2?optionCards('backgrounds','background') : step===3?abilityStep() : step===4?optionCards('equipment','equipment') : reviewStep();
+    const descriptions = stepKeys.map(k=>'step'+k+'Hint');
+    const props={draft:state.draft,locale:state.locale,t:text,esc:escape};
+    const panels=[()=>optionCards('species','species'),()=>optionCards('classes','class'),
+      ()=>builderUI.renderClassTraining(props),()=>optionCards('backgrounds','background'),
+      ()=>builderUI.renderBackgroundTraining(props),()=>abilityStep()+builderUI.renderBackgroundBonuses(props),
+      ()=>builderUI.renderPackages(props),()=>builderUI.renderShop({...props,category:state.gearCategory,query:state.gearQuery}),
+      ()=>reviewStep()];
+    const panel=panels[step]();
     return `<div class="page builder-page"><div class="eyebrow accent">${escape(text('builderEyebrow'))} ${badge('D&D 2024','outline')}</div>
       <div class="builder-heading"><h1>${escape(text('builderTitle'))}</h1><p>${escape(text('builderIntro'))}</p></div>
       ${stepProgress()}
       <div class="builder-layout"><section class="builder-card" aria-labelledby="builder-step-heading"><div class="step-heading"><span class="eyebrow">${String(step+1).padStart(2,'0')} / ${stepKeys.length}</span><h2 id="builder-step-heading">${escape(text('step'+kind))}</h2><p>${escape(text(descriptions[step]))}</p></div>
         ${panel}<footer class="builder-controls"><button type="button" class="btn quiet" data-action="previous" ${step===0?'disabled':''}>← ${escape(text('back'))}</button>
         <div class="control-right"><button type="button" class="btn secondary" data-action="save" ${state.busy?'disabled':''}>${state.busy?'<span class="spinner"></span> ':''}${escape(text('saveDraft'))}</button>
-        ${step===5?`<button class="btn primary" data-action="submit" ${state.busy?'disabled':''}>${escape(text('submit'))} →</button>`:`<button type="button" class="btn primary" data-action="next">${escape(text('next'))} →</button>`}</div>
+        ${step===stepKeys.length-1?`<button class="btn primary" data-action="submit" ${state.busy?'disabled':''}>${escape(text('submit'))} →</button>`:`<button type="button" class="btn primary" data-action="next">${escape(text('next'))} →</button>`}</div>
         </footer></section>${previewPanel()}</div></div>`;
   }
 
@@ -212,10 +234,11 @@
   }
 
   function canAdvance() {
-    const keys = ['species','class','background',null,'equipment'];
-    if (state.step === 3 && !validAbilities()) return false;
-    const key = keys[state.step];
-    return !key || Boolean(state.draft[key]);
+    const d=state.draft;
+    return [() => !!d.species, () => !!d.class, () => builderUI.classChoicesValid(d) && builderUI.fighterChoicesValid(d),
+      () => !!d.background, () => builderUI.backgroundChoicesValid(d),
+      () => validAbilities() && builderUI.bonusesValid(d), () => builderUI.packReady(d),
+      () => builderUI.wallet(d).remaining >= 0, () => true][state.step]();
   }
 
   function mockSave(submit=false) {
@@ -271,19 +294,77 @@
     if (!trigger || trigger.disabled) return;
     const { action } = trigger.dataset;
     if (action === 'navigate') navigate(trigger.dataset.view);
-    if (action === 'step') { state.step=Number(trigger.dataset.step); render(); }
+    if (action === 'step') { state.step=Number(trigger.dataset.step);state.query='';state.gearQuery=''; render(); }
     if (action === 'choose') {
       const group = trigger.dataset.kind;
       const prop = group === 'classes' ? 'class' : group === 'backgrounds' ? 'background' : group;
       const next = catalog[group].find(item=>item.id===trigger.dataset.id);
       if (!next?.licensed) return;
+      if (state.draft[prop] !== next.id && prop==='class') {
+        state.draft.classChoices={};state.draft.fightingStyle=null;state.draft.weaponMasteries=[]; state.draft.classPackage=null; state.draft.packageChoices={}; state.draft.purchases={};
+      }
+      if (state.draft[prop] !== next.id && prop==='background') {
+        state.draft.backgroundChoices={}; state.draft.backgroundPackage=null; state.draft.bonusTwo=null;state.draft.bonusOne=null;
+        state.draft.packageChoices={};state.draft.purchases={};
+      }
       state.draft[prop] = next.id; markDirty(); render();
     }
     if (action === 'filter') { state.filter=trigger.dataset.filter; render(); }
-    if (action === 'previous') { state.step=Math.max(0,state.step-1); render(); }
+    if (action === 'fighting-style') {
+      const styles=['Archery','Defense','Dueling','Great Weapon Fighting','Protection','Two-Weapon Fighting'];
+      if(state.draft.class!=='fighter'||!styles.includes(trigger.dataset.id))return;
+      state.draft.fightingStyle=trigger.dataset.id;markDirty();render();
+    }
+    if (action === 'weapon-mastery') {
+      const id=trigger.dataset.id;
+      if(state.draft.class!=='fighter'||builderUI.itemById.get(id)?.category!=='weapons')return;
+      const values=state.draft.weaponMasteries;
+      if(values.includes(id))state.draft.weaponMasteries=values.filter(x=>x!==id);
+      else if(values.length<3)state.draft.weaponMasteries=[...values,id];
+      else{notify(text('masteryLimit'));return;}
+      markDirty();render();
+    }
+    if (action === 'class-proficiency' || action === 'background-proficiency') {
+      const groups=action==='class-proficiency'?builderUI.classInfo(state.draft.class)?.skillChoices:builderUI.backgroundInfo(state.draft.background)?.skillChoices;
+      const group=groups?.find(x=>x.id===trigger.dataset.group);
+      const option=trigger.dataset.id;
+      if (!group?.options.some(x=>x.id===option)) return;
+      const values=action==='class-proficiency'?state.draft.classChoices:state.draft.backgroundChoices;
+      const current=values[group.id]||[];
+      if(current.includes(option))values[group.id]=current.filter(x=>x!==option);
+      else if(current.length<group.count)values[group.id]=[...current,option];
+      else {notify(text('proficiencyLimit'));return;}
+      markDirty();render();
+    }
+    if (action === 'bonus-mode') {state.draft.bonusMode=trigger.dataset.mode;markDirty();render();}
+    if (action === 'bonus-select') {
+      const prop=trigger.dataset.boost==='2'?'bonusTwo':'bonusOne';
+      const other=prop==='bonusTwo'?'bonusOne':'bonusTwo';
+      const value=trigger.dataset.ability;
+      if (state.draft[other]===value)state.draft[other]=null;
+      state.draft[prop]=state.draft[prop]===value?null:value;markDirty();render();
+    }
+    if(action==='select-package'){
+      const prop=trigger.dataset.origin==='class'?'classPackage':'backgroundPackage';
+      state.draft[prop]=trigger.dataset.id;
+      for(const key of Object.keys(state.draft.packageChoices))if(key.startsWith(trigger.dataset.origin+':'))delete state.draft.packageChoices[key];
+      markDirty();render();
+    }
+    if(action==='gear-category'){state.gearCategory=trigger.dataset.category;state.gearQuery='';render();}
+    if(action==='shop-add'||action==='shop-remove'){
+      const id=trigger.dataset.id;
+      const item=builderUI.itemById.get(id);
+      if(!item?.cost||!Number.isInteger(item.cost.cp))return;
+      const previous=state.draft.purchases[id]||0;
+      if(action==='shop-add' && item.cost.cp>builderUI.wallet(state.draft).remaining)return;
+      const next=action==='shop-add'?previous+1:Math.max(0,previous-1);
+      if(next)state.draft.purchases[id]=next; else delete state.draft.purchases[id];
+      markDirty();render();
+    }
+    if (action === 'previous') { state.step=Math.max(0,state.step-1);state.query='';state.gearQuery=''; render(); }
     if (action === 'next') {
       if (!canAdvance()) { notify(text('selectionRequired')); return; }
-      state.step=Math.min(stepKeys.length-1,state.step+1); render();
+      state.step=Math.min(stepKeys.length-1,state.step+1);state.query='';state.gearQuery=''; render();
     }
     if (action === 'save') mockSave(false);
     if (action === 'submit') mockSave(true);
@@ -299,12 +380,16 @@
   document.addEventListener('input',(event)=>{
     const target=event.target;
     if (target.id==='choice-search') { state.query=target.value; applyFilter(); }
+    if (target.id==='gear-search') { state.gearQuery=target.value;main.querySelectorAll('.shop-item').forEach(card=>{card.hidden=!card.dataset.search.includes(state.gearQuery.toLowerCase());}); }
     if (target.id==='character-name') { state.draft.name=target.value; markDirty(); }
     if (target.id==='campaign-name') { state.campaign.name=target.value; state.campaignDirty=true; const preview=main.querySelector('.campaign-info h3'); if (preview) preview.textContent = target.value.trim() || text('campaignName'); renderNav(); }
   });
   document.addEventListener('change',(event)=>{
     const target=event.target;
     if (target.id==='lang-select') { state.locale=target.value==='el'?'el':'en'; render(); }
+    if (target.dataset.packageChoice !== undefined) {
+      state.draft.packageChoices[target.dataset.packageChoice]=target.value;markDirty();render();
+    }
     if (target.dataset.campaignField !== undefined) {
       const key=target.dataset.campaignField;
       const integerFields=['startingLevel','characterLimit','inviteDays'];

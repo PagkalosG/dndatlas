@@ -36,6 +36,27 @@
     ['soldier','Soldier','Στρατιώτης','Discipline and battlefield experience.','Πειθαρχία και εμπειρία μάχης.'],
   ].map(([id,en,el,descEn,descEl])=>({id,title:pair(en,el),description:pair(descEn,descEl),source:'SRD 5.2.1',licensed:true,art:`assets/background-${id}.svg`}));
 
+  // The 2024 PHB has 16 backgrounds. Only 4 are available in the public SRD.
+  // Additional names are shown as locked UI choices; no protected mechanics/art is distributed.
+  const lockedBackgrounds = [
+    ['artisan','Artisan','Τεχνίτης','A life devoted to a craft.','Μια ζωή αφιερωμένη σε μια τέχνη.'],
+    ['charlatan','Charlatan','Απατεώνας','A talent for elaborate deception.','Ταλέντο στις περίτεχνες απάτες.'],
+    ['entertainer','Entertainer','Καλλιτέχνης','A performer with a story to tell.','Καλλιτέχνης που αφηγείται ιστορίες.'],
+    ['farmer','Farmer','Αγρότης','A strong connection to rural life.','Δυνατός δεσμός με την αγροτική ζωή.'],
+    ['guard','Guard','Φρουρός','Experience protecting people and places.','Εμπειρία στην προστασία ανθρώπων και τόπων.'],
+    ['guide','Guide','Οδηγός','A traveler who knows the wilderness.','Ταξιδευτής που γνωρίζει την άγρια φύση.'],
+    ['hermit','Hermit','Ερημίτης','Years spent far from society.','Χρόνια μακριά από την κοινωνία.'],
+    ['merchant','Merchant','Έμπορος','Experience with markets and trade.','Εμπειρία στις αγορές και στο εμπόριο.'],
+    ['noble','Noble','Ευγενής','Raised among privilege and protocol.','Μεγάλωσε μέσα στα προνόμια και το πρωτόκολλο.'],
+    ['sailor','Sailor','Ναυτικός','Life spent navigating the seas.','Ζωή ταξιδεύοντας στις θάλασσες.'],
+    ['scribe','Scribe','Γραφέας','Skilled with words and records.','Εξοικειωμένος με τη γραφή και τα αρχεία.'],
+    ['wayfarer','Wayfarer','Περιπλανώμενος','A survivor with a winding path.','Επιζών με δύσβατο μονοπάτι.'],
+  ];
+  backgrounds.push(...lockedBackgrounds.map(([id,en,el,dEn,dEl])=>({
+    id,title:pair(en,el),description:pair(dEn,dEl),source:'PHB 2024',licensed:false,
+    art:`assets/background-${id}.svg`,
+  })));
+
   const equipment = [
     ['greatsword','Greatsword','Μεγάλο σπαθί','Two-handed weapon','Όπλο δύο χεριών'],
     ['spear','Spear','Δόρυ','Versatile weapon','Ευέλικτο όπλο'],
@@ -297,5 +318,52 @@
       reset:'Επαναφορά δοκιμής', resetDone:'Η δοκιμή επανήλθε', readOnly:'Προεπισκόπηση ανάγνωσης',
     }
   };
+  Object.assign(strings.en, {
+    fightingStyle:'Fighting Style',fighterStyleHint:'Select one Fighting Style feat from the SRD 2024 options.',weaponMastery:'Weapon Mastery',fighterMasteryHint:'Fighter Level 1: select three distinct Simple or Martial weapons. The server will validate all mastery effects.',masteryLimit:'Choose up to three weapon masteries.',
+    stepClassTraining:'Class training', stepClassTrainingHint:'Choose the skills granted by your class. Fixed proficiencies and saving throws appear below.',
+    stepBackgroundTraining:'Background training', stepBackgroundTrainingHint:'Review your Origin feat and select any permitted tool or skill proficiency.',
+    stepStartingEquipment:'Starting packages & gold', stepStartingEquipmentHint:'Choose a class package and a background package independently, including the gold alternatives.',
+    stepInventory:'Gear & consumables', stepInventoryHint:'Browse every SRD 2024 equipment item by category and spend available starting money.',
+    chooseProficiencies:'Choose class / background proficiencies', proficiencyHint:'Select the required number of distinct options. Some choices may already be granted by your Background.',
+    classProficiencies:'Class skill proficiencies', backgroundGrants:'Background proficiencies', fixedTrainingOnly:'This source grants fixed proficiencies and requires no extra choice.',
+    alreadyGranted:'Already granted', duplicateProficiency:'One of your class choices overlaps your background. Choose a different class skill.',
+    selectClassFirst:'Choose a Class before selecting training.', selectBackgroundFirst:'Choose a Background before selecting its benefits.',
+    proficiencyLimit:'You have already selected the allowed number of proficiencies.',
+    automaticallyGranted:'Automatically granted proficiencies', hitDie:'Hit Die', savingThrows:'Saving Throws',
+    advancedClassOptions:'Additional class-specific choices (Fighting Style, Weapon Mastery, spells, and subclass progression) will be connected through the validated Rules Engine. Nothing is granted automatically in this preview.',
+    subclassAfterLevelThree:'Subclass choice unlocks at Class Level 3',
+    originFeat:'Origin feat', backgroundBonuses:'Background ability boosts', backgroundBonusHint:'Your Background, not your Species, determines which abilities can receive +2/+1 or +1/+1/+1.',
+    classStartingPackage:'Class starting equipment', backgroundStartingPackage:'Background starting equipment',
+    resolvePackageChoice:'Choose the item inside your starting package', unavailablePackageChoice:'This package choice has not been mapped to an available SRD item. You can save a draft but cannot submit yet.',
+    equipmentPackage:'Equipment package', goldInstead:'Take starting gold instead', startingMoney:'Starting money', spentMoney:'Spent', remainingMoney:'Gold remaining',
+    purchasedItems:'Additional purchased items', shopHint:'Optional purchases use the starting money from your class and background choices. Included items are listed separately in Starting Packages.',
+    categoryWeapons:'Weapons', categoryArmor:'Armor & shields', categoryAdventuring:'Adventuring gear', categoryConsumables:'Consumables & ammunition', categoryTools:'Tools & instruments',
+    addItem:'Add item', removeItem:'Remove item', itemCountLabel:'Items shown', itemCatalogDescription:'2024 SRD equipment entry. See the official source for details.',
+    shopUnvalidated:'UI preview only: exact item eligibility, weapon properties and inventory effects require authoritative server validation.',
+    srdSource:'SRD 5.2.1',
+  });
+  Object.assign(strings.el, {
+    fightingStyle:'Στυλ μάχης (Fighting Style)',fighterStyleHint:'Επίλεξε ένα Fighting Style feat από τις επιλογές SRD 2024.',weaponMastery:'Εξειδίκευση όπλων (Weapon Mastery)',fighterMasteryHint:'Fighter επίπεδο 1: διάλεξε τρία διαφορετικά όπλα Simple ή Martial. Ο server θα επαληθεύει τις επιδράσεις τους.',masteryLimit:'Επίλεξε έως τρεις εξειδικεύσεις όπλων.',
+    stepClassTraining:'Εκπαίδευση κλάσης', stepClassTrainingHint:'Διάλεξε τις δεξιότητες της Κλάσης σου. Οι αυτόματες εξοικειώσεις και οι σωτήριες βολές εμφανίζονται ξεχωριστά.',
+    stepBackgroundTraining:'Εκπαίδευση προέλευσης', stepBackgroundTrainingHint:'Δες το ταλέντο προέλευσης (Origin Feat) και επίλεξε τυχόν εργαλεία ή δεξιότητες.',
+    stepStartingEquipment:'Αρχικός εξοπλισμός & χρήματα', stepStartingEquipmentHint:'Διάλεξε ξεχωριστό πακέτο για Κλάση και Προέλευση, ή τις αντίστοιχες επιλογές χρυσού.',
+    stepInventory:'Όπλα, πανοπλίες & αντικείμενα', stepInventoryHint:'Δες όλο τον εξοπλισμό του SRD 2024 ανά κατηγορία και ξόδεψε τα διαθέσιμα αρχικά χρήματα.',
+    chooseProficiencies:'Επιλογή εξοικειώσεων (Proficiencies)', proficiencyHint:'Επίλεξε τον προβλεπόμενο αριθμό διαφορετικών επιλογών. Κάποιες μπορεί ήδη να δίνονται από την Προέλευση.',
+    classProficiencies:'Εξοικειώσεις δεξιοτήτων Κλάσης', backgroundGrants:'Εξοικειώσεις Προέλευσης', fixedTrainingOnly:'Η πηγή δίνει σταθερές εξοικειώσεις και δεν απαιτεί άλλη επιλογή.',
+    alreadyGranted:'Έχει ήδη δοθεί', duplicateProficiency:'Μία επιλογή της Κλάσης συμπίπτει με την Προέλευση. Διάλεξε άλλη δεξιότητα.',
+    selectClassFirst:'Διάλεξε πρώτα Κλάση.', selectBackgroundFirst:'Διάλεξε πρώτα Προέλευση.', proficiencyLimit:'Έχεις επιλέξει ήδη τον επιτρεπόμενο αριθμό.',
+    automaticallyGranted:'Αυτόματες εξοικειώσεις', hitDie:'Ζάρι Ζωής', savingThrows:'Σωτήριες Βολές (Saving Throws)',
+    advancedClassOptions:'Πρόσθετες επιλογές Κλάσης (Fighting Style, Weapon Mastery, ξόρκια και εξέλιξη Subclass) θα συνδεθούν μέσω του επαληθευμένου Rules Engine. Δεν αποδίδονται αυτόματα σε αυτή την προεπισκόπηση.',
+    subclassAfterLevelThree:'Η επιλογή Subclass ξεκλειδώνει στο επίπεδο Κλάσης 3',
+    originFeat:'Ταλέντο προέλευσης (Origin Feat)', backgroundBonuses:'Βελτιώσεις χαρακτηριστικών από Προέλευση', backgroundBonusHint:'Η Προέλευση, όχι το Species, ορίζει ποια χαρακτηριστικά δέχονται +2/+1 ή +1/+1/+1.',
+    classStartingPackage:'Αρχικό πακέτο Κλάσης', backgroundStartingPackage:'Αρχικό πακέτο Προέλευσης',
+    resolvePackageChoice:'Επίλεξε αντικείμενο μέσα από το αρχικό πακέτο', unavailablePackageChoice:'Δεν έχει αντιστοιχιστεί σε αντικείμενο SRD. Μπορείς να αποθηκεύσεις πρόχειρο, όχι να υποβάλεις ακόμη.',
+    equipmentPackage:'Πακέτο εξοπλισμού', goldInstead:'Αρχικά χρήματα αντί εξοπλισμού', startingMoney:'Αρχικά χρήματα', spentMoney:'Δαπανήθηκαν', remainingMoney:'Υπόλοιπο χρυσού',
+    purchasedItems:'Επιπλέον αγορασμένα αντικείμενα', shopHint:'Οι προαιρετικές αγορές αφαιρούνται από τα χρήματα που προκύπτουν από τις επιλογές Κλάσης και Προέλευσης. Ο αρχικός εξοπλισμός εμφανίζεται ξεχωριστά.',
+    categoryWeapons:'Όπλα', categoryArmor:'Πανοπλίες & ασπίδες', categoryAdventuring:'Εξοπλισμός εξερεύνησης', categoryConsumables:'Αναλώσιμα & πυρομαχικά', categoryTools:'Εργαλεία & όργανα',
+    addItem:'Προσθήκη αντικειμένου', removeItem:'Αφαίρεση αντικειμένου', itemCountLabel:'Εμφανιζόμενα αντικείμενα', itemCatalogDescription:'Αντικείμενο εξοπλισμού SRD 2024. Δες τις λεπτομέρειες στην επίσημη πηγή.',
+    shopUnvalidated:'Μόνο προεπισκόπηση UI: η νομιμότητα αντικειμένων, τα weapon properties και οι επιδράσεις αποθήκης θα ελέγχονται στον server.',
+    srdSource:'SRD 5.2.1',
+  });
   window.ATLAS_V2_DEMO = Object.freeze({ species, classes, backgrounds, equipment, strings });
 })();

@@ -40,6 +40,8 @@ jobs:
           node --check apps/web-v2/app.js
           node --check apps/web-v2/data.js
           node --check apps/web-v2/components/campaign-flows.js
+          node --check apps/web-v2/components/builder-2024.js
+          node --check apps/web-v2/catalog/srd-2024.js
           node --test tests/web-v2-*.test.cjs
           jq -e '.name == "dndatlas-v2-ui-preview" and .assets.directory == "../../apps/web-v2" and .workers_dev == true' workers/atlas-v2-ui-preview/wrangler.json >/dev/null
 
@@ -86,6 +88,8 @@ jobs:
           for attempt in 1 2 3 4 5; do
             if curl --fail --silent --show-error --max-time 15 -L "${preview}/" | grep -q 'D&D Atlas 2.0'; then
               curl --fail --silent --show-error --max-time 15 "${preview}/components/campaign-flows.js" | grep -q 'ATLAS_V2_CAMPAIGN_FLOW'
+              curl --fail --silent --show-error --max-time 15 "${preview}/catalog/srd-2024.js" | grep -q 'ATLAS_V2_SRD'
+              curl --fail --silent --show-error --max-time 15 "${preview}/components/builder-2024.js" | grep -q 'ATLAS_V2_BUILDER'
               echo "### Live Atlas 2.0 UI preview" >> "${GITHUB_STEP_SUMMARY}"
               echo "- ${preview}/" >> "${GITHUB_STEP_SUMMARY}"
               echo '- Frontend mock only; NO D1, API or authentication binding' >> "${GITHUB_STEP_SUMMARY}"

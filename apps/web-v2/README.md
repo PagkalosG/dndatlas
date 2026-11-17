@@ -38,3 +38,14 @@ The QR is explicitly a non-functional placeholder and the sample invitation uses
 For a deployable, separate static preview, the staging pipeline deploys the contents of this folder to the **`dndatlas-v2-ui-preview` Cloudflare Worker**. That Worker serves only static assets and has no D1 bindings or real user data. GitHub Pages production and the staging API Worker are unaffected.
 
 Integration contracts: replace `window.ATLAS_V2_CAMPAIGN_FLOW` renderers with shared components and replace all mock actions with authenticated endpoints, per-campaign permissions, explicit Save, revision-aware conflict handling and server-side validation. Persist no API secrets in these static assets.
+
+## Source-backed Character Builder v0.3 (SRD 5.2.1 / 2024)
+
+- Illustrated selection shows all **12 2024 PHB core Classes** and **16 PHB Background names**. Only the 4 SRD Backgrounds are selectable; the other 12 are visibly locked because this repo does not license the complete PHB. Images for newly listed backgrounds are original SVG placeholders, never official artwork.
+- `catalog/srd-2024.js` is a generated, pinned static **2024-only UI fixture** produced by `content/importers/export-builder-srd-2024.mjs`. It includes source-defined class skill choices, background proficiencies/feat/ability restrictions, both equipment package options, and **182 SRD equipment items** split into Weapons, Armor & Shields, Adventuring Gear, Consumables, Tools.
+- Class Training follows the Class step; it selects class proficiencies. The Fighter demo also chooses one SRD Fighting Style and three weapon masteries. Background Training resolves background tool/skill choices; Ability Scores resolve 2024 Background-based bonuses.
+- Starting Equipment selects independent class and background equipment/gold packages and resolves nested equipment subchoices. The shop shows gold granted, costs, remaining budget and manually purchased items. Buying is a demo-only client state, **not a server-approved inventory or valid character purchase**.
+- Only a **starting-level-1 UI demonstration** is currently modeled; higher-level rules choices, full subclass options, spell selection, and advanced class feature legality remain work for the authoritative 2024 Rules Engine. No 2014 fallback and no dice rolling UI.
+- **No real save, approval, authentication or authorization exists.** Frontend data and fixture checks are display logic; all legality, source entitlements and privacy must be enforced on the Cloudflare Worker before live use.
+
+2024 SRD adapted under CC BY 4.0, Wizards of the Coast LLC; see `docs/SRD_ATTRIBUTION.md`. This application is unofficial.
