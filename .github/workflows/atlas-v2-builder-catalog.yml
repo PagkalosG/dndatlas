@@ -1,0 +1,50 @@
+name: Snapshot 2024 SRD Builder Catalog
+on:
+  push:
+    branches: [atlas-2.0]
+    paths: ['content/importers/export-builder-srd-2024.mjs','.github/workflows/atlas-v2-builder-catalog.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  snapshot:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: true}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Fetch 2024 SRD only and generate fixed UI fixture
+        run: node content/importers/export-builder-srd-2024.mjs
+      - name: Verify fixture remains restricted to 2024 and CC BY SRD
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import vm from 'node:vm';
+          const sandbox={window:{}};
+          vm.runInNewContext(fs.readFileSync('apps/web-v2/catalog/srd-2024.js','utf8'),sandbox);
+          const v=sandbox.window.ATLAS_V2_SRD;
+          if(v.edition!=='2024'||v.license!=='CC BY 4.0'||v.classes.length!==12||v.backgrounds.length!==4||v.equipment.length!==182)throw Error('Unexpected source contract');
+          const ids=new Set(v.equipment.map(x=>x.id));
+          if(ids.size!==182)throw Error('Duplicate equipment identifiers');
+          const fighter=v.classes.find(x=>x.id==='fighter');
+          if(!fighter.skillChoices.some(x=>x.count===2)||fighter.startingOptions.length<2)throw Error('Fighter source data incomplete');
+          console.log('2024-only fixture verified: 12 classes, 4 backgrounds, 182 equipment');
+          JS
+      - name: Commit the static source fixture only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- apps/web-v2/catalog/srd-2024.js
+          if git diff --cached --quiet; then
+            echo "Catalog snapshot unchanged."
+          else
+            git commit -m "data(builder): snapshot 2024 SRD class and equipment choices"
+            git push origin HEAD:atlas-2.0
+          fi
