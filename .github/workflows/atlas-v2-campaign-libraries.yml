@@ -1,0 +1,28 @@
+name: Validate Atlas 2.0 Campaign Library Packs
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - 'packages/content-packs/**'
+      - 'content/examples/**'
+      - 'tests/content-pack.test.mjs'
+      - 'tests/test_campaign_library_schema.py'
+      - '.github/workflows/atlas-v2-campaign-libraries.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  content-packs:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Verify declarative DM packs (never execute code from JSON)
+        run: |
+          node --check packages/content-packs/validate-pack.mjs
+          node --test tests/content-pack.test.mjs
+      - name: Test D1 schema and DM/campaign restrictions
+        run: python3 -m unittest discover -s tests -p 'test_campaign_library_schema.py' -v

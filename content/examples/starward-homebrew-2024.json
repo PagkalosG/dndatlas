@@ -1,0 +1,88 @@
+{
+  "format": "dndatlas.content-pack",
+  "schemaVersion": 1,
+  "pack": {
+    "id": "starward-adventures",
+    "version": "1.0.0",
+    "name": { "en": "Starward Adventures", "el": "Αστρικές Περιπέτειες" },
+    "ruleset": "dnd5e-2024",
+    "scope": "campaign",
+    "license": { "basis": "original", "rightToShare": true },
+    "dependencies": [{ "sourceId": "srd-5-2-2024-api", "version": "5.2.1" }]
+  },
+  "entries": [
+    {
+      "id": "star-bond",
+      "kind": "feature",
+      "name": { "en": "Star Bond", "el": "Αστρικός Δεσμός" },
+      "summary": { "en": "A small reservoir of celestial energy.", "el": "Μια μικρή αποθήκη ουράνιας ενέργειας." },
+      "data": { "source": "homebrew", "activation": "bonus_action" },
+      "effects": [{ "type": "CREATE_RESOURCE", "parameters": { "key": "star-charges", "max": 2, "recharge": "long_rest" }, "atClassLevel": 3 }]
+    },
+    {
+      "id": "star-sentinel",
+      "kind": "subclass",
+      "name": { "en": "Star Sentinel", "el": "Αστρικός Φρουρός" },
+      "summary": { "en": "An original Fighter subclass guided by constellations.", "el": "Μια πρωτότυπη υποκλάση Πολεμιστή που καθοδηγείται από αστερισμούς." },
+      "data": { "parentClassRef": "srd:class:fighter", "startLevel": 3 },
+      "progression": [
+        { "level": 3, "features": ["@feature:star-bond"] },
+        { "level": 7, "effects": [{ "type": "GRANT_RESISTANCE", "parameters": { "damageType": "radiant" }, "atClassLevel": 7 }] }
+      ]
+    },
+    {
+      "id": "starlit-kindred",
+      "kind": "species",
+      "name": { "en": "Starlit Kindred", "el": "Αστρόφωτη Γενιά" },
+      "data": { "speed": 30, "sizes": ["Medium"], "vision": "normal" },
+      "effects": [{ "type": "ADD_SENSE", "parameters": { "kind": "darkvision", "rangeFeet": 60 } }]
+    },
+    {
+      "id": "wanderers-luck",
+      "kind": "feat",
+      "name": { "en": "Wanderer's Luck", "el": "Η Τύχη του Ταξιδιώτη" },
+      "data": { "category": "origin" }
+    },
+    {
+      "id": "celestial-cartographer",
+      "kind": "background",
+      "name": { "en": "Celestial Cartographer", "el": "Ουράνιος Χαρτογράφος" },
+      "data": {
+        "abilityOptions": ["int", "wis", "cha"],
+        "originFeatRef": "@feat:wanderers-luck",
+        "skillProficiencies": ["srd:skill:survival"],
+        "startingEquipment": [{ "itemRef": "srd:item:quarterstaff", "quantity": 1 }],
+        "currency": { "amount": 9, "unit": "gp" }
+      }
+    },
+    {
+      "id": "guiding-ember",
+      "kind": "spell",
+      "name": { "en": "Guiding Ember", "el": "Καθοδηγητική Σπίθα" },
+      "data": {
+        "level": 1, "school": "Evocation", "castingTime": "1 Action", "range": "30 feet",
+        "duration": "Instantaneous", "components": ["V", "S"], "concentration": false
+      }
+    },
+    {
+      "id": "star-glass-vial",
+      "kind": "item",
+      "name": { "en": "Star-glass Vial", "el": "Φιαλίδιο Αστρόγυαλου" },
+      "data": {
+        "category": "consumable", "cost": { "amount": 15, "unit": "gp" },
+        "weight": 0.1, "stackable": true, "uses": 1, "rarity": "common"
+      }
+    },
+    {
+      "id": "celestial-maneuver",
+      "kind": "option",
+      "name": { "en": "Celestial Maneuver", "el": "Ουράνιος Ελιγμός" },
+      "data": { "subtype": "maneuver", "requiresClassRef": "srd:class:fighter" },
+      "choices": [{
+        "id": "tactics", "label": { "en": "Choose a tactic", "el": "Επίλεξε τακτική" },
+        "min": 1, "max": 1, "options": ["@feature:star-bond"]
+      }]
+    }
+  ],
+  "assets": []
+}
