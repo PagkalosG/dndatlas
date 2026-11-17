@@ -73,3 +73,11 @@ This is still an **isolated UI prototype**. No auth, D1 writes, realtime sync or
 ## v0.5 — Ability Scores
 
 Ability scores now support a D&D 2024 **Standard Array / 27-point Point Buy** toggle, using + / − controls rather than dropdown inputs. In Standard Array, an increase or decrease swaps to the next available score while preserving the original six values. In Point Buy, all scores begin at 8, each score stays within 8–15, and the cost table enforces a maximum of 27 spent points. Scores are kept separately when switching between methods. Background +2/+1 or +1/+1/+1 choices remain below the base score grid, with final score and modifier updating live. No dice UI, accounts, sync, or D1 writes.
+
+## v0.6 — Expandable species and class cards
+
+- Species and class cards now expand to show original EN/EL introductions, named 2024 SRD traits, hit die, saving throws and default proficiencies. Opening a card does NOT automatically select it.
+- The new Builder sequence is Species → Class → (Subclass, when the starting **single-class level** is 3+) → Background → Ability Scores/boosts → Class Training → Background Training → Starting Equipment → Inventory → Review.
+- Player and DM demo views can be switched from the topbar. This is only a view selector: it is not an authentication or authorization system.
+- The cards support an optional original photoreal portrait sprite; existing SVG art remains a fallback when the asset is unavailable. Portraits are **not official D&D art**.
+- Multiclass progression and character-level-based subclass availability will require a future dedicated multiclass builder rather than treating overall character level as class level.
