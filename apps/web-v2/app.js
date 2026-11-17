@@ -7,6 +7,9 @@
   const builderUI = window.ATLAS_V2_BUILDER;
   const insights = window.ATLAS_V2_INSIGHTS;
   const abilityUI = window.ATLAS_V2_ABILITIES;
+  const identityUI = window.ATLAS_V2_IDENTITY;
+  if (!identityUI) throw new Error('Missing identity card UI');
+  identityUI.initPhotos();
   if (!abilityUI) throw new Error('Missing 2024 Ability Allocation component');
   if (!insights) throw new Error('Missing Atlas 2024 insights components');
   if (!builderUI) throw new Error('Missing 2024 Builder components');
@@ -15,19 +18,27 @@
   if (!catalog) throw new Error('Missing Atlas UI fixtures');
 
   const abilityKeys = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-  const stepKeys = ['Species', 'Class', 'ClassTraining', 'Background', 'BackgroundTraining', 'Ability', 'StartingEquipment', 'Inventory', 'Review'];
-  const defaultDraft = () => ({ name: '', species: null, class: null, background: null, equipment: null, abilityMethod: 'standard', abilities: abilityUI.initialScores('standard'), abilityAllocations: {},
+  // v0.6: single-class starting-level flow. Class-specific multiclass leveling comes later.
+  const stepKeys = () => ['Species', 'Class', ...(state.savedCampaign.startingLevel >= 3 ? ['Subclass'] : []),
+    'Background', 'Ability', 'ClassTraining', 'BackgroundTraining', 'StartingEquipment', 'Inventory', 'Review'];
+  const subclassOptions = () => builderUI.classInfo(state.draft.class)?.subclasses || [];
+  const subclassRequired = () => state.savedCampaign.startingLevel >= 3 && subclassOptions().length > 0;
+  const defaultDraft = () => ({ name: '', species: null, class: null, subclass: null, background: null, equipment: null, abilityMethod: 'standard', abilities: abilityUI.initialScores('standard'), abilityAllocations: {},
     classChoices: {}, backgroundChoices: {}, fightingStyle: null, weaponMasteries: [], bonusMode: 'split', bonusTwo: null, bonusOne: null,
     classPackage: null, backgroundPackage: null, packageChoices: {}, purchases: {} });
-  const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false, libraryPreview: null, libraryError: null, libraryStaged: [], libraryBusy: false, libraryRights: false };
+  const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false, libraryPreview: null, libraryError: null, libraryStaged: [], libraryBusy: false, libraryRights: false, expandedOption: null };
   const main = document.getElementById('main');
   const text = (key) => catalog.strings[state.locale][key] ?? key;
   const label = (item) => item?.title?.[state.locale] ?? text('notChosen');
   const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   const image = (item) => item.photo ? `<picture><source srcset="${escape(item.photo)}" type="image/webp"><img src="${escape(item.art)}" alt="${escape(item.title?.[state.locale] || text('originalArt'))}" loading="lazy" decoding="async"></picture>` : `<img src="${escape(item.art)}" alt="${escape(item.title?.[state.locale] || text('originalArt'))}" loading="lazy" decoding="async">`;
   const entry = (group, id) => catalog[group].find((item) => item.id === id);
-  const completion = () => [!!state.draft.species, !!state.draft.class, (builderUI.classChoicesValid(state.draft)&&builderUI.fighterChoicesValid(state.draft)), !!state.draft.background, builderUI.backgroundChoicesValid(state.draft), builderUI.bonusesValid(state.draft), builderUI.packReady(state.draft)].filter(Boolean).length;
-  const selectable = () => completion() === 7 && validAbilities() && builderUI.wallet(state.draft).remaining >= 0;
+  const totalRequired = () => 7 + (subclassRequired() ? 1 : 0);
+  const completion = () => [!!state.draft.species, !!state.draft.class, ...(subclassRequired() ? [!!state.draft.subclass] : []),
+    !!state.draft.background, validAbilities() && builderUI.bonusesValid(state.draft),
+    builderUI.classChoicesValid(state.draft) && builderUI.fighterChoicesValid(state.draft),
+    builderUI.backgroundChoicesValid(state.draft), builderUI.packReady(state.draft)].filter(Boolean).length;
+  const selectable = () => completion() === totalRequired() && builderUI.wallet(state.draft).remaining >= 0;
   const validAbilities = () => abilityUI.validate(state.draft.abilityMethod, state.draft.abilities).valid;
   const markDirty = () => { state.dirty = true; state.status = 'draft'; };
   const icon = (symbol) => `<span class="nav-symbol" aria-hidden="true">${symbol}</span>`;
@@ -48,6 +59,7 @@
     state.query = '';
     state.gearQuery = '';
     state.filter = 'all';
+    state.expandedOption = null;
     render();
     main.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -62,7 +74,12 @@
       <button type="button" data-action="navigate" data-view="${id}" class="nav-button ${state.view === id ? 'current' : ''}" ${state.view===id?'aria-current="page"':''}>
         ${icon(symbol)}<span>${escape(text(title))}</span>${(id === 'builder' && state.dirty || id === 'campaign' && state.campaignDirty) ? '<span class="dirty-marker" aria-label="Unsaved changes"></span>' : ''}
       </button>`).join('');
-    document.getElementById('role-pill').textContent = text(state.role === 'dm' ? 'roleDm' : 'rolePlayer');
+    document.querySelectorAll('[data-role-mode]').forEach(button=>{
+      const active=button.dataset.roleMode===state.role;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+      button.textContent=text(button.dataset.roleMode==='dm'?'roleDm':'rolePlayer');
+    });
     document.getElementById('current-view-label').textContent = text(({home:'navHome',builder:'navBuilder',sheet:'navSheet',party:'navParty',journal:'navJournal',settings:'navSettings',campaign:'navCampaign'})[state.view]);
     document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = text(el.dataset.i18n); });
     document.getElementById('lang-select').value = state.locale;
@@ -99,25 +116,35 @@
   }
 
   function stepProgress() {
-    return `<nav class="steps" aria-label="Character creation progress">${stepKeys.map((key,i)=>`<button class="step ${i===state.step?'current':''} ${i<state.step?'complete':''}" type="button" data-action="step" data-step="${i}" ${i===state.step?'aria-current="step"':''}>
+    return `<nav class="steps" aria-label="Character creation progress">${stepKeys().map((key,i)=>`<button class="step ${i===state.step?'current':''} ${i<state.step?'complete':''}" type="button" data-action="step" data-step="${i}" ${i===state.step?'aria-current="step"':''}>
       <span class="step-number">${i<state.step?'✓':i+1}</span><span>${escape(text('step'+key))}</span>
     </button>`).join('')}</nav>`;
   }
 
-  function optionCards(group, key) {
+  function optionCards(group,key){
+    const discovery=group==='species'||group==='classes';
     return `<div class="catalog-toolbar"><label class="search-box"><span aria-hidden="true">⌕</span><input id="choice-search" type="search" placeholder="${escape(text('filterPlaceholder'))}" aria-label="${escape(text('search'))}" value="${escape(state.query)}"></label>
-      <div class="filter-set" role="group" aria-label="Filters"><button type="button" data-action="filter" data-filter="all" class="filter-chip ${state.filter==='all'?'active':''}">${escape(text('showAll'))}</button>
-      <button type="button" data-action="filter" data-filter="available" class="filter-chip ${state.filter==='available'?'active':''}">${escape(text('availableOnly'))}</button></div></div>
-      <div class="option-grid" id="choice-grid">${catalog[group].map((item) => {
-        const selected = state.draft[key] === item.id;
-        return `<button type="button" class="illustrated-option ${selected?'selected':''} ${!item.licensed?'locked':''}" data-action="choose" data-id="${item.id}" data-kind="${group}" data-search="${escape((item.title.en+' '+item.title.el).toLowerCase())}" ${!item.licensed?'disabled':''} aria-pressed="${selected}">
-          <div class="illustration">${image(item)}<span class="art-corner" title="${escape(text('originalArt'))}">✧</span>${selected?'<span class="selected-check" aria-hidden="true">✓</span>':''}</div>
-          <div class="option-detail"><div class="option-title-row"><strong>${escape(label(item))}</strong>${!item.licensed?'<span class="lock-symbol" aria-hidden="true">♢</span>':''}</div>
-          <p>${escape(item.description[state.locale])}</p><span class="option-source">${escape(item.source)}</span>
-          ${!item.licensed?`<span class="lock-hint">${escape(text('lockedHint'))}</span>`:''}</div>
-        </button>`;
-      }).join('')}</div>${insights.renderSelectionDetails({item:entry(group,state.draft[key]),group,locale:state.locale,esc:escape,builder:builderUI})}<div class="empty-filter" id="empty-filter" hidden>${escape(text('noResults'))}</div>
+      <div class="filter-set" role="group"><button data-action="filter" data-filter="all" class="filter-chip ${state.filter==='all'?'active':''}">${escape(text('showAll'))}</button>
+      <button data-action="filter" data-filter="available" class="filter-chip ${state.filter==='available'?'active':''}">${escape(text('availableOnly'))}</button></div></div>
+      <div class="${discovery?'identity-grid':'option-grid'}" id="choice-grid">${catalog[group].map(item=>{
+       const selected=state.draft[key]===item.id;
+       if(discovery)return identityUI.renderCard({item,group,selected,expanded:state.expandedOption===group+':'+item.id,locale:state.locale,esc:escape,sourceClass:builderUI.classInfo});
+       return `<button type="button" data-option-card data-available="${!!item.licensed}" class="illustrated-option ${selected?'selected':''} ${!item.licensed?'locked':''}" data-action="choose" data-id="${escape(item.id)}" data-kind="${escape(group)}" data-search="${escape((item.title.en+' '+item.title.el).toLowerCase())}" ${!item.licensed?'disabled':''} aria-pressed="${selected}">
+         <div class="illustration">${image(item)}${selected?'<span class="selected-check">✓</span>':''}</div>
+         <div class="option-detail"><strong>${escape(label(item))}</strong><p>${escape(item.description[state.locale])}</p><span class="option-source">${escape(item.source)}</span>${!item.licensed?`<span class="lock-hint">${escape(text('lockedHint'))}</span>`:''}</div></button>`;
+      }).join('')}</div>
+      ${!discovery?insights.renderSelectionDetails({item:entry(group,state.draft[key]),group,locale:state.locale,esc:escape,builder:builderUI}):''}
+      <div class="empty-filter" id="empty-filter" hidden>${escape(text('noResults'))}</div>
       <p class="art-disclaimer">${escape(text('originalArtworkNote'))}</p>`;
+  }
+
+  function subclassStep(){
+    const options=subclassOptions(),cl=builderUI.classInfo(state.draft.class);
+    return `<section class="subclass-intro"><p>${escape(text('subclass2024Hint'))}</p><span class="chip muted">${escape(cl?.name||'')} · ${escape(text('levelThree'))}</span></section>
+      <div class="identity-grid">${options.map(x=>`<article class="identity-card ${state.draft.subclass===x.id?'selected':''}"><div class="identity-details">
+        <h3>${escape(x.name)}</h3><p>${escape(state.locale==='el'?'Επίλεξε υποκλάση για την εξέλιξη της κλάσης σου από το τρίτο επίπεδό της. Επιπλέον βιβλιοθήκες DM μπορούν να προσθέσουν υποκλάσεις αργότερα.':'Choose a subclass for your class progression starting at class level 3. DM libraries can provide more eligible options later.')}</p>
+        <span class="chip muted">SRD 5.2.1</span>
+        <button type="button" class="btn ${state.draft.subclass===x.id?'secondary':'primary'}" data-action="select-subclass" data-id="${escape(x.id)}" aria-pressed="${state.draft.subclass===x.id}">${state.draft.subclass===x.id?'✓ '+escape(text('selected')):escape(text('choose'))}</button></div></article>`).join('')}</div>`;
   }
 
   function abilityStep() {
@@ -136,6 +163,7 @@
     return `<div class="review-panel"><div class="review-head"><h2>${escape(text('reviewTitle'))}</h2>${badge(text(({approved:'approvedStatus',changes_requested:'changesRequestedStatus',rejected:'rejectedStatus',pending:'pending',draft:'draft'})[state.status] || 'draft'), state.status==='pending'?'gold':'muted')}</div>
       <label class="form-field"><span>${escape(text('name'))}</span><input id="character-name" type="text" maxlength="80" autocomplete="off" placeholder="${escape(text('namePlaceholder'))}" value="${escape(d.name)}"><small>${escape(text('nameHint'))}</small></label>
       <div class="review-rows">${rows.map(([key,id])=>`<div class="review-row"><span>${escape(text(key))}</span><strong>${escape(label(entry(id==='class'?'classes':id==='background'?'backgrounds':id, d[id])))}</strong></div>`).join('')}
+        ${subclassRequired()?`<div class="review-row"><span>${escape(text('stepSubclass'))}</span><strong>${escape(subclassOptions().find(x=>x.id===d.subclass)?.name||text('notChosen'))}</strong></div>`:''}
         <div class="review-row"><span>${escape(text('classProficiencies'))}</span><strong>${escape(selectedSkills)}</strong></div>
         ${abilityKeys.map(key=>{const x=insights.score(d,key,builderUI.bonusFor);return `<div class="review-row"><span>${escape(key.toUpperCase())}</span><strong>${x.total} (${insights.sign(x.modifier)})</strong></div>`;}).join('')}
         ${d.class==='fighter'?`<div class="review-row"><span>${escape(text('fightingStyle'))}</span><strong>${escape(d.fightingStyle||'—')}</strong></div><div class="review-row"><span>${escape(text('weaponMastery'))}</span><strong>${escape(d.weaponMasteries.join(', ')||'—')}</strong></div>`:''}
@@ -155,9 +183,10 @@
       <div class="preview-avatar">${d.species?image(entry('species',d.species)):'<span aria-hidden="true">✧</span>'}</div>
       <h3>${escape(d.name.trim()||text('characterLabel'))}</h3>
       <p>${escape(text('levelOne'))}</p>
-      <div class="preview-progress"><div class="preview-progress-title"><span>${escape(text('progress'))}</span><strong>${completion()}/7</strong></div><div class="progress-track"><span style="width:${completion()*100/7}%"></span></div></div>
+      <div class="preview-progress"><div class="preview-progress-title"><span>${escape(text('progress'))}</span><strong>${completion()}/${totalRequired()}</strong></div><div class="progress-track"><span style="width:${completion()*100/totalRequired()}%"></span></div></div>
       <dl class="preview-details"><div><dt>${escape(text('stepSpecies'))}</dt><dd>${escape(chosen('species',d.species))}</dd></div>
       <div><dt>${escape(text('stepClass'))}</dt><dd>${escape(chosen('classes',d.class))}</dd></div>
+      ${subclassRequired()?`<div><dt>${escape(text('stepSubclass'))}</dt><dd>${escape(subclassOptions().find(x=>x.id===d.subclass)?.name||text('notChosen'))}</dd></div>`:''}
       <div><dt>${escape(text('stepBackground'))}</dt><dd>${escape(chosen('backgrounds',d.background))}</dd></div>
       <div><dt>${escape(text('classProficiencies'))}</dt><dd>${Object.values(d.classChoices).flat().length}</dd></div>
        <div><dt>${escape(text('remainingMoney'))}</dt><dd>${builderUI.gb(builderUI.wallet(d).remaining)}</dd></div></dl>
@@ -166,22 +195,25 @@
   }
 
   function builder() {
-    const step=state.step, kind=stepKeys[step];
-    const descriptions = stepKeys.map(k=>'step'+k+'Hint');
+    const step=state.step, keys=stepKeys(), kind=keys[step];
+    const descriptions = keys.map(k=>'step'+k+'Hint');
     const props={draft:state.draft,locale:state.locale,t:text,esc:escape};
-    const panels=[()=>optionCards('species','species'),()=>optionCards('classes','class'),
-      ()=>builderUI.renderClassTraining(props),()=>optionCards('backgrounds','background'),
-      ()=>builderUI.renderBackgroundTraining(props),()=>abilityStep()+builderUI.renderBackgroundBonuses(props),
-      ()=>builderUI.renderPackages(props),()=>builderUI.renderShop({...props,category:state.gearCategory,query:state.gearQuery}),
-      ()=>reviewStep()];
-    const panel=panels[step]();
+    const panels={Species:()=>optionCards('species','species'),Class:()=>optionCards('classes','class'),
+      Subclass:()=>subclassStep(),Background:()=>optionCards('backgrounds','background'),
+      Ability:()=>abilityStep()+builderUI.renderBackgroundBonuses(props),
+      ClassTraining:()=>builderUI.renderClassTraining(props),
+      BackgroundTraining:()=>builderUI.renderBackgroundTraining(props),
+      StartingEquipment:()=>builderUI.renderPackages(props),
+      Inventory:()=>builderUI.renderShop({...props,category:state.gearCategory,query:state.gearQuery}),
+      Review:()=>reviewStep()};
+    const panel=panels[kind]();
     return `<div class="page builder-page"><div class="eyebrow accent">${escape(text('builderEyebrow'))} ${badge('D&D 2024','outline')}</div>
       <div class="builder-heading"><h1>${escape(text('builderTitle'))}</h1><p>${escape(text('builderIntro'))}</p></div>
       ${stepProgress()}
-      <div class="builder-layout"><section class="builder-card" aria-labelledby="builder-step-heading"><div class="step-heading"><span class="eyebrow">${String(step+1).padStart(2,'0')} / ${stepKeys.length}</span><h2 id="builder-step-heading">${escape(text('step'+kind))}</h2><p>${escape(text(descriptions[step]))}</p></div>
+      <div class="builder-layout"><section class="builder-card" aria-labelledby="builder-step-heading"><div class="step-heading"><span class="eyebrow">${String(step+1).padStart(2,'0')} / ${keys.length}</span><h2 id="builder-step-heading">${escape(text('step'+kind))}</h2><p>${escape(text(descriptions[step]))}</p></div>
         ${panel}<footer class="builder-controls"><button type="button" class="btn quiet" data-action="previous" ${step===0?'disabled':''}>← ${escape(text('back'))}</button>
         <div class="control-right"><button type="button" class="btn secondary" data-action="save" ${state.busy?'disabled':''}>${state.busy?'<span class="spinner"></span> ':''}${escape(text('saveDraft'))}</button>
-        ${step===stepKeys.length-1?`<button class="btn primary" data-action="submit" ${state.busy?'disabled':''}>${escape(text('submit'))} →</button>`:`<button type="button" class="btn primary" data-action="next">${escape(text('next'))} →</button>`}</div>
+        ${step===keys.length-1?`<button class="btn primary" data-action="submit" ${state.busy?'disabled':''}>${escape(text('submit'))} →</button>`:`<button type="button" class="btn primary" data-action="next">${escape(text('next'))} →</button>`}</div>
         </footer></section>${previewPanel()}</div></div>`;
   }
 
@@ -223,26 +255,23 @@
     applyFilter();
   }
 
-  function applyFilter() {
-    const cards = main.querySelectorAll('[data-action="choose"]');
-    let visible = 0;
-    cards.forEach((card) => {
-      const found = card.dataset.search.includes(state.query.toLowerCase());
-      const allowed = state.filter === 'all' || !card.disabled;
-      const shown = found && allowed;
-      card.hidden = !shown;
-      if (shown) visible++;
+  function applyFilter(){
+    let visible=0;
+    main.querySelectorAll('[data-option-card]').forEach(card=>{
+      const match=(card.dataset.search||'').includes(state.query.toLowerCase());
+      const allowed=state.filter==='all'||card.dataset.available==='true';
+      card.hidden=!(match&&allowed);if(!card.hidden)visible++;
     });
-    const empty = document.getElementById('empty-filter');
-    if (empty) empty.hidden = visible !== 0;
+    const empty=document.getElementById('empty-filter');if(empty)empty.hidden=visible!==0;
   }
-
-  function canAdvance() {
+  function canAdvance(){
     const d=state.draft;
-    return [() => !!d.species, () => !!d.class, () => builderUI.classChoicesValid(d) && builderUI.fighterChoicesValid(d),
-      () => !!d.background, () => builderUI.backgroundChoicesValid(d),
-      () => validAbilities() && builderUI.bonusesValid(d), () => builderUI.packReady(d),
-      () => builderUI.wallet(d).remaining >= 0, () => true][state.step]();
+    const checks={Species:()=>!!d.species,Class:()=>!!d.class,Subclass:()=>!subclassRequired()||subclassOptions().some(x=>x.id===d.subclass),
+      Background:()=>!!d.background,Ability:()=>validAbilities()&&builderUI.bonusesValid(d),
+      ClassTraining:()=>builderUI.classChoicesValid(d)&&builderUI.fighterChoicesValid(d),
+      BackgroundTraining:()=>builderUI.backgroundChoicesValid(d),StartingEquipment:()=>builderUI.packReady(d),
+      Inventory:()=>builderUI.wallet(d).remaining>=0,Review:()=>true};
+    return checks[stepKeys()[state.step]]();
   }
 
   function mockSave(submit=false) {
@@ -298,20 +327,28 @@
     if (!trigger || trigger.disabled) return;
     const { action } = trigger.dataset;
     if (action === 'navigate') navigate(trigger.dataset.view);
-    if (action === 'step') { state.step=Number(trigger.dataset.step);state.query='';state.gearQuery=''; render(); }
+    if (action === 'step') { const next=Number(trigger.dataset.step);if(Number.isInteger(next)&&next>=0&&next<stepKeys().length){state.step=next;state.query='';state.gearQuery='';state.expandedOption=null;render();} }
+    if (action === 'expand-option') {
+      const key=trigger.dataset.kind+':'+trigger.dataset.id;
+      state.expandedOption=state.expandedOption===key?null:key;render();
+    }
+    if (action === 'select-subclass') {
+      if(!subclassOptions().some(x=>x.id===trigger.dataset.id))return;
+      state.draft.subclass=trigger.dataset.id;markDirty();render();
+    }
     if (action === 'choose') {
       const group = trigger.dataset.kind;
       const prop = group === 'classes' ? 'class' : group === 'backgrounds' ? 'background' : group;
       const next = catalog[group].find(item=>item.id===trigger.dataset.id);
       if (!next?.licensed) return;
       if (state.draft[prop] !== next.id && prop==='class') {
-        state.draft.classChoices={};state.draft.fightingStyle=null;state.draft.weaponMasteries=[]; state.draft.classPackage=null; state.draft.packageChoices={}; state.draft.purchases={};
+        state.draft.subclass=null;state.draft.classChoices={};state.draft.fightingStyle=null;state.draft.weaponMasteries=[]; state.draft.classPackage=null; state.draft.packageChoices={}; state.draft.purchases={};
       }
       if (state.draft[prop] !== next.id && prop==='background') {
         state.draft.backgroundChoices={}; state.draft.backgroundPackage=null; state.draft.bonusTwo=null;state.draft.bonusOne=null;
         state.draft.packageChoices={};state.draft.purchases={};
       }
-      state.draft[prop] = next.id; markDirty(); render();
+      state.draft[prop] = next.id;state.expandedOption=group+':'+next.id;markDirty();render();
     }
     if (action === 'filter') { state.filter=trigger.dataset.filter; render(); }
     if (action === 'fighting-style') {
@@ -379,14 +416,14 @@
       if(next)state.draft.purchases[id]=next; else delete state.draft.purchases[id];
       markDirty();render();
     }
-    if (action === 'previous') { state.step=Math.max(0,state.step-1);state.query='';state.gearQuery=''; render(); }
+    if (action === 'previous') { state.step=Math.max(0,state.step-1);state.query='';state.gearQuery='';state.expandedOption=null;render(); }
     if (action === 'next') {
       if (!canAdvance()) { notify(text('selectionRequired')); return; }
-      state.step=Math.min(stepKeys.length-1,state.step+1);state.query='';state.gearQuery=''; render();
+      state.step=Math.min(stepKeys().length-1,state.step+1);state.query='';state.gearQuery='';state.expandedOption=null;render();
     }
     if (action === 'save') mockSave(false);
     if (action === 'submit') mockSave(true);
-    if (action === 'role') { state.role=trigger.dataset.role; if (state.role !== 'dm' && state.view === 'campaign') { state.view='party'; } render(); }
+    if (action === 'role' || action === 'role-mode') { state.role=action==='role-mode'?trigger.dataset.roleMode:trigger.dataset.role; if (state.role !== 'dm' && state.view === 'campaign') { state.view='party'; } render(); }
     if (action === 'save-campaign') mockCampaignSave();
     if (action === 'review') mockReview(trigger.dataset.decision);
     if (action === 'create-invite' && state.role === 'dm') { state.inviteCreated = true; render(); notify(text('inviteGeneratedDemo')); }
