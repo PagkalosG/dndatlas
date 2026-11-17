@@ -68,3 +68,8 @@ The complete original homebrew test fixture is `content/examples/starward-homebr
 - **Realistic imagery:** UI accepts optional `photo` URLs in content metadata. Temporary original vector artwork remains the fallback until suitable licensed/created realistic fantasy assets are added; these are not official D&D images.
 
 This is still an **isolated UI prototype**. No auth, D1 writes, realtime sync or network requests were added.
+
+
+## v0.5 — Ability Scores
+
+Ability scores now support a D&D 2024 **Standard Array / 27-point Point Buy** toggle, using + / − controls rather than dropdown inputs. In Standard Array, an increase or decrease swaps to the next available score while preserving the original six values. In Point Buy, all scores begin at 8, each score stays within 8–15, and the cost table enforces a maximum of 27 spent points. Scores are kept separately when switching between methods. Background +2/+1 or +1/+1/+1 choices remain below the base score grid, with final score and modifier updating live. No dice UI, accounts, sync, or D1 writes.

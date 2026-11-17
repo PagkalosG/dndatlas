@@ -6,16 +6,17 @@
   const libraryUI = window.ATLAS_V2_LIBRARY_UI;
   const builderUI = window.ATLAS_V2_BUILDER;
   const insights = window.ATLAS_V2_INSIGHTS;
+  const abilityUI = window.ATLAS_V2_ABILITIES;
+  if (!abilityUI) throw new Error('Missing 2024 Ability Allocation component');
   if (!insights) throw new Error('Missing Atlas 2024 insights components');
   if (!builderUI) throw new Error('Missing 2024 Builder components');
   if (!campaignUI) throw new Error('Missing campaign UI components');
   if (!libraryUI) throw new Error('Missing library UI components');
   if (!catalog) throw new Error('Missing Atlas UI fixtures');
 
-  const array = [15, 14, 13, 12, 10, 8];
   const abilityKeys = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
   const stepKeys = ['Species', 'Class', 'ClassTraining', 'Background', 'BackgroundTraining', 'Ability', 'StartingEquipment', 'Inventory', 'Review'];
-  const defaultDraft = () => ({ name: '', species: null, class: null, background: null, equipment: null, abilities: [15, 14, 13, 12, 10, 8],
+  const defaultDraft = () => ({ name: '', species: null, class: null, background: null, equipment: null, abilityMethod: 'standard', abilities: abilityUI.initialScores('standard'), abilityAllocations: {},
     classChoices: {}, backgroundChoices: {}, fightingStyle: null, weaponMasteries: [], bonusMode: 'split', bonusTwo: null, bonusOne: null,
     classPackage: null, backgroundPackage: null, packageChoices: {}, purchases: {} });
   const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false, libraryPreview: null, libraryError: null, libraryStaged: [], libraryBusy: false, libraryRights: false };
@@ -27,7 +28,7 @@
   const entry = (group, id) => catalog[group].find((item) => item.id === id);
   const completion = () => [!!state.draft.species, !!state.draft.class, (builderUI.classChoicesValid(state.draft)&&builderUI.fighterChoicesValid(state.draft)), !!state.draft.background, builderUI.backgroundChoicesValid(state.draft), builderUI.bonusesValid(state.draft), builderUI.packReady(state.draft)].filter(Boolean).length;
   const selectable = () => completion() === 7 && validAbilities() && builderUI.wallet(state.draft).remaining >= 0;
-  const validAbilities = () => [...state.draft.abilities].sort((a,b)=>a-b).join(',') === [...array].sort((a,b)=>a-b).join(',');
+  const validAbilities = () => abilityUI.validate(state.draft.abilityMethod, state.draft.abilities).valid;
   const markDirty = () => { state.dirty = true; state.status = 'draft'; };
   const icon = (symbol) => `<span class="nav-symbol" aria-hidden="true">${symbol}</span>`;
 
@@ -120,13 +121,10 @@
   }
 
   function abilityStep() {
-    const abilities = state.draft.abilities;
-    return `<div class="ability-head">${badge(text('arrayInfo'), 'muted')}
-      <span>${escape(text('statSample'))}</span></div>
-      <div class="ability-grid">${abilityKeys.map((key,i)=>{const result=insights.score(state.draft,key,builderUI.bonusFor);return `<label class="ability-select"><span>${escape(text('ability'+key[0].toUpperCase()+key.slice(1)))}</span><select data-ability="${i}" aria-label="${escape(text('ability'+key[0].toUpperCase()+key.slice(1)))}">
-      ${array.map(value=>`<option value="${value}" ${abilities[i]===value?'selected':''}>${value}</option>`).join('')}</select><div class="ability-derived"><span>${escape(insights.L[state.locale].base)} ${result.base} ${result.bonus?`+ ${result.bonus}`:''}</span><strong>${insights.L[state.locale].final}: ${result.total}</strong><b class="ability-modifier">${escape(insights.L[state.locale].modifier)} ${insights.sign(result.modifier)}</b></div></label>`;}).join('')}</div>
-      ${insights.renderGrantOverview({draft:state.draft,locale:state.locale,esc:escape,cl:builderUI.classInfo(state.draft.class),bg:builderUI.backgroundInfo(state.draft.background),bonusFor:builderUI.bonusFor})}
-      ${!validAbilities()?`<div class="inline-warning" role="alert">${escape(text('selectionRequired'))} — ${escape(text('arrayInfo'))}</div>`:''}`;
+    return abilityUI.render({draft:state.draft,locale:state.locale,t:text,esc:escape,
+      score:insights.score,bonusFor:builderUI.bonusFor}) +
+      insights.renderGrantOverview({draft:state.draft,locale:state.locale,esc:escape,
+      cl:builderUI.classInfo(state.draft.class),bg:builderUI.backgroundInfo(state.draft.background),bonusFor:builderUI.bonusFor});
   }
 
   function reviewStep() {
@@ -342,6 +340,20 @@
       else {notify(text('proficiencyLimit'));return;}
       markDirty();render();
     }
+    if (action === 'ability-method') {
+      const method=trigger.dataset.method;
+      if (!['standard','pointbuy'].includes(method) || method===state.draft.abilityMethod) return;
+      state.draft.abilityAllocations ||= {};
+      state.draft.abilityAllocations[state.draft.abilityMethod]=[...state.draft.abilities];
+      state.draft.abilities=[...(state.draft.abilityAllocations[method] || abilityUI.initialScores(method))];
+      state.draft.abilityMethod=method;markDirty();render();
+    }
+    if (action === 'ability-adjust') {
+      const index=Number(trigger.dataset.index),dir=Number(trigger.dataset.direction);
+      const values=abilityUI.adjust(state.draft.abilities,index,dir,state.draft.abilityMethod);
+      if (!values) return;
+      state.draft.abilities=values;markDirty();render();
+    }
     if (action === 'bonus-mode') {state.draft.bonusMode=trigger.dataset.mode;markDirty();render();}
     if (action === 'bonus-select') {
       const prop=trigger.dataset.boost==='2'?'bonusTwo':'bonusOne';
@@ -428,16 +440,7 @@
       state.campaign[key] = target.type==='checkbox' ? target.checked : integerFields.includes(key) ? Number(target.value) : target.value;
       state.campaignDirty=true; renderNav();
     }
-    if (target.dataset.ability !== undefined) {
-      const index = Number(target.dataset.ability);
-      const nextValue = Number(target.value);
-      const existing = state.draft.abilities.indexOf(nextValue);
-      if (existing !== -1 && existing !== index) {
-        state.draft.abilities[existing] = state.draft.abilities[index];
-      }
-      state.draft.abilities[index] = nextValue;
-      markDirty(); render();
-    }
+
   });
   render();
 })();
