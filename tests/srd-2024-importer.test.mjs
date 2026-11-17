@@ -6,7 +6,7 @@ import {
 
 test('only 2024 namespaces, fixed contract categories, and no 2014 contamination', () => {
   assert.equal(API_BASE, 'https://www.dnd5eapi.co/api/2024');
-  assert.deepEqual(Object.keys(COLLECTIONS), ['classes', 'species', 'backgrounds', 'feats', 'subclasses']);
+  assert.deepEqual(Object.keys(COLLECTIONS), ['classes', 'species', 'backgrounds', 'feats', 'subclasses', 'equipment']);
   assert.throws(() => normalizeResource('classes',
     { index: 'fighter', url: '/api/2014/classes/fighter' },
     { index: 'fighter', name: 'Fighter' }), /Unexpected 2024/);
@@ -74,4 +74,17 @@ test('untrusted detail URL is rejected', () => {
   assert.throws(() => normalizeResource('species',
     { index: 'elf', url: '/api/2024/species/elf' },
     { index: 'elf', name: 'Elf', url: '/api/2014/species/elf' }), /mismatch/);
+});
+
+
+test('2024 equipment maps to draft item definitions with source provenance', () => {
+  const item = normalizeResource('equipment',
+    { index: 'spear', name: 'Spear', url: '/api/2024/equipment/spear' },
+    { index: 'spear', name: 'Spear', url: '/api/2024/equipment/spear', equipment_category: { name: 'Weapon' }, weapon_category: 'Simple' });
+  assert.equal(item.kind, 'item');
+  assert.equal(item.entryId, 'srd-5-2-2024-api:item:spear');
+  const sql = serializeCollection('equipment', [item]);
+  assert.match(sql, /'draft'/);
+  assert.match(sql, /'restricted'/);
+  assert.match(sql, /'CC_BY_4_0'/);
 });

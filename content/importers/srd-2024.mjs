@@ -10,6 +10,7 @@ export const COLLECTIONS = Object.freeze({
   backgrounds: { kind: 'background', count: 4 },
   feats: { kind: 'feat', count: 17 },
   subclasses: { kind: 'subclass', count: 12 },
+  equipment: { kind: 'item', count: 182 },
 });
 
 const KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

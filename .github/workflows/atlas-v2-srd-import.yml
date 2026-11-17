@@ -45,14 +45,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jq -e '.total == 54 and .isValidatedRulesContent == false
+          jq -e '.total == 236 and .isValidatedRulesContent == false
              and .collections.classes.count == 12
              and .collections.species.count == 9
              and .collections.backgrounds.count == 4
              and .collections.feats.count == 17
-             and .collections.subclasses.count == 12' \
+             and .collections.subclasses.count == 12
+             and .collections.equipment.count == 182' \
             .cache/atlas-2024-import/manifest.json > /dev/null
-          for group in classes species backgrounds feats subclasses; do
+          for group in classes species backgrounds feats subclasses equipment; do
             test -s ".cache/atlas-2024-import/${group}.sql"
           done
 
@@ -84,11 +85,11 @@ jobs:
                 and .d1_databases[0].database_name == "dndatlas-v2-staging-db"' \
                 workers/atlas-v2-staging/wrangler.generated.json > /dev/null
 
-      - name: Import five DRAFT-only content collections
+      - name: Import six DRAFT-only content collections
         shell: bash
         run: |
           set -euo pipefail
-          for group in classes species backgrounds feats subclasses; do
+          for group in classes species backgrounds feats subclasses equipment; do
             echo "Importing draft-only: ${group}"
             npx --yes wrangler@4 d1 execute dndatlas-v2-staging-db --remote \
               --config workers/atlas-v2-staging/wrangler.generated.json \
@@ -105,9 +106,9 @@ jobs:
           echo "${result}" | jq -e '
             (if type == "array" then .[0].results[0]
               else .result[0].results[0] end)
-            | .entries == 54 and .versions >= 54 and .exposed == 0 and .translated_el == 0
+            | .entries == 236 and .versions >= 236 and .exposed == 0 and .translated_el == 0
           ' >/dev/null
           echo "### 2024 SRD draft import" >> "${GITHUB_STEP_SUMMARY}"
-          echo "- 54 source records imported/verified in staging D1" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- 236 source records imported/verified in staging D1" >> "${GITHUB_STEP_SUMMARY}"
           echo "- Visibility: restricted, all unreviewed drafts" >> "${GITHUB_STEP_SUMMARY}"
           echo "- No copied official artwork or fabricated Greek translations" >> "${GITHUB_STEP_SUMMARY}"
