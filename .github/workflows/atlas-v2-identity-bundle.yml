@@ -1,0 +1,56 @@
+name: Package Atlas 2.0 Builder Identity Update
+
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - '.github/workflows/atlas-v2-identity-bundle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate UI before packaging
+        run: |
+          node --check apps/web-v2/app.js
+          node --check apps/web-v2/components/identity-cards.js
+          node --test tests/web-v2-identity-flow.test.cjs
+      - name: Create only changed-file ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import zipfile, pathlib
+          paths=[
+            'apps/web-v2/app.js',
+            'apps/web-v2/index.html',
+            'apps/web-v2/styles.css',
+            'apps/web-v2/data.js',
+            'apps/web-v2/components/identity-cards.js',
+            'apps/web-v2/README.md',
+            'tests/web-v2-identity-flow.test.cjs',
+            '.github/workflows/atlas-v2-ui-concept-test.yml',
+            '.github/workflows/atlas-v2-identity-bundle.yml'
+          ]
+          with zipfile.ZipFile('DND_Atlas_2_Identity_Builder_v0.6_Changed_Files.zip','w',zipfile.ZIP_DEFLATED) as archive:
+            for name in paths:
+              assert pathlib.Path(name).is_file(), name
+              archive.write(name,name)
+          print('Files in package:',len(paths))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DND_Atlas_2_Identity_Builder_v0.6_Changed_Files
+          path: DND_Atlas_2_Identity_Builder_v0.6_Changed_Files.zip
+          if-no-files-found: error
+          retention-days: 30
