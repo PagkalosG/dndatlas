@@ -6,7 +6,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const dir=path.resolve(__dirname,'../apps/web-v2');
 const scope={window:{}};
-for(const file of ['catalog/srd-2024.js','data.js','components/builder-2024.js']){
+for(const file of ['catalog/srd-2024.js','data.js','components/builder-2024.js','components/builder-insights.js']){
   vm.runInNewContext(fs.readFileSync(path.join(dir,file),'utf8'),scope,{filename:file});
 }
 const source=scope.window.ATLAS_V2_SRD;
@@ -103,11 +103,14 @@ test('Soldier background item package requires explicit gaming set selection',()
   assert.equal(builder.packReady(draft),true);
 });
 
-test('Gear renders five separate categories without exposing unauthorized art or network actions',()=>{
-  assert.deepEqual(Array.from(builder.categories),['weapons','armor','adventuring','consumables','tools']);
+test('Gear renders six separate categories including packs without network actions',()=>{
+  assert.deepEqual(Array.from(builder.categories),['packs','weapons','armor','adventuring','consumables','tools']);
   const draft=d();
   const html=builder.renderShop({draft,locale:'en',t,esc,category:'weapons',query:''});
   assert.match(html,/data-action="shop-add"/);
   assert.match(html,/>Weapons</);
+  assert.match(html,/Packs & kits/);
+  assert.match(html,/wallet-summary--sticky/);
+  assert.match(html,/item-details/);
   assert.doesNotMatch(fs.readFileSync(path.join(dir,'app.js'),'utf8'),/\bfetch\s*\(|XMLHttpRequest/);
 });

@@ -81,7 +81,16 @@ for(const [group,expected] of Object.entries(COUNTS)){
     const categories=x.equipment_categories??[];
     const cost=x.cost&&Number.isFinite(x.cost.quantity)?{amount:x.cost.quantity,unit:x.cost.unit,cp:Math.round(x.cost.quantity*(coins[x.cost.unit]??0))}:null;
     return {id:x.index,name:x.name,category:category(categories,x.index,x.name),categories:categories.map(x=>x.index),
-      cost,weight:x.weight??null,description:Array.isArray(x.description)?x.description.filter(x=>typeof x==='string').slice(0,2):[]};
+      cost,weight:x.weight??null,
+      description:Array.isArray(x.description)?x.description.filter(v=>typeof v==='string').slice(0,4):[],
+      damage:x.damage??null, mastery:x.mastery??null, armorClass:x.armor_class??null,
+      properties:Array.isArray(x.properties)?x.properties.map(p=>({name:p.name??String(p)})):[],
+      contents:Array.isArray(x.contents)?x.contents.map(part=>({
+        id:part.item?.index||part.of?.index||part.index||'',
+        name:part.item?.name||part.of?.name||part.name||'',
+        quantity:part.quantity??part.count??1,
+      })).filter(p=>p.id):[],
+      isPack: /(?:^|-)pack$/.test(x.index)||categories.some(c=>c.index==='equipment-packs')};
   });
   console.log('2024 '+group+': '+results.length);
 }
