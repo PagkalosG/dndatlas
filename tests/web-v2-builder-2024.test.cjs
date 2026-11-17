@@ -109,7 +109,7 @@ test('Gear renders six separate categories including packs without network actio
   const html=builder.renderShop({draft,locale:'en',t,esc,category:'weapons',query:''});
   assert.match(html,/data-action="shop-add"/);
   assert.match(html,/>Weapons</);
-  assert.match(html,/Packs & kits/);
+  assert.match(html,/Packs &amp; kits/);
   assert.match(html,/wallet-summary--sticky/);
   assert.match(html,/item-details/);
   assert.doesNotMatch(fs.readFileSync(path.join(dir,'app.js'),'utf8'),/\bfetch\s*\(|XMLHttpRequest/);
