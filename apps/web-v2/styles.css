@@ -147,3 +147,36 @@
 .ability-point-notice{color:#f0deb7;border:1px solid #6d6849;border-radius:9px;background:#2f3026;padding:12px;font-size:12px;line-height:1.5}
 @media(max-width:540px){.ability-stepper-card{padding:12px 8px}.ability-stepper{grid-template-columns:34px 1fr 34px;gap:3px}.ability-stepper button{min-height:43px}.ability-mode{font-size:11px}}
 @media(max-width:365px){.ability-mode-options{grid-template-columns:1fr}}
+
+/* v0.6 — progressive discovery and topbar preview role */
+.identity-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px;align-items:start}
+.identity-card{border:1px solid #435570;border-radius:15px;background:#182338;min-width:0;overflow:hidden}
+.identity-card.expanded{grid-column:1/-1;border-color:#cbb279;background:#19263c}
+.identity-card.selected{box-shadow:inset 0 0 0 1px #7aa68f}
+.identity-toggle{width:100%;border:0;background:transparent;color:#eef2fc;display:flex;align-items:stretch;gap:12px;text-align:left;padding:13px;min-height:115px}
+.identity-toggle>span{min-width:0;flex:1}.identity-toggle strong{display:block;color:#f6dcaa;font-size:17px;margin:5px 0 8px}
+.identity-toggle small{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:#b5c8dd;line-height:1.6;font-size:11px}
+.identity-toggle>b{color:#e6c98d;font-size:22px}
+.identity-portrait{width:94px;min-width:94px;min-height:100px;background:#28364d center/cover no-repeat;overflow:hidden;border-radius:11px;border:1px solid #42536a}
+.identity-portrait img{width:100%;height:100%;object-fit:cover}
+html.atlas-photo-ready .identity-portrait.has-portrait img{visibility:hidden}
+.identity-details{border-top:1px solid #455d78;padding:19px;display:grid;gap:15px}
+.identity-hero{display:grid;grid-template-columns:minmax(190px,.65fr) minmax(240px,1fr);gap:20px;align-items:center}
+.identity-hero .identity-portrait{width:100%;min-height:245px}
+.identity-hero h3,.identity-traits h4{color:#f4d79b;margin:0 0 9px}
+.identity-hero p{font-size:13px;color:#cad5e4;line-height:1.8}
+.identity-traits{border:1px solid #3f5570;background:#142138;padding:14px;border-radius:10px}
+.identity-traits ul{display:flex;flex-wrap:wrap;gap:7px;list-style:none;padding:0;margin:9px 0}
+.identity-traits li{font-size:11px;color:#e3ecf7;background:#26394c;border-radius:7px;padding:7px 11px;border:1px solid #4b6078}
+.identity-traits dl{display:grid;gap:8px;margin:0}.identity-traits dl div{display:grid;grid-template-columns:145px 1fr;gap:12px;font-size:12px}
+.identity-traits dt{color:#adbdce}.identity-traits dd{margin:0;color:#ebf0f8;line-height:1.6}
+.identity-details>small{color:#aabacb;font-size:11px;line-height:1.6}
+.identity-details>.btn{justify-self:start}
+.identity-locked{color:#f1bca2;font-size:12px}
+.subclass-intro{padding:12px 0;color:#bcd0e5}.subclass-intro p{line-height:1.7}.subclass-intro .chip{display:inline-flex}
+.role-switch{display:flex;gap:2px;align-items:center;padding:3px;background:#141f31;border:1px solid #53647c;border-radius:10px}
+.role-switch button{border:0;background:transparent;color:#b8c6de;padding:9px 13px;font-size:12px;font-weight:800;border-radius:8px;min-height:42px}
+.role-switch button.active{color:#202331;background:#dfc18a}
+.steps{display:flex;overflow-x:auto;scrollbar-width:thin;scroll-snap-type:x proximity}.steps .step{flex:1 0 106px;scroll-snap-align:center}
+@media(max-width:710px){.identity-grid{grid-template-columns:1fr}.identity-card.expanded{grid-column:1}.identity-hero{grid-template-columns:1fr}.identity-hero .identity-portrait{min-height:240px}.role-switch button{font-size:11px;padding:8px}.topbar-actions{gap:6px}}
+@media(prefers-reduced-motion:reduce){.identity-card,.identity-toggle{transition:none}}
