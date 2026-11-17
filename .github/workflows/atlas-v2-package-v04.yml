@@ -1,0 +1,46 @@
+name: Package Atlas Builder v0.4 changed files
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - .github/workflows/atlas-v2-package-v04.yml
+permissions:
+  contents: read
+jobs:
+  package:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect exactly the changed Builder v0.4 files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          files=(
+            apps/web-v2/app.js
+            apps/web-v2/data.js
+            apps/web-v2/components/builder-2024.js
+            apps/web-v2/components/builder-insights.js
+            apps/web-v2/styles.css
+            apps/web-v2/index.html
+            apps/web-v2/README.md
+            apps/web-v2/catalog/srd-2024.js
+            content/importers/export-builder-srd-2024.mjs
+            tests/web-v2-insights.test.cjs
+            tests/web-v2-builder-2024.test.cjs
+            .github/workflows/atlas-v2-ui-concept-test.yml
+            .github/workflows/atlas-v2-ui-preview-deploy.yml
+          )
+          for file in "${files[@]}"; do
+            test -f "${file}"
+            install -Dm644 "${file}" "export/${file}"
+          done
+          test "$(find export -type f | wc -l)" -eq 13
+          echo "Exactly 13 changed files collected."
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DND_Atlas_2_Builder_v0.4_Changed_Files
+          path: export/
+          if-no-files-found: error
+          retention-days: 30
