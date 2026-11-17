@@ -1,0 +1,113 @@
+name: Import verified 2024 SRD draft content to staging
+
+on:
+  push:
+    branches:
+      - atlas-2.0
+    paths:
+      - '.github/workflows/atlas-v2-srd-import.yml'
+      - 'content/importers/**'
+      - 'tests/srd-2024-importer.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-v2-srd-import-staging
+  cancel-in-progress: false
+
+jobs:
+  import-draft-content:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    name: Verify 2024 SRD source, generate and import restricted drafts
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Test importer and data contracts
+        run: node --test tests/srd-2024-importer.test.mjs
+
+      - name: Fetch only 2024 SRD and generate SQL drafts
+        run: node content/importers/run-srd-2024.mjs .cache/atlas-2024-import
+
+      - name: Confirm expected snapshot counts and unreviewed status
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '.total == 54 and .isValidatedRulesContent == false
+             and .collections.classes.count == 12
+             and .collections.species.count == 9
+             and .collections.backgrounds.count == 4
+             and .collections.feats.count == 17
+             and .collections.subclasses.count == 12' \
+            .cache/atlas-2024-import/manifest.json > /dev/null
+          for group in classes species backgrounds feats subclasses; do
+            test -s ".cache/atlas-2024-import/${group}.sql"
+          done
+
+      - name: Verify exact staging D1 database
+        id: database
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN}"
+          [[ "${CLOUDFLARE_ACCOUNT_ID}" =~ ^[0-9a-fA-F]{32}$ ]]
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database?name=dndatlas-v2-staging-db&per_page=100"
+          response="$(curl --fail --silent --show-error --retry 2 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "${api}")"
+          jq -e '.success == true and (.result | type == "array")' <<<"${response}" >/dev/null
+          db_id="$(jq -r '[.result[] | select(.name == "dndatlas-v2-staging-db")][0].uuid // empty' <<<"${response}")"
+          [[ "${db_id}" =~ ^[0-9a-fA-F-]{36}$ ]]
+          echo "id=${db_id}" >> "${GITHUB_OUTPUT}"
+
+      - name: Configure target D1 binding
+        env:
+          DATABASE_ID: ${{ steps.database.outputs.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq --arg id "${DATABASE_ID}" \
+             '.d1_databases[0].database_id=$id' \
+             workers/atlas-v2-staging/wrangler.template.json \
+             > workers/atlas-v2-staging/wrangler.generated.json
+          jq -e '.name == "dndatlas-v2-staging"
+                and .d1_databases[0].database_name == "dndatlas-v2-staging-db"' \
+                workers/atlas-v2-staging/wrangler.generated.json > /dev/null
+
+      - name: Import five DRAFT-only content collections
+        shell: bash
+        run: |
+          set -euo pipefail
+          for group in classes species backgrounds feats subclasses; do
+            echo "Importing draft-only: ${group}"
+            npx --yes wrangler@4 d1 execute dndatlas-v2-staging-db --remote \
+              --config workers/atlas-v2-staging/wrangler.generated.json \
+              --file ".cache/atlas-2024-import/${group}.sql"
+          done
+
+      - name: Verify staging content is restricted and untranslated EL data not fabricated
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$(npx --yes wrangler@4 d1 execute dndatlas-v2-staging-db --remote --json \
+            --config workers/atlas-v2-staging/wrangler.generated.json \
+            --command "SELECT (SELECT COUNT(*) FROM content_entries WHERE source_id='srd-5-2-2024-api') AS entries, (SELECT COUNT(*) FROM content_entry_versions v JOIN content_entries e ON e.id=v.entry_id WHERE e.source_id='srd-5-2-2024-api') AS versions, (SELECT COUNT(*) FROM content_entries WHERE source_id='srd-5-2-2024-api' AND (status!='draft' OR visibility!='restricted')) AS exposed, (SELECT COUNT(*) FROM content_translations t JOIN content_entry_versions v ON v.id=t.version_id JOIN content_entries e ON e.id=v.entry_id WHERE e.source_id='srd-5-2-2024-api' AND t.locale='el') AS translated_el")"
+          echo "${result}" | jq -e '
+            (if type == "array" then .[0].results[0]
+              else .result[0].results[0] end)
+            | .entries == 54 and .versions >= 54 and .exposed == 0 and .translated_el == 0
+          ' >/dev/null
+          echo "### 2024 SRD draft import" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- 54 source records imported/verified in staging D1" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Visibility: restricted, all unreviewed drafts" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- No copied official artwork or fabricated Greek translations" >> "${GITHUB_STEP_SUMMARY}"
