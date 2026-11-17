@@ -1,0 +1,113 @@
+name: Bootstrap D&D Atlas 2.0 staging infrastructure
+
+on:
+  push:
+    branches:
+      - atlas-2.0
+    paths:
+      - .github/workflows/atlas-v2-staging-bootstrap.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-v2-staging-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap-staging:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    name: Create/reuse staging D1 and deploy isolated health Worker
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify credentials and Worker source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN}"
+          [[ "${CLOUDFLARE_ACCOUNT_ID}" =~ ^[0-9a-fA-F]{32}$ ]]
+          node --check workers/atlas-v2-staging/index.js
+          jq -e '.name == "dndatlas-v2-staging" and .d1_databases[0].database_name == "dndatlas-v2-staging-db"' \
+            workers/atlas-v2-staging/wrangler.template.json >/dev/null
+
+      - name: Create D1 only if it does not already exist
+        id: database
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database"
+          headers=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+          existing="$(curl --fail --silent --show-error --retry 2 "${headers[@]}" "${api}?name=dndatlas-v2-staging-db&per_page=100")"
+          jq -e '.success == true and (.result | type == "array")' <<<"${existing}" >/dev/null
+          db_id="$(jq -r '[.result[] | select(.name == "dndatlas-v2-staging-db")][0].uuid // empty' <<<"${existing}")"
+          if [[ -z "${db_id}" ]]; then
+            echo "Creating a new isolated staging D1 database."
+            created="$(curl --fail --silent --show-error --retry 2 -X POST "${headers[@]}" \
+              --data '{"name":"dndatlas-v2-staging-db","primary_location_hint":"weur"}' "${api}")"
+            jq -e '.success == true and .result.name == "dndatlas-v2-staging-db"' <<<"${created}" >/dev/null
+            db_id="$(jq -r '.result.uuid' <<<"${created}")"
+          else
+            echo "Reusing the existing database with the exact staging name."
+          fi
+          [[ "${db_id}" =~ ^[0-9a-fA-F-]{36}$ ]]
+          echo "database_id=${db_id}" >> "${GITHUB_OUTPUT}"
+          echo "Staging D1 ID: ${db_id}"
+
+      - name: Bind D1 database to the staging Worker
+        shell: bash
+        env:
+          D1_DATABASE_ID: ${{ steps.database.outputs.database_id }}
+        run: |
+          set -euo pipefail
+          jq --arg id "${D1_DATABASE_ID}" \
+            '.d1_databases[0].database_id = $id' \
+            workers/atlas-v2-staging/wrangler.template.json \
+            > workers/atlas-v2-staging/wrangler.generated.json
+          jq -e '.d1_databases[0].binding == "DB"' \
+            workers/atlas-v2-staging/wrangler.generated.json >/dev/null
+
+      - name: Deploy staging Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --config workers/atlas-v2-staging/wrangler.generated.json
+
+      - name: Confirm staging Worker is responding
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/subdomain"
+          response="$(curl --fail --silent --show-error -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "${api}")"
+          subdomain="$(jq -r 'if .success == true then .result.subdomain // empty else empty end' <<<"${response}")"
+          if [[ -z "${subdomain}" ]]; then
+            echo "::warning::Worker deployed, but a workers.dev subdomain could not be resolved."
+            exit 0
+          fi
+          health_url="https://dndatlas-v2-staging.${subdomain}.workers.dev/health"
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --show-error --max-time 10 "${health_url}" \
+                | jq -e '.service == "dndatlas-v2-staging" and .status == "ok" and .database == "connected"' >/dev/null; then
+              echo "Staging D1 binding health check passed."
+              echo "### D&D Atlas 2.0 staging" >> "${GITHUB_STEP_SUMMARY}"
+              echo "- Worker: \`${health_url}\`" >> "${GITHUB_STEP_SUMMARY}"
+              echo "- Database: \`dndatlas-v2-staging-db\`" >> "${GITHUB_STEP_SUMMARY}"
+              echo "- D1 binding: \`DB\`" >> "${GITHUB_STEP_SUMMARY}"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::Worker deployed, but the D1-bound health check did not pass."
+          exit 1
