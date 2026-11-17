@@ -66,6 +66,27 @@ jobs:
           echo "database_id=${db_id}" >> "${GITHUB_OUTPUT}"
           echo "Staging D1 ID: ${db_id}"
 
+      - name: Register the staging Worker if missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/workers"
+          headers=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+          current="$(curl --fail --silent --show-error --retry 2 "${headers[@]}" "${api}?per_page=100")"
+          jq -e '.success == true and (.result | type == "array")' <<<"${current}" >/dev/null
+          exists="$(jq -r '[.result[] | select(.name == "dndatlas-v2-staging")] | length' <<<"${current}")"
+          if [[ "${exists}" == "0" ]]; then
+            echo "Registering a new staging Worker in Cloudflare."
+            created="$(curl --fail --silent --show-error -X POST "${headers[@]}" \
+              --data '{"name":"dndatlas-v2-staging","subdomain":{"enabled":true}}' "${api}")"
+            if ! jq -e '.success == true and .result.name == "dndatlas-v2-staging"' <<<"${created}" >/dev/null; then
+              echo "::error::Could not register staging Worker."
+              exit 1
+            fi
+          else
+            echo "Staging Worker already registered; will deploy the new version."
+          fi
+
       - name: Bind D1 database to the staging Worker
         shell: bash
         env:
