@@ -5,7 +5,7 @@ on:
     branches: [atlas-2.0]
     paths:
       - 'apps/web-v2/**'
-      - 'tests/web-v2-ui-contract.test.cjs'
+      - 'tests/web-v2-*.test.cjs'
       - '.github/workflows/atlas-v2-ui-concept-test.yml'
   workflow_dispatch:
 
@@ -22,8 +22,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate browser source and original artwork fixtures
+      - name: Validate browser source, bilingual flows and original artwork
         run: |
           node --check apps/web-v2/app.js
           node --check apps/web-v2/data.js
-          node --test tests/web-v2-ui-contract.test.cjs
+          node --check apps/web-v2/components/campaign-flows.js
+          node --test tests/web-v2-*.test.cjs

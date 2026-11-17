@@ -1,0 +1,98 @@
+name: Deploy D&D Atlas 2.0 isolated UI preview
+
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - 'apps/web-v2/**'
+      - 'tests/web-v2-*.test.cjs'
+      - 'workers/atlas-v2-ui-preview/**'
+      - '.github/workflows/atlas-v2-ui-preview-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-v2-ui-preview-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy-preview:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate source and UI contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check apps/web-v2/app.js
+          node --check apps/web-v2/data.js
+          node --check apps/web-v2/components/campaign-flows.js
+          node --test tests/web-v2-*.test.cjs
+          jq -e '.name == "dndatlas-v2-ui-preview" and .assets.directory == "../../apps/web-v2" and .workers_dev == true' workers/atlas-v2-ui-preview/wrangler.json >/dev/null
+
+      - name: Verify staging credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN}"
+          [[ "${CLOUDFLARE_ACCOUNT_ID}" =~ ^[0-9a-fA-F]{32}$ ]]
+
+      - name: Register UI preview Worker if missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/workers"
+          headers=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json')
+          current="$(curl --fail --silent --show-error --retry 2 "${headers[@]}" "${api}?per_page=100")"
+          jq -e '.success == true and (.result | type == "array")' <<<"${current}" >/dev/null
+          exists="$(jq -r '[.result[] | select(.name == "dndatlas-v2-ui-preview")] | length' <<<"${current}")"
+          if [[ "${exists}" == "0" ]]; then
+            echo 'Registering isolated static UI preview Worker.'
+            created="$(curl --fail --silent --show-error -X POST "${headers[@]}" \
+              --data '{"name":"dndatlas-v2-ui-preview","subdomain":{"enabled":true}}' "${api}")"
+            jq -e '.success == true and .result.name == "dndatlas-v2-ui-preview"' <<<"${created}" >/dev/null
+          else
+            echo 'Reusing isolated UI preview Worker.'
+          fi
+
+      - name: Deploy static UI (no API or D1 binding)
+        run: npx --yes wrangler@4 deploy --config workers/atlas-v2-ui-preview/wrangler.json
+
+      - name: Smoke test public preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/subdomain"
+          response="$(curl --fail --silent --show-error -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "${api}")"
+          domain="$(jq -r 'if .success == true then .result.subdomain // empty else empty end' <<<"${response}")"
+          if [[ -z "${domain}" ]]; then
+            echo '::error::Workers.dev subdomain could not be resolved.'
+            exit 1
+          fi
+          preview="https://dndatlas-v2-ui-preview.${domain}.workers.dev"
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --show-error --max-time 15 -L "${preview}/" | grep -q 'D&D Atlas 2.0'; then
+              curl --fail --silent --show-error --max-time 15 "${preview}/components/campaign-flows.js" | grep -q 'ATLAS_V2_CAMPAIGN_FLOW'
+              echo "### Live Atlas 2.0 UI preview" >> "${GITHUB_STEP_SUMMARY}"
+              echo "- ${preview}/" >> "${GITHUB_STEP_SUMMARY}"
+              echo '- Frontend mock only; NO D1, API or authentication binding' >> "${GITHUB_STEP_SUMMARY}"
+              echo 'UI preview deployed and checked.'
+              exit 0
+            fi
+            sleep 3
+          done
+          echo '::error::Deployed preview did not return the expected HTML.'
+          exit 1

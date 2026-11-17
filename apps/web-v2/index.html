@@ -10,14 +10,15 @@
   <link rel="icon" href="assets/atlas-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script defer src="data.js"></script>
+  <script defer src="components/campaign-flows.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="app-shell">
     <aside class="sidebar" aria-label="Primary navigation">
-      <div class="brand"><img src="assets/atlas-mark.svg" alt="" width="42" height="42"><span><b>D&D ATLAS</b><small>THE CELESTIAL EDITION</small></span></div>
-      <div class="campaign-context"><div class="context-orb" aria-hidden="true">✦</div><div><span class="eyebrow" data-i18n="activeCampaign">ACTIVE CAMPAIGN</span><strong>Echoes of Aether</strong><small data-i18n="campaignSubtitle">D&D 5e · 2024</small></div></div>
+      <div class="brand"><img src="assets/atlas-mark.svg" alt="" width="42" height="42"><span><b>D&D ATLAS</b><small data-i18n="brandSubtitle">THE CELESTIAL EDITION</small></span></div>
+      <div class="campaign-context"><div class="context-orb" aria-hidden="true">✦</div><div><span class="eyebrow" data-i18n="activeCampaign">ACTIVE CAMPAIGN</span><strong id="active-campaign-name">Echoes of Aether</strong><small data-i18n="campaignSubtitle">D&D 5e · 2024</small></div></div>
       <nav id="primary-nav" class="nav-stack" aria-label="Main"></nav>
       <div class="sidebar-footer"><span class="mock-dot"></span><span data-i18n="mockNotice">INTERACTIVE PROTOTYPE · NO BACKEND</span></div>
     </aside>

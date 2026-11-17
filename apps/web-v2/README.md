@@ -26,3 +26,15 @@ The original SVG files are temporary art. For official character/species/class/i
 ## No impact to production
 
 This directory is **not referenced by the existing GitHub Pages production workflow** and does not replace `public/index.html`, `src/` or legacy data. Future previews can be deployed from this isolated directory with a separate workflow.
+
+## Campaign and Party UI (v0.2)
+
+The prototype now includes a **DM demo role** with a Campaign Setup wizard, configurable campaign options, invite preview, party roster and DM Character Approval Queue. Players can submit their mock character in the Builder and switch to DM demo mode (Party → Preview as DM) to Approve, Request Changes or Reject. Switch back to Player to see the status. These are in-memory UI actions only.
+
+The Campaign Setup screen offers selectors for starting level, Standard Array / Point Buy / manual result, HP method, Milestone / XP, character count, invitation expiry, multiclass, private story defaults and DM approval rules. Selecting a method only changes UI configuration; **no rule calculation or validation is asserted**. All screens support Greek and English. Swapping a Standard Array ability value automatically swaps the existing assignment, avoiding accidental duplicate scores.
+
+The QR is explicitly a non-functional placeholder and the sample invitation uses an invalid example domain; never share it as a real invite. DM/Player mode changes **do not grant privileges**. Approved characters are not persisted, and the private-story toggle alone does not enforce access rights. Real behavior must run through the authenticated Cloudflare Worker with membership checks, permission-filtered data and revision validation.
+
+For a deployable, separate static preview, the staging pipeline deploys the contents of this folder to the **`dndatlas-v2-ui-preview` Cloudflare Worker**. That Worker serves only static assets and has no D1 bindings or real user data. GitHub Pages production and the staging API Worker are unaffected.
+
+Integration contracts: replace `window.ATLAS_V2_CAMPAIGN_FLOW` renderers with shared components and replace all mock actions with authenticated endpoints, per-campaign permissions, explicit Save, revision-aware conflict handling and server-side validation. Persist no API secrets in these static assets.
