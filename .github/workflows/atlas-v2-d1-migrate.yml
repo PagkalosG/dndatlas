@@ -1,0 +1,96 @@
+name: Apply Atlas 2.0 D1 staging migrations
+
+on:
+  push:
+    branches:
+      - atlas-2.0
+    paths:
+      - 'database/migrations/**'
+      - 'tests/test_atlas_v2_schema.py'
+      - '.github/workflows/atlas-v2-d1-migrate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-v2-staging-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    name: Test and apply versioned schema to staging D1 only
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run SQLite schema contract tests
+        run: python3 -m unittest discover -s tests -p 'test_atlas_v2_schema.py' -v
+
+      - name: Resolve exact staging D1 database ID
+        id: database
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN}"
+          [[ "${CLOUDFLARE_ACCOUNT_ID}" =~ ^[0-9a-fA-F]{32}$ ]]
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database?name=dndatlas-v2-staging-db&per_page=100"
+          response="$(curl --fail --silent --show-error --retry 2 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "${api}")"
+          jq -e '.success == true and (.result | type == "array")' <<<"${response}" >/dev/null
+          count="$(jq '[.result[] | select(.name == "dndatlas-v2-staging-db")] | length' <<<"${response}")"
+          if [[ "${count}" != "1" ]]; then
+            echo "::error::Expected exactly one isolated staging D1 database; found ${count}."
+            exit 1
+          fi
+          db_id="$(jq -r '.result[] | select(.name == "dndatlas-v2-staging-db") | .uuid' <<<"${response}")"
+          [[ "${db_id}" =~ ^[0-9a-fA-F-]{36}$ ]]
+          echo "database_id=${db_id}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate D1-bound staging configuration
+        env:
+          DATABASE_ID: ${{ steps.database.outputs.database_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq --arg id "${DATABASE_ID}" '.d1_databases[0].database_id=$id' \
+            workers/atlas-v2-staging/wrangler.template.json > workers/atlas-v2-staging/wrangler.generated.json
+          jq -e '.name == "dndatlas-v2-staging"
+                 and .d1_databases[0].database_name == "dndatlas-v2-staging-db"
+                 and .d1_databases[0].migrations_dir == "../../database/migrations"' \
+            workers/atlas-v2-staging/wrangler.generated.json >/dev/null
+
+      - name: Apply only pending migrations to staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 d1 migrations apply dndatlas-v2-staging-db --remote \
+            --config workers/atlas-v2-staging/wrangler.generated.json
+
+      - name: Assert expected foundation schema is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$(npx --yes wrangler@4 d1 execute dndatlas-v2-staging-db --remote --json \
+            --config workers/atlas-v2-staging/wrangler.generated.json \
+            --command "SELECT (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('users','campaigns','characters','content_sources','content_entries','content_entry_versions','character_approval_requests','character_private_content','realtime_outbox','audit_log')) AS required_tables, (SELECT COUNT(*) FROM rulesets WHERE id='dnd5e-2024' AND edition='2024') AS ruleset_present")"
+          echo "${result}" | jq -e '
+            if type == "array" then .[0].results[0]
+            else .result[0].results[0] end
+            | .required_tables == 10 and .ruleset_present == 1
+          ' >/dev/null
+          echo "Foundation schema verified in staging."
+          echo "### Atlas 2.0 D1 migrations" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Target: \`dndatlas-v2-staging-db\`" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Ruleset: \`dnd5e-2024\`" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Required foundation tables: 10/10" >> "${GITHUB_STEP_SUMMARY}"
