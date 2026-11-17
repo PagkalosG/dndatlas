@@ -7,7 +7,7 @@
   const classById = new Map(source.classes.map(item => [item.id, item]));
   const bgById = new Map(source.backgrounds.map(item => [item.id, item]));
   const copper = { cp:1, sp:10, ep:50, gp:100, pp:1000 };
-  const categories = ['weapons', 'armor', 'adventuring', 'consumables', 'tools'];
+  const categories = ['packs', 'weapons', 'armor', 'adventuring', 'consumables', 'tools'];
   const fighterStyles=['Archery','Defense','Dueling','Great Weapon Fighting','Protection','Two-Weapon Fighting'];
   const skillEL = {
     'skill-acrobatics':'Ακροβατικά','skill-animal-handling':'Χειρισμός Ζώων','skill-arcana':'Απόκρυφη Γνώση',
@@ -104,7 +104,7 @@
   const describeItem=(item,loc)=>item.type==='money'?`${item.amount} ${item.unit.toUpperCase()}`:
     item.type==='item'?`${item.qty||1} × ${item.name||item.id}`:
     item.type==='choice'?(loc==='el'?'Επιλογή εξοπλισμού':'Equipment choice'):'—';
-  function renderChoices({groups,selected,action,locale,t,esc,disabledIds=[]}){
+  function renderChoices({groups,selected,action,locale,t,esc,draft,disabledIds=[]}){
     if(!groups.length)return `<p class="inline-info">${esc(t('fixedTrainingOnly'))}</p>`;
     return groups.map(group=>{
       const selection=selected[group.id]||[];
@@ -115,7 +115,7 @@
           const checked=selection.includes(opt.id),blocked=disabledIds.includes(opt.id);
           return `<button type="button" class="skill-chip ${checked?'active':''}" aria-pressed="${checked}"
             data-action="${action}" data-group="${esc(group.id)}" data-id="${esc(opt.id)}" ${blocked?'disabled':''}>
-            ${checked?'✓ ':''}${esc(prefLabel(opt,locale))}${blocked?' · '+esc(t('alreadyGranted')):''}</button>`;
+            ${checked?'✓ ':''}${esc(prefLabel(opt,locale))}${draft&&window.ATLAS_V2_INSIGHTS?.grantScore(draft,opt.id,bonusFor,true)!==null?` <strong class="skill-mod">${window.ATLAS_V2_INSIGHTS.sign(window.ATLAS_V2_INSIGHTS.grantScore(draft,opt.id,bonusFor,checked||blocked))}</strong>`:''}${blocked?' · '+esc(t('alreadyGranted')):''}</button>`;
         }).join('')}</div></section>`;
     }).join('');
   }
@@ -130,9 +130,10 @@
         <span>${esc(t('hitDie'))}: d${cl.hitDie}</span>
         <span>${esc(t('savingThrows'))}: ${cl.savingThrows.map(s=>esc(s.name)).join(', ')}</span></div>
       <h3>${esc(t('classProficiencies'))}</h3>
-      ${renderChoices({groups:cl.skillChoices,selected:draft.classChoices,action:'class-proficiency',locale,t,esc,disabledIds:granted(bg)})}
+      ${renderChoices({groups:cl.skillChoices,selected:draft.classChoices,action:'class-proficiency',locale,t,esc,draft,disabledIds:granted(bg)})}
       <div class="training-grants"><b>${esc(t('automaticallyGranted'))}</b><div class="grant-chips">
         ${cl.proficiencies.filter(p=>!/^saving-throw/.test(p.id)).map(p=>`<span class="chip muted">${esc(grantLabel(p,locale))}</span>`).join('')}</div></div>
+      ${window.ATLAS_V2_INSIGHTS.renderGrantOverview({draft,locale,esc,cl,bg,bonusFor})}
       ${duplicate.length?`<div class="inline-warning">${esc(t('duplicateProficiency'))}</div>`:''}
       ${draft.class==='fighter'?`<section class="training-group"><div class="training-head"><strong>${esc(t('fightingStyle'))}</strong><span class="chip muted">1/1</span></div>
         <p>${esc(t('fighterStyleHint'))}</p><div class="skill-picker">
@@ -154,7 +155,7 @@
       <span>${esc(t('originFeat'))}: ${esc(bg.feat?.name||'—')}</span></div>
       <h3>${esc(t('backgroundGrants'))}</h3><div class="grant-chips">
       ${bg.proficiencies.map(p=>`<span class="chip muted">${esc(prefLabel(p,locale))}</span>`).join('')}</div>
-      ${renderChoices({groups:bg.skillChoices,selected:draft.backgroundChoices,action:'background-proficiency',locale,t,esc})}
+      ${renderChoices({groups:bg.skillChoices,selected:draft.backgroundChoices,action:'background-proficiency',locale,t,esc,draft})}
       <div class="inline-info">${esc(t('backgroundBonusHint'))}</div></div>`;
   }
   function renderBackgroundBonuses({draft,t,esc}){
@@ -193,17 +194,22 @@
       html+='</section>';
     }
     const w=wallet(draft);
-    return html+`<div class="wallet-summary"><div><span>${esc(t('startingMoney'))}</span><strong>${gb(w.starting)}</strong></div>
+    return `<div class="wallet-summary wallet-summary--sticky" role="status"><div><span>${esc(t('startingMoney'))}</span><strong>${gb(w.starting)}</strong></div>
        <div><span>${esc(t('spentMoney'))}</span><strong>${gb(w.spent)}</strong></div>
-       <div><span>${esc(t('remainingMoney'))}</span><strong>${gb(w.remaining)}</strong></div></div>`;
+       <div class="wallet-remaining"><span>${esc(t('remainingMoney'))}</span><strong>${gb(w.remaining)}</strong></div></div>`+html;
   }
   function purchased(draft,id){return draft.purchases[id]||0;}
   function renderShop({draft,category,query,locale,t,esc}){
+    const insights=window.ATLAS_V2_INSIGHTS;
     const w=wallet(draft);
-    const items=source.equipment.filter(x=>x.category===category && (!query || x.name.toLowerCase().includes(query.toLowerCase())));
-    return `<div class="shop-panel"><div class="wallet-summary"><div><span>${esc(t('startingMoney'))}</span><strong>${gb(w.starting)}</strong></div>
+    const owned=insights.contents(draft,window.ATLAS_V2_BUILDER);
+    const items=source.equipment.filter(x=>insights.itemGroup(x)===category && (!query || x.name.toLowerCase().includes(query.toLowerCase())));
+    const unique=owned.size;
+    return `<div class="shop-panel"><div class="wallet-summary wallet-summary--sticky" role="status" aria-label="${esc(t('remainingMoney'))}">
+      <div><span>${esc(t('startingMoney'))}</span><strong>${gb(w.starting)}</strong></div>
       <div><span>${esc(t('spentMoney'))}</span><strong>${gb(w.spent)}</strong></div>
-      <div><span>${esc(t('remainingMoney'))}</span><strong>${gb(w.remaining)}</strong></div></div>
+      <div class="wallet-remaining"><span>${esc(t('remainingMoney'))}</span><strong>${gb(w.remaining)}</strong></div>
+      <div class="wallet-selected"><span>${esc(insights.L[locale].selectedItems)}</span><strong>${unique}</strong></div></div>
       <p class="inline-info">${esc(t('shopHint'))}</p>
       <div class="shop-categories">${categories.map(c=>`<button type="button" data-action="gear-category" data-category="${c}" class="filter-chip ${c===category?'active':''}">${esc(t('category'+c[0].toUpperCase()+c.slice(1)))}</button>`).join('')}</div>
       <label class="shop-search"><span>${esc(t('search'))}</span><input id="gear-search" type="search" value="${esc(query)}" placeholder="${esc(t('filterPlaceholder'))}"></label>
@@ -211,10 +217,13 @@
         const qty=purchased(draft,item.id), affordable=Number.isInteger(item.cost?.cp) && item.cost.cp<=w.remaining;
         const fallback=`assets/item-${item.id}.svg`;
         const available=['greatsword','spear','shield','light-crossbow','chain-mail','quarterstaff'].includes(item.id);
-        const img=available?`<img src="${esc(item.id==='quarterstaff'?'assets/item-staff.svg':fallback)}" loading="lazy" alt="">`:
-          `<span class="gear-glyph" aria-hidden="true">${item.category==='weapons'?'⚔':item.category==='armor'?'◈':item.category==='tools'?'⚙':item.category==='consumables'?'✧':'♧'}</span>`;
+        const img=item.photo?`<img src="${esc(item.photo)}" loading="lazy" alt="${esc(item.name)}">`:available?`<img src="${esc(item.id==='quarterstaff'?'assets/item-staff.svg':fallback)}" loading="lazy" alt="${esc(item.name)}">`:
+          `<span class="gear-glyph" aria-hidden="true">${insights.isPack(item)?'▣':item.category==='weapons'?'⚔':item.category==='armor'?'◈':item.category==='tools'?'⚙':item.category==='consumables'?'✧':'♧'}</span>`;
         return `<article class="shop-item" data-search="${esc(item.name.toLowerCase())}"><div class="shop-image">${img}</div><div class="shop-copy"><strong>${esc(item.name)}</strong>
-         <span>${esc(price(item))} · ${esc(t('srdSource'))}</span><small>${esc(locale==='el'?t('itemCatalogDescription'):(item.description[0]||t('itemCatalogDescription')))}</small></div>
+         <span>${esc(price(item))} · ${esc(t('srdSource'))}</span>
+         ${insights.ownershipBadge({id:item.id,owned,locale,esc})}
+         <small>${esc(item.description[0]||t('itemCatalogDescription'))}</small>
+         ${insights.itemDetails({item,locale,esc})}</div>
          <div class="shop-actions"><button type="button" data-action="shop-remove" data-id="${esc(item.id)}" ${qty<1?'disabled':''} aria-label="${esc(t('removeItem'))}">−</button>
          <span>${qty}</span><button type="button" data-action="shop-add" data-id="${esc(item.id)}" ${!affordable?'disabled':''} aria-label="${esc(t('addItem'))}">+</button></div></article>`;
       }).join('')}</div>

@@ -56,3 +56,15 @@ Integration contracts: replace `window.ATLAS_V2_CAMPAIGN_FLOW` renderers with sh
 In the **DM Demo → Campaign Settings** screen, the reusable `Campaign Libraries` section shows the always-on SRD 5.2.1, a local `.json` file picker, pack metadata/entry count preview, a rights-confirmation checkbox and local staging/removal of pack summaries. No actual upload or install is performed. The preview uses a subset of the format checks; the authoritative shared validator is `packages/content-packs/validate-pack.mjs`, and the real Worker must enforce DM-only access and entitlement/legality checks.
 
 The complete original homebrew test fixture is `content/examples/starward-homebrew-2024.json`. It is a sample for the upcoming room-creation Library step, **not** a source of official PHB material. Staged mock selections disappear on refresh. The backend-first deployment is intentional: no unauthenticated JSON upload API is exposed.
+
+## Builder v0.4 — visible 2024 provenance and item details
+
+- **Ability selection:** shows assigned score, 2024 Background increase, final score and modifier on every ability (preview only).
+- **Proficiencies:** separate origin badges for fixed Class / Background grants and chosen Class / Background skills, with calculated Level 1 modifiers and a single bonus for a proficiency granted by multiple sources. Species-specific grants are not invented when species source mechanics are not loaded.
+- **Gear categories:** Packs & Kits, Weapons, Armor & Shields, Adventuring, Consumables, Tools. A pack is not a second copy of every contained item.
+- **Provenance:** selected starting gear, purchases and pack contents are displayed as distinct sources, with counts. The user may intentionally buy an extra copy of an item.
+- **Wallet:** sticky in both starting-package and shopping steps so funds remain visible while scrolling.
+- **Item descriptions:** expandable SRD fields for price, weight, damage, properties, mastery, armor class, and pack contents when the source actually supplies them. Missing source data is never fabricated.
+- **Realistic imagery:** UI accepts optional `photo` URLs in content metadata. Temporary original vector artwork remains the fallback until suitable licensed/created realistic fantasy assets are added; these are not official D&D images.
+
+This is still an **isolated UI prototype**. No auth, D1 writes, realtime sync or network requests were added.

@@ -41,6 +41,7 @@ jobs:
           node --check apps/web-v2/data.js
           node --check apps/web-v2/components/campaign-flows.js
           node --check apps/web-v2/components/builder-2024.js
+          node --check apps/web-v2/components/builder-insights.js
           node --check apps/web-v2/catalog/srd-2024.js
           node --test tests/web-v2-*.test.cjs
           jq -e '.name == "dndatlas-v2-ui-preview" and .assets.directory == "../../apps/web-v2" and .workers_dev == true' workers/atlas-v2-ui-preview/wrangler.json >/dev/null

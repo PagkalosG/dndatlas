@@ -5,6 +5,8 @@
   const campaignUI = window.ATLAS_V2_CAMPAIGN_FLOW;
   const libraryUI = window.ATLAS_V2_LIBRARY_UI;
   const builderUI = window.ATLAS_V2_BUILDER;
+  const insights = window.ATLAS_V2_INSIGHTS;
+  if (!insights) throw new Error('Missing Atlas 2024 insights components');
   if (!builderUI) throw new Error('Missing 2024 Builder components');
   if (!campaignUI) throw new Error('Missing campaign UI components');
   if (!libraryUI) throw new Error('Missing library UI components');
@@ -21,7 +23,7 @@
   const text = (key) => catalog.strings[state.locale][key] ?? key;
   const label = (item) => item?.title?.[state.locale] ?? text('notChosen');
   const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  const image = (item) => `<img src="${escape(item.art)}" alt="${escape(text('originalArt'))}" loading="lazy" decoding="async">`;
+  const image = (item) => item.photo ? `<picture><source srcset="${escape(item.photo)}" type="image/webp"><img src="${escape(item.art)}" alt="${escape(item.title?.[state.locale] || text('originalArt'))}" loading="lazy" decoding="async"></picture>` : `<img src="${escape(item.art)}" alt="${escape(item.title?.[state.locale] || text('originalArt'))}" loading="lazy" decoding="async">`;
   const entry = (group, id) => catalog[group].find((item) => item.id === id);
   const completion = () => [!!state.draft.species, !!state.draft.class, (builderUI.classChoicesValid(state.draft)&&builderUI.fighterChoicesValid(state.draft)), !!state.draft.background, builderUI.backgroundChoicesValid(state.draft), builderUI.bonusesValid(state.draft), builderUI.packReady(state.draft)].filter(Boolean).length;
   const selectable = () => completion() === 7 && validAbilities() && builderUI.wallet(state.draft).remaining >= 0;
@@ -113,7 +115,7 @@
           <p>${escape(item.description[state.locale])}</p><span class="option-source">${escape(item.source)}</span>
           ${!item.licensed?`<span class="lock-hint">${escape(text('lockedHint'))}</span>`:''}</div>
         </button>`;
-      }).join('')}</div><div class="empty-filter" id="empty-filter" hidden>${escape(text('noResults'))}</div>
+      }).join('')}</div>${insights.renderSelectionDetails({item:entry(group,state.draft[key]),group,locale:state.locale,esc:escape,builder:builderUI})}<div class="empty-filter" id="empty-filter" hidden>${escape(text('noResults'))}</div>
       <p class="art-disclaimer">${escape(text('originalArtworkNote'))}</p>`;
   }
 
@@ -121,8 +123,9 @@
     const abilities = state.draft.abilities;
     return `<div class="ability-head">${badge(text('arrayInfo'), 'muted')}
       <span>${escape(text('statSample'))}</span></div>
-      <div class="ability-grid">${abilityKeys.map((key,i)=>`<label class="ability-select"><span>${escape(text('ability'+key[0].toUpperCase()+key.slice(1)))}</span><select data-ability="${i}" aria-label="${escape(text('ability'+key[0].toUpperCase()+key.slice(1)))}">
-      ${array.map(value=>`<option value="${value}" ${abilities[i]===value?'selected':''}>${value}</option>`).join('')}</select></label>`).join('')}</div>
+      <div class="ability-grid">${abilityKeys.map((key,i)=>{const result=insights.score(state.draft,key,builderUI.bonusFor);return `<label class="ability-select"><span>${escape(text('ability'+key[0].toUpperCase()+key.slice(1)))}</span><select data-ability="${i}" aria-label="${escape(text('ability'+key[0].toUpperCase()+key.slice(1)))}">
+      ${array.map(value=>`<option value="${value}" ${abilities[i]===value?'selected':''}>${value}</option>`).join('')}</select><div class="ability-derived"><span>${escape(insights.L[state.locale].base)} ${result.base} ${result.bonus?`+ ${result.bonus}`:''}</span><strong>${insights.L[state.locale].final}: ${result.total}</strong><b class="ability-modifier">${escape(insights.L[state.locale].modifier)} ${insights.sign(result.modifier)}</b></div></label>`;}).join('')}</div>
+      ${insights.renderGrantOverview({draft:state.draft,locale:state.locale,esc:escape,cl:builderUI.classInfo(state.draft.class),bg:builderUI.backgroundInfo(state.draft.background),bonusFor:builderUI.bonusFor})}
       ${!validAbilities()?`<div class="inline-warning" role="alert">${escape(text('selectionRequired'))} — ${escape(text('arrayInfo'))}</div>`:''}`;
   }
 
@@ -136,6 +139,7 @@
       <label class="form-field"><span>${escape(text('name'))}</span><input id="character-name" type="text" maxlength="80" autocomplete="off" placeholder="${escape(text('namePlaceholder'))}" value="${escape(d.name)}"><small>${escape(text('nameHint'))}</small></label>
       <div class="review-rows">${rows.map(([key,id])=>`<div class="review-row"><span>${escape(text(key))}</span><strong>${escape(label(entry(id==='class'?'classes':id==='background'?'backgrounds':id, d[id])))}</strong></div>`).join('')}
         <div class="review-row"><span>${escape(text('classProficiencies'))}</span><strong>${escape(selectedSkills)}</strong></div>
+        ${abilityKeys.map(key=>{const x=insights.score(d,key,builderUI.bonusFor);return `<div class="review-row"><span>${escape(key.toUpperCase())}</span><strong>${x.total} (${insights.sign(x.modifier)})</strong></div>`;}).join('')}
         ${d.class==='fighter'?`<div class="review-row"><span>${escape(text('fightingStyle'))}</span><strong>${escape(d.fightingStyle||'—')}</strong></div><div class="review-row"><span>${escape(text('weaponMastery'))}</span><strong>${escape(d.weaponMasteries.join(', ')||'—')}</strong></div>`:''}
         <div class="review-row"><span>${escape(text('originFeat'))}</span><strong>${escape(chosenBg?.feat?.name||'—')}</strong></div>
         <div class="review-row"><span>${escape(text('stepClassTraining'))}</span><strong>${escape(chosenClass?.name||'—')}</strong></div>
