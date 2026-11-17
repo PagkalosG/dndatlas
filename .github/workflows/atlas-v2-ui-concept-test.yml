@@ -1,0 +1,29 @@
+name: Validate Atlas 2.0 UI Concept
+
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - 'apps/web-v2/**'
+      - 'tests/web-v2-ui-contract.test.cjs'
+      - '.github/workflows/atlas-v2-ui-concept-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-contract:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate browser source and original artwork fixtures
+        run: |
+          node --check apps/web-v2/app.js
+          node --check apps/web-v2/data.js
+          node --test tests/web-v2-ui-contract.test.cjs
