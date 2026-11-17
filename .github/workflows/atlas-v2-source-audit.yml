@@ -1,0 +1,41 @@
+name: Audit upstream 2024 SRD content API
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - '.github/workflows/atlas-v2-source-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inspect only 2024 source endpoints
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const base = 'https://www.dnd5eapi.co/api/2024';
+          const res = await fetch(base, { headers: { Accept: 'application/json' } });
+          if (!res.ok) throw new Error('Upstream index status '+res.status);
+          const root=await res.json();
+          const index=root.index??root;
+          console.log('2024 keys:', Object.keys(index).sort().join(', '));
+          for (const group of ['classes','species','races','backgrounds','feats','spells','equipment','subclasses','features','magic-items']) {
+            const path=index[group];
+            if (!path) { console.log(group+': not listed'); continue; }
+            const link = new URL(typeof path==='string'?path:path.url,base);
+            if (link.origin !== new URL(base).origin || !link.pathname.startsWith('/api/2024/')) throw new Error('Invalid 2024 path '+link);
+            const response = await fetch(link);
+            if (!response.ok) throw new Error(group+': HTTP '+response.status);
+            const data=await response.json();
+            const items=data.results??data;
+            if (!Array.isArray(items)) throw new Error(group+': unexpected list shape');
+            console.log(group+': '+items.length+' entries, sample '+JSON.stringify(items[0]??null).slice(0,300));
+          }
+          JS
