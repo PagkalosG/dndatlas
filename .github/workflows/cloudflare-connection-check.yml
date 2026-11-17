@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          result="$(curl --fail --silent --show-error --retry 2             --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"             --header "Accept: application/json"             "https://api.cloudflare.com/client/v4/user/tokens/verify")"
+          result="$(curl --fail --silent --show-error --retry 2             --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"             --header "Accept: application/json"             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/tokens/verify")"
           if ! jq -e '.success == true and .result.status == "active"' <<< "${result}" >/dev/null; then
             echo "::error::Cloudflare token is not active."
             exit 1
