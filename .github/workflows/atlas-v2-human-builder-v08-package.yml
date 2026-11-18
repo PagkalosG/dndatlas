@@ -1,0 +1,62 @@
+name: Package D&D Atlas 2.0 Human Builder v0.8 (changed files only)
+
+on:
+  push:
+    branches: [atlas-2.0]
+    paths: ['.github/workflows/atlas-v2-human-builder-v08-package.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify current UI contract tests
+        run: |
+          set -euo pipefail
+          node --check apps/web-v2/app.js
+          node --check apps/web-v2/components/origin-choices-2024.js
+          node --check apps/web-v2/components/builder-2024.js
+          node --check apps/web-v2/components/identity-v2.js
+          node --test tests/web-v2-*.test.cjs
+      - name: Produce patch ZIP preserving exact repository paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib, subprocess, zipfile, hashlib
+          baseline='42c57a3e2ef0462ffea43abd6ab1baeeb7d00620'
+          subprocess.run(['git','cat-file','-e',baseline+'^{commit}'],check=True)
+          changed=subprocess.check_output(['git','diff','--name-only','--diff-filter=ACMRT','-z',baseline,'HEAD']).split(b'\0')
+          names=sorted({n.decode('utf-8') for n in changed if n})
+          assert names, 'No changed files found'
+          assert all(n.startswith(('apps/web-v2/','tests/','.github/workflows/')) for n in names), 'Unexpected non-UI change'
+          output=pathlib.Path('DND_Atlas_2_Human_Builder_v0.8_Changed_Files.zip')
+          with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as archive:
+              for n in names:
+                  f=pathlib.Path(n)
+                  assert f.is_file() and not f.is_symlink(), n
+                  archive.write(f,arcname=n)
+          with zipfile.ZipFile(output) as archive:
+              assert archive.namelist()==names
+              assert archive.testzip() is None
+          print('Archive:',output,'file_count:',len(names))
+          print('\n'.join(names))
+          print('sha256:',hashlib.sha256(output.read_bytes()).hexdigest())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DND_Atlas_2_Human_Builder_v0.8_Changed_Files
+          path: DND_Atlas_2_Human_Builder_v0.8_Changed_Files.zip
+          if-no-files-found: error
+          retention-days: 30
