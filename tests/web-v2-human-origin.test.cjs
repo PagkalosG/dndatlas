@@ -119,3 +119,23 @@ test('No auth, dice UI, or cloud sync added to the prototype',()=>{
  assert.match(app,/action === 'skilled-proficiency'/);
  assert.doesNotMatch(app,/fetch\(|WebSocket\(|XMLHttpRequest/);
 });
+
+test('Class Training displays 3 total skill picks for Human Fighter (2 class + 1 Skillful)',()=>{
+ const d=draft();
+ const en=builder.renderClassTraining({draft:d,locale:'en',t:k=>demo.strings.en[k]||k,esc});
+ const el=builder.renderClassTraining({draft:d,locale:'el',t:k=>demo.strings.el[k]||k,esc});
+ assert.match(en,/Class \+ Human Skillful selections: 3 \/ 3/);
+ assert.match(en,/Human · Skillful/);
+ assert.match(en,/data-action="human-skill"/);
+ assert.match(el,/Επιλογές Class \+ Human Skillful: 3 \/ 3/);
+ assert.doesNotMatch(en,/>Skill: /);
+});
+test('All four SRD origin feats have distinct bilingual descriptions',()=>{
+ for(const [id,feat] of Object.entries(origin.FEATS)){
+   assert.ok(feat.en.length>80,id+' English description too short');
+   assert.ok(feat.el.length>80,id+' Greek description too short');
+ }
+ const markup=origin.renderHumanFeat({draft:draft(),locale:'el',esc});
+ assert.match(markup,/Savage Attacker/);
+ assert.match(markup,/already proficient|Ήδη|έχει ήδη/i);
+});
