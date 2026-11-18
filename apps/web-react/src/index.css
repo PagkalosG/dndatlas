@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+html, body, #root { min-height: 100%; }
+body {
+  @apply bg-night-900 text-star-100 font-sans antialiased;
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, rgba(201,209,240,.35), transparent),
+    radial-gradient(1px 1px at 120px 90px, rgba(229,199,107,.35), transparent),
+    radial-gradient(1px 1px at 220px 40px, rgba(201,209,240,.25), transparent),
+    radial-gradient(900px 500px at 80% -10%, rgba(109,91,224,.14), transparent);
+  background-size: 260px 140px, 260px 140px, 260px 140px, auto;
+  background-attachment: fixed;
+}
+
+/* Visible focus for every keyboard interaction (WCAG 2.4.7) */
+:focus-visible { outline: 2px solid #E5C76B; outline-offset: 2px; border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+@layer components {
+  .surface { @apply rounded-2xl border border-night-500/60 bg-night-800/90 backdrop-blur; }
+  .h-display { @apply font-display font-semibold tracking-wide text-star-50; }
+  .label { @apply text-xs font-medium uppercase tracking-wider text-star-300; }
+  .input {
+    @apply w-full rounded-xl border border-night-500 bg-night-900 px-3 py-2.5 text-sm text-star-50
+           placeholder:text-star-400 disabled:opacity-60 read-only:opacity-80;
+  }
+}
