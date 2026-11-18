@@ -1,0 +1,50 @@
+/* Atlas 2.0 — accessible 2024 skill, feat and mastery selectors.
+   The same controls power identity preview and the training steps. */
+.atlas-extra-choice,.atlas-class-skill-preview,.atlas-origin-explanation{
+  padding:16px;margin:14px 0 16px;border:1px solid #51647f;border-radius:14px;
+  background:linear-gradient(135deg,#182941,#172237);
+}
+.atlas-extra-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.atlas-extra-heading h3,.atlas-extra-heading h4{margin:0 0 5px;color:#f5dfad;font-size:14px}
+.atlas-extra-heading p{margin:0;color:#c2cedc;line-height:1.65;font-size:12px}
+.atlas-extra-heading .chip{white-space:nowrap}
+.atlas-choices-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:9px;max-height:360px;overflow:auto;scrollbar-width:thin;padding:2px 4px 6px 2px}
+.atlas-choice-row{display:flex;gap:10px;align-items:center;text-align:left;min-height:50px;min-width:0;padding:10px 12px;color:#e4ebf6;background:#24324a;border:1px solid #51627e;border-radius:10px;cursor:pointer;transition:border-color .16s,background .16s}
+.atlas-choice-row:hover:not(:disabled){border-color:#d5ba7d;background:#2c3f58}
+.atlas-choice-row.active{border-color:#ddbe79;background:#2e423e}
+.atlas-choice-row:disabled{opacity:.58;cursor:not-allowed}
+.atlas-choice-indicator{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:7px;border:1px solid #8091aa;color:#e4cd9a;font-weight:700}
+.atlas-choice-row.active .atlas-choice-indicator{color:#1c342f;background:#d6bb81;border-color:#d6bb81}
+.atlas-choice-name{display:block;flex:1;min-width:0;overflow-wrap:anywhere}
+.atlas-choice-name strong{display:block;font-size:12px;font-weight:650}
+.atlas-choice-name small{display:block;color:#aebed3;font-size:10px;line-height:1.5;margin-top:4px}
+.atlas-choice-name .atlas-choice-note{color:#d8ad94}
+.atlas-feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px}
+.atlas-feat-card{text-align:left;display:flex;flex-direction:column;gap:9px;border:1px solid #536784;border-radius:12px;background:#202d45;color:#e6edf7;padding:15px;cursor:pointer;min-height:130px}
+.atlas-feat-card strong{color:#efdaa6;font-size:14px}
+.atlas-feat-card p{color:#c1d0e2;font-size:12px;line-height:1.65;margin:0;flex:1}
+.atlas-feat-card small{color:#e8b6a8;font-size:11px}
+.atlas-feat-card.active{border-color:#f0d18a;background:#293d3c;box-shadow:inset 0 0 0 1px #d2b16d48}
+.atlas-feat-card:disabled{opacity:.53;cursor:not-allowed}
+.atlas-feat-card:hover:not(:disabled){border-color:#d8b775}
+.atlas-origin-explanation{background:#26324b}
+.atlas-origin-tag{font-size:10px;color:#a2d2bf;text-transform:uppercase;letter-spacing:.07em}
+.atlas-origin-explanation h4{font-size:15px;color:#f0d69a;margin:7px 0}
+.atlas-origin-explanation p{color:#d2dceb;font-size:12px;line-height:1.75;margin:5px 0}
+.atlas-origin-explanation .inline-info{margin-top:10px}
+.training-panel .mastery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px;max-height:680px;overflow-y:auto;padding:3px;scrollbar-width:thin}
+.training-panel .mastery-grid .skill-chip{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:7px;white-space:normal;padding:14px;border:1px solid #536682;border-radius:11px;min-height:117px}
+.training-panel .mastery-grid .skill-chip strong{font-size:13px;color:#f6e1b3}
+.training-panel .mastery-grid .skill-chip .atlas-mastery-name{background:#38455f;color:#e7d6b7;border-radius:30px;padding:3px 10px;font-size:11px;font-weight:700}
+.training-panel .mastery-grid .skill-chip small{font-size:11px;color:#b9ccdf;line-height:1.6;font-weight:400}
+.training-panel .mastery-grid .skill-chip.active{border-color:#e1c17e;background:#28413d}
+.training-panel .mastery-grid .skill-chip.active small{color:#e1ebec}
+.identity-v2-card .atlas-class-skill-preview{margin:10px 0;padding:12px;background:#182339}
+.identity-v2-card .atlas-class-skill-preview .atlas-choices-grid{max-height:290px}
+.identity-v2-card .atlas-class-skill-preview h4{color:#ffe1a3}
+@media(max-width:600px){
+  .atlas-choices-grid,.atlas-feat-grid,.training-panel .mastery-grid{grid-template-columns:1fr}
+  .atlas-choices-grid{max-height:420px}
+  .atlas-feat-card{min-height:0}
+}
+@media(prefers-reduced-motion:reduce){.atlas-choice-row,.atlas-feat-card{transition:none}}
