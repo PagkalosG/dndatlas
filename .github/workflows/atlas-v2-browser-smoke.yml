@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: atlas-v2-browser-smoke
+  group: atlas-v2-native-chrome-smoke
   cancel-in-progress: true
 
 jobs:
