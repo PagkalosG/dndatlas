@@ -48,7 +48,7 @@ test('character profile includes Alignment, portrait input and private story in 
  assert.match(html,/Ιδιωτικό ιστορικό/);
 });
 test('review contains full ability, skill, save, inventory and story overview',()=>{
- const draft={species:'human',class:'fighter',background:'soldier',abilities:[15,14,13,12,10,8],classChoices:{},backgroundChoices:{},purchases:{},customItems:[{id:'custom-1',name:'A custom ring',quantity:1,description:'Homebrew'}],name:'Borruk',alignment:'chaotic-good',backgroundStory:'A short backstory.',bonusMode:'split',weaponMasteries:['spear']};
+ const draft={species:'human',class:'fighter',background:'soldier',abilities:[15,14,13,12,10,8],classChoices:{},backgroundChoices:{},purchases:{},customItems:[{id:'custom-1',name:'A custom ring',quantity:1,description:'Homebrew'}],name:'Borruk',alignment:'chaotic-good',backgroundStory:'A short backstory.',bonusMode:'split',fightingStyle:'Protection',weaponMasteries:['spear']};
  const builder={classInfo:()=>({hitDie:10,savingThrows:[{id:'str',name:'STR'},{id:'con',name:'CON'}]}),backgroundInfo:()=>({feat:{name:'Savage Attacker'}}),bonusFor:()=>0,wallet:()=>({remaining:5000}),gb:()=> '50 GP',itemById:new Map()};
  const insights={score:(d,k)=>{const i=['str','dex','con','int','wis','cha'].indexOf(k);return {base:d.abilities[i],bonus:0,total:d.abilities[i],modifier:Math.floor((d.abilities[i]-10)/2)};},grants:()=>[{id:'skill-athletics'}],contents:()=>new Map()};
  const html=sheet.review({draft,locale:'en',builder,insights,level:3,selectedSpecies:'Human',selectedClass:'Fighter',selectedBackground:'Soldier'});
