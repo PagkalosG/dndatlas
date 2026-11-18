@@ -89,7 +89,7 @@ export function EquipmentStep({draft,update}:StepProps){
          {isExpanded&&<div className="mt-3 border-t border-night-500 pt-2 text-xs leading-relaxed text-star-300">
            {item.description?.map((line,i)=><p key={i} className="mb-1">{line}</p>)}
            {item.mastery&&<p className="text-gold-300">{item.mastery.name} — {engine().origins.MASTERIES[item.mastery.index??'']?.[locale]}</p>}
-           {(item.contents?.length ?? 0)>0&&<ul>{item.contents.map(part=><li key={part.id}>{part.quantity} × {part.name}</li>)}</ul>}
+           {(item.contents?.length ?? 0)>0&&<ul>{item.contents?.map(part=><li key={part.id}>{part.quantity} × {part.name}</li>)}</ul>}
          </div>}
        </div>;
      })}</div>
