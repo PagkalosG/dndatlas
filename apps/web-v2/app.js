@@ -329,7 +329,19 @@
     if (action === 'step') { const next=Number(trigger.dataset.step);if(Number.isInteger(next)&&next>=0&&next<stepKeys().length){state.step=next;state.query='';state.gearQuery='';state.expandedOption=null;render();} }
     if (action === 'expand-option') {
       const key=trigger.dataset.kind+':'+trigger.dataset.id;
-      state.expandedOption=state.expandedOption===key?null:key;render();
+      const previous=state.expandedOption;
+      state.expandedOption=previous===key?null:key;
+      main.querySelectorAll('.identity-v2-card').forEach(card=>{
+        const button=card.querySelector('[data-action="expand-option"]');
+        const open=button && state.expandedOption===button.dataset.kind+':'+button.dataset.id;
+        card.classList.toggle('expanded',!!open);
+        button?.setAttribute('aria-expanded',String(!!open));
+        const reveal=card.querySelector('.identity-v2-reveal');
+        reveal?.setAttribute('aria-hidden',String(!open));
+        const indicator=button?.querySelector('[aria-hidden="true"]');
+        if(indicator)indicator.textContent=open?'−':'+';
+      });
+      return;
     }
     if (action === 'select-subclass') {
       if(!subclassOptions().some(x=>x.id===trigger.dataset.id))return;
