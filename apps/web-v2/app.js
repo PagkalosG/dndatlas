@@ -284,9 +284,12 @@
     return writeQueue;
   }
   function saveGameplay() {
-    persistLocal().then(()=>{},()=>notify(state.locale==='el'?
-      'Αδυναμία τοπικής αποθήκευσης. Έλεγξε τον διαθέσιμο χώρο ή τις ρυθμίσεις browser.':
-      'Local save failed. Check browser storage permissions or free space.'));
+    return persistLocal().then(()=>true,()=>{
+      notify(state.locale==='el'?
+        'Αδυναμία τοπικής αποθήκευσης. Έλεγξε τον διαθέσιμο χώρο ή τις ρυθμίσεις browser.':
+        'Local save failed. Check browser storage permissions or free space.');
+      return false;
+    });
   }
   function mockSave(submit=false) {
     if(state.busy)return;
@@ -542,7 +545,9 @@
       if(!title||!body){notify(playUI.T[state.locale].required);return;}
       state.gameplay.journal.push({id:crypto.randomUUID(),title,body,visibility,createdAt:new Date().toISOString()});
     }
-    saveGameplay();render();notify(playUI.T[state.locale].savedLocal);
+    const saved=saveGameplay();
+    render();
+    saved.then(ok=>{if(ok)notify(playUI.T[state.locale].savedLocal);});
   });
 
   document.addEventListener('input',(event)=>{
