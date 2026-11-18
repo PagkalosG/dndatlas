@@ -1,0 +1,43 @@
+name: Package Atlas Builder v0.7 changed files
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - '.github/workflows/atlas-v2-builder-v07-package.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Package only changes since v0.6
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline="0047336ed5ec51943655464be21556cb349e7837"
+          git cat-file -e "${baseline}^{commit}"
+          git diff --name-only --diff-filter=ACMRT "${baseline}" "${GITHUB_SHA}" > /tmp/atlas-changed-paths.txt
+          test -s /tmp/atlas-changed-paths.txt
+          mkdir -p deliver
+          while IFS= read -r file; do
+            [[ -f "${file}" ]] || { echo "::error::Missing changed file: ${file}"; exit 1; }
+            cp --parents -- "${file}" deliver/
+          done < /tmp/atlas-changed-paths.txt
+          cd deliver
+          find . -type f | sort
+          echo "### Builder v0.7 package" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Contains only added/changed files since v0.6, with paths preserved" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Files: $(find . -type f | wc -l)" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- No production or D1 changes" >> "${GITHUB_STEP_SUMMARY}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DND_Atlas_2_Builder_v0.7_Changed_Files
+          path: deliver/
+          if-no-files-found: error
+          retention-days: 30
