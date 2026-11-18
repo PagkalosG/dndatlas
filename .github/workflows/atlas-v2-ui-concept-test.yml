@@ -30,6 +30,8 @@ jobs:
           node --check apps/web-v2/components/builder-2024.js
           node --check apps/web-v2/components/identity-v2.js
           node --check apps/web-v2/components/character-profile-sheet.js
+          node --check apps/web-v2/components/gameplay-v2.js
+          node --check apps/web-v2/components/local-state.js
           node --check apps/web-v2/components/builder-insights.js
           node --check apps/web-v2/components/ability-allocation.js
           node --check apps/web-v2/components/identity-cards.js
