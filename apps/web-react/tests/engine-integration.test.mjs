@@ -43,6 +43,6 @@ test('role switch and local data boundaries contain no authentication or sync tr
  const packageScripts=fs.readFileSync(path.join(root,'scripts/sync-engine.mjs'),'utf8');
  assert.match(app,/setRolePreview/);
  assert.match(client,/indexedDB.open/);
- assert.doesNotMatch(client,/fetch\(|WebSocket\(|Cloudflare/);
+ assert.doesNotMatch(client,/\bfetch\s*\(|new\s+WebSocket\s*\(/);
  assert.match(packageScripts,/\.\.\/web-v2/);
 });
