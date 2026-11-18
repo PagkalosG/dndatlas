@@ -156,8 +156,13 @@
     const bg=backgroundInfo(draft.background);
     const selected=Object.values(draft.classChoices).flat();
     const duplicate=selected.filter(id=>granted(bg).includes(id));
+    const classSlots=cl.skillChoices.reduce((sum,g)=>sum+g.count,0);
+    const humanSlots=draft.species==='human'?1:0;
+    const chosenSkills=selected.length+(draft.species==='human'&&draft.humanSkill?1:0);
+    const progressLabel=locale==='el'?'Επιλογές Class + Human Skillful':'Class + Human Skillful selections';
     return `<div class="training-panel">
       <div class="training-highlight"><strong>${esc(cl.name)}</strong>
+        <span>${esc(progressLabel)}: ${chosenSkills} / ${classSlots+humanSlots}</span>
         <span>${esc(t('hitDie'))}: d${cl.hitDie}</span>
         <span>${esc(t('savingThrows'))}: ${cl.savingThrows.map(s=>esc(s.name)).join(', ')}</span></div>
       <h3>${esc(t('classProficiencies'))}</h3>
