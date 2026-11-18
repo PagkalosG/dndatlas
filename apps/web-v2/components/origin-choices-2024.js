@@ -154,7 +154,7 @@
         <div class="atlas-choices-grid">${group.options.map(o=>{
           const option=skillOptions.find(s=>s.id===o.id);
           if(!option)return '';
-          return renderOption({item:option,selected:values.includes(o.id),disabled:blocked.has(o.id),action:'class-proficiency',group:group.id,locale,esc,note:blocked.has(o.id)?(lang==='el'?'Δίνεται ήδη':'Already proficient'):''});
+          return renderOption({item:option,selected:values.includes(o.id),disabled:blocked.has(o.id)&&!values.includes(o.id),action:'class-proficiency',group:group.id,locale,esc,note:blocked.has(o.id)?(lang==='el'?'Δίνεται ήδη':'Already proficient'):''});
         }).join('')}</div>`;
     }).join('')}</div>`;
   }
