@@ -482,7 +482,7 @@
       const file=target.files?.[0];if(!file)return;
       if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>900*1024){notify(state.locale==='el'?'Δέχονται μόνο PNG/JPEG/WebP έως 900 KB.':'PNG/JPEG/WebP only, up to 900 KB.');return;}
       const reader=new FileReader();reader.onload=()=>{
-        const value=String(reader.result||'');if(!/^data:image\\/(png|jpeg|webp);base64,/.test(value))return;
+        const value=String(reader.result||'');if(!new RegExp('^data:image/(png|jpeg|webp);base64,').test(value))return;
         state.draft.portraitData=value;markDirty();render();
       };reader.readAsDataURL(file);return;
     }
