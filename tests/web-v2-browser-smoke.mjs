@@ -45,6 +45,7 @@ try {
   await page.locator('#play-journal-form textarea[name="body"]').fill('We found the lost sword.');
   await page.locator('#play-journal-form button[type="submit"], #play-journal-form button').last().click();
   await page.getByText('Our first session').waitFor();
+  await page.waitForFunction(async ()=>{const snapshot=await window.ATLAS_V2_LOCAL.load();return snapshot?.gameplay?.journal?.some(entry=>entry.title==='Our first session');});
   await page.reload({waitUntil:'networkidle'});
   await page.locator('#primary-nav [data-action="navigate"][data-view="journal"]').click();
   await page.getByText('Our first session').waitFor();
