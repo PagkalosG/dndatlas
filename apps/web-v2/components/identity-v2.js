@@ -3,7 +3,7 @@
  */
 (function(){
 'use strict';
-const cleanLabel=value=>String(value||'').replace(/^(Skill|Tool):\\s*/i,'');
+const cleanLabel=value=>{const name=String(value||'');return name.startsWith('Skill: ')?name.slice(7):name.startsWith('Tool: ')?name.slice(6):name;};
 const T={
  en:{traits:'Traits',classFeatures:'Class at a glance',backgroundBenefits:'What you gain',hitDie:'Hit Die',saves:'Saving Throws',proficiencies:'Proficiencies',skills:'Choose skills',feat:'Origin Feat',ability:'Ability increases',equipment:'Starting packages',choose:'Choose',selected:'Selected',expand:'Details',collapse:'Hide details',locked:'This option needs an enabled, appropriately licensed content pack.',srd:'SRD 5.2.1'},
  el:{traits:'Χαρακτηριστικά (Traits)',classFeatures:'Η κλάση με μια ματιά',backgroundBenefits:'Τι προσφέρει',hitDie:'Ζάρι Ζωής',saves:'Σωτήριες Βολές',proficiencies:'Εξοικειώσεις',skills:'Επιλογή δεξιοτήτων',feat:'Ταλέντο Προέλευσης (Origin Feat)',ability:'Αυξήσεις χαρακτηριστικών',equipment:'Πακέτα αρχικού εξοπλισμού',choose:'Επιλογή',selected:'Επιλεγμένο',expand:'Λεπτομέρειες',collapse:'Απόκρυψη',locked:'Απαιτείται ενεργή βιβλιοθήκη περιεχομένου με κατάλληλη άδεια.',srd:'SRD 5.2.1'}
