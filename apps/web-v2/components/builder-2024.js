@@ -9,6 +9,24 @@
   const copper = { cp:1, sp:10, ep:50, gp:100, pp:1000 };
   const categories = ['packs', 'weapons', 'armor', 'adventuring', 'consumables', 'tools'];
   const fighterStyles=['Archery','Defense','Dueling','Great Weapon Fighting','Protection','Two-Weapon Fighting'];
+  const fightingStyleDescriptions={
+    en:{
+      'Archery':'Improve your accuracy with ranged weapons.',
+      'Defense':'Improve Armor Class while wearing armor.',
+      'Dueling':'Improve damage when fighting with a single one-handed melee weapon.',
+      'Great Weapon Fighting':'Improve low damage rolls with two-handed melee weapons.',
+      'Protection':'Use your shield and Reaction to protect a nearby ally against an attacker.',
+      'Two-Weapon Fighting':'Add your ability modifier to damage from the extra attack with a Light weapon.'
+    },
+    el:{
+      'Archery':'Βελτιώνει την ακρίβεια με όπλα από απόσταση.',
+      'Defense':'Αυξάνει την Κλάση Πανοπλίας (AC) όταν φοράς πανοπλία.',
+      'Dueling':'Ενισχύει τη ζημιά όταν κρατάς ένα μόνο όπλο μάχης ενός χεριού.',
+      'Great Weapon Fighting':'Βελτιώνει χαμηλές ζαριές ζημιάς με όπλα μάχης δύο χεριών.',
+      'Protection':'Χρησιμοποιείς την ασπίδα και το Reaction για να προστατεύσεις κοντινό σύμμαχο.',
+      'Two-Weapon Fighting':'Προσθέτεις το Ability Modifier στη ζημιά της πρόσθετης επίθεσης με Light όπλο.'
+    }
+  };
   const skillEL = {
     'skill-acrobatics':'Ακροβατικά','skill-animal-handling':'Χειρισμός Ζώων','skill-arcana':'Απόκρυφη Γνώση',
     'skill-athletics':'Αθλητισμός','skill-deception':'Εξαπάτηση','skill-history':'Ιστορία',
@@ -137,8 +155,8 @@
       ${duplicate.length?`<div class="inline-warning">${esc(t('duplicateProficiency'))}</div>`:''}
       ${draft.class==='fighter'?`<section class="training-group"><div class="training-head"><strong>${esc(t('fightingStyle'))}</strong><span class="chip muted">1/1</span></div>
         <p>${esc(t('fighterStyleHint'))}</p><div class="skill-picker">
-        ${fighterStyles.map(style=>`<button type="button" class="skill-chip ${draft.fightingStyle===style?'active':''}" aria-pressed="${draft.fightingStyle===style}"
-          data-action="fighting-style" data-id="${esc(style)}">${esc(style)}</button>`).join('')}</div></section>
+        ${fighterStyles.map(style=>`<button type="button" class="skill-chip style-explainer ${draft.fightingStyle===style?'active':''}" aria-pressed="${draft.fightingStyle===style}"
+          data-action="fighting-style" data-id="${esc(style)}"><strong>${esc(style)}</strong><small>${esc(fightingStyleDescriptions[locale==='el'?'el':'en'][style])}</small></button>`).join('')}</div></section>
         <section class="training-group"><div class="training-head"><strong>${esc(t('weaponMastery'))}</strong><span class="chip ${draft.weaponMasteries.length===3?'gold':'muted'}">${draft.weaponMasteries.length}/3</span></div>
           <p>${esc(t('fighterMasteryHint'))}</p><div class="mastery-grid">${source.equipment.filter(i=>i.category==='weapons').map(item=>`
             <button type="button" class="skill-chip ${draft.weaponMasteries.includes(item.id)?'active':''}" aria-pressed="${draft.weaponMasteries.includes(item.id)}"
