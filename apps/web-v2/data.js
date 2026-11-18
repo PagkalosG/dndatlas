@@ -375,5 +375,7 @@
     subclass2024Hint:'Οι υποκλάσεις ξεκινούν στο επίπεδο 3 της συγκεκριμένης κλάσης με τους κανόνες 2024. Εμφανίζεται μόνο επιτρεπόμενο περιεχόμενο.',
     levelThree:'Επίπεδο κλάσης 3'
   });
+  Object.assign(strings.en,{stepProfile:'Character Identity',stepProfileHint:'Add your character portrait, alignment, story and personal details before reviewing the complete character sheet.'});
+  Object.assign(strings.el,{stepProfile:'Ταυτότητα χαρακτήρα',stepProfileHint:'Πρόσθεσε πορτρέτο, ηθική στάση (Alignment), ιστορικό και προσωπικά στοιχεία πριν ελέγξεις ολόκληρο το Character Sheet.'});
   window.ATLAS_V2_DEMO = Object.freeze({ species, classes, backgrounds, equipment, strings });
 })();
