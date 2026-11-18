@@ -138,7 +138,7 @@
     function overview(){
       return '<div class="play-content-grid"><div class="play-pane"><h3>'+t.abilities+'</h3><div class="play-abilities">'+abilities+'</div><h3>'+t.saves+'</h3><div class="play-skill-grid">'+saves+'</div><h3>'+t.skills+'</h3><div class="play-skill-grid">'+skillList+'</div></div>'+
       '<div class="play-pane"><h3>'+t.actionsTitle+'</h3>'+attacks(true)+
-      '<div class="play-rests"><h3>'+t.restShort+' / '+t.restLong+'</h3><p>'+t.shortHint+'</p>'+button('game-short-rest','♧ '+t.restShort)+' '+button('game-long-rest','☾ '+t.restLong)+'</div>'+
+      '<div class="play-rests"><h3>'+t.restShort+' ('+g.shortRests+') / '+t.restLong+' ('+g.longRests+')</h3><p>'+t.shortHint+'</p>'+button('game-short-rest','♧ '+t.restShort)+' '+button('game-long-rest','☾ '+t.restLong)+'</div>'+
       '<h3>'+t.conditions+'</h3>'+conditionList()+'<p class="play-disclaimer">'+t.hpNote+'</p></div></div>';
     }
     function attacks(compact=false) {
@@ -156,7 +156,7 @@
       '<h3>'+t.death+'</h3><div class="play-death">'+button('game-death-success',t.success+': '+g.deathSuccess+' / 3')+button('game-death-fail',t.failure+': '+g.deathFail+' / 3')+'</div>'+
       '<h3>'+t.conditions+'</h3>'+conditionList()+'</section><section class="play-pane"><h3>'+t.generalActions+'</h3>'+
       ACTIONS[l].map(([n,desc])=>'<details class="play-action-description"><summary>'+esc(n)+'</summary><p>'+esc(desc)+'</p></details>').join('')+
-      '<div class="play-rests"><p>'+t.longHint+'</p>'+button('game-short-rest',t.restShort)+' '+button('game-long-rest',t.restLong)+'</div></section></div>';
+      '<div class="play-rests"><p>'+t.longHint+'</p><p>'+t.restShort+': '+g.shortRests+' · '+t.restLong+': '+g.longRests+'</p>'+button('game-short-rest',t.restShort)+' '+button('game-long-rest',t.restLong)+'</div></section></div>';
     }
     function spellbook(){
       const entries=g.spellNotes||[];
