@@ -1,0 +1,114 @@
+/* D&D Atlas 2.0 — additive presentation layer.
+   Keeps the existing 2024 rules engine, event handlers and component markup intact. */
+
+/* Builder: persistent identity, steps and navigation while options scroll. */
+.atlas-builder .b-header {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 auto;
+  box-shadow: 0 6px 22px #040b1680;
+}
+.atlas-builder .b-layout { min-height: 0; overflow: hidden; }
+.atlas-builder .b-steps { min-height: 0; overscroll-behavior: contain; }
+.atlas-builder .b-scroll {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+.atlas-builder .b-main {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+.atlas-builder .b-step-detail { flex: 1 0 auto; min-width: 0; }
+.atlas-builder .b-bottom {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  flex-shrink: 0;
+  margin: 24px calc(-1 * clamp(14px,4vw,44px)) 0;
+  padding: 15px clamp(14px,4vw,44px) max(15px,env(safe-area-inset-bottom));
+  background: linear-gradient(180deg,#142437f2,#111f30 35%);
+  border-top: 1px solid #496078;
+  box-shadow: 0 -12px 30px #07111c8a;
+  backdrop-filter: blur(12px);
+}
+.atlas-builder .b-bottom .btn { min-height: 40px; }
+.atlas-builder .b-step.current { box-shadow: inset 3px 0 0 #e2ba7a; }
+.atlas-builder .b-step:focus-visible,
+.atlas-builder .b-bottom button:focus-visible {
+  outline: 2px solid #e2ba7a;
+  outline-offset: 2px;
+}
+
+/* Character sheet: clear D&D Beyond-like visual reading order without altering data. */
+.atlas-overview { gap: 16px; }
+.atlas-overview .atlas-profile {
+  border-color: #53637a;
+  box-shadow: 0 18px 35px #02091340;
+}
+.atlas-overview .atlas-profile-name-row h1 {
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.atlas-overview .atlas-rest-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.atlas-overview .atlas-rest-row .btn {
+  min-height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.atlas-overview .atlas-core-stats { gap: 12px; }
+.atlas-overview .atlas-core-card {
+  border-color: #3d536b;
+  box-shadow: inset 0 1px 0 #ffffff08;
+}
+.atlas-overview .atlas-core-card:focus-visible,
+.atlas-overview .atlas-reference-row:focus-visible {
+  outline: 2px solid #e2ba7a;
+  outline-offset: 2px;
+}
+.atlas-overview .atlas-score { min-width: 0; }
+.atlas-overview .atlas-skill { min-width: 0; }
+.atlas-overview .atlas-reference-row {
+  min-height: 48px;
+  text-align: left;
+}
+.atlas-overview .atlas-reference-row span:first-child { min-width: 0; }
+.atlas-overview .atlas-reference-row b { overflow-wrap: anywhere; }
+
+/* Keep non-builder sheet controls readable on tablets and phones. */
+@media (max-width: 860px) {
+  .atlas-builder .b-steps { flex: 0 0 auto; }
+  .atlas-builder .b-step.current { box-shadow: inset 0 -3px 0 #e2ba7a; }
+  .atlas-builder .b-main { padding: 19px 16px 0; }
+  .atlas-builder .b-bottom {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 13px 16px max(13px,env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 580px) {
+  .atlas-builder .b-header {
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .atlas-builder .b-header h1 { font-size: 20px; }
+  .atlas-builder .b-header p { font-size: 10px; }
+  .atlas-builder .b-bottom { gap: 8px; }
+  .atlas-builder .b-bottom > span { display: none; }
+  .atlas-builder .b-bottom .btn { flex: 1; min-width: 0; }
+  .atlas-overview .atlas-rest-row .btn { flex: 1 1 160px; }
+  .atlas-overview .atlas-core-stats { gap: 8px; }
+  .atlas-overview .atlas-core-card { padding: 11px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-builder .b-scroll { scroll-behavior: auto; }
+}
