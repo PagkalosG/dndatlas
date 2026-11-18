@@ -11,6 +11,9 @@
   const identityV2 = window.ATLAS_V2_IDENTITY_V2;
   const characterUI = window.ATLAS_V2_CHARACTER_SHEET;
   const originUI = window.ATLAS_V2_ORIGINS;
+  const playUI = window.ATLAS_V2_PLAY;
+  const localStore = window.ATLAS_V2_LOCAL;
+  if(!playUI || !localStore)throw new Error('Missing local playable character components');
   if (!identityV2 || !characterUI || !originUI) throw new Error('Missing character details and Origin choices components');
   if (!identityUI) throw new Error('Missing identity card UI');
   identityUI.initPhotos();
@@ -32,7 +35,7 @@
     classPackage: null, backgroundPackage: null, packageChoices: {}, purchases: {}, customItems: [],
     alignment: '', backgroundStory: '', portraitData: null, equippedArmor: null, shieldEquipped: false,
     humanSkill:null, humanFeat:null, skilledChoices:[] });
-  const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false, libraryPreview: null, libraryError: null, libraryStaged: [], libraryBusy: false, libraryRights: false, expandedOption: null };
+  const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false, libraryPreview: null, libraryError: null, libraryStaged: [], libraryBusy: false, libraryRights: false, expandedOption: null, sheetTab:'overview', gameplay: playUI.defaults(), localLoaded:false };
   const main = document.getElementById('main');
   const text = (key) => catalog.strings[state.locale][key] ?? key;
   const label = (item) => item?.title?.[state.locale] ?? text('notChosen');
@@ -215,20 +218,16 @@
   }
 
   function sheet() {
+    if(!state.draft.species||!state.draft.class){
+      return '<div class="page">'+titleArea('characterLabel','sheetTitle','sheetSubtitle')+
+        '<div class="empty-page"><span>✧</span><h2>'+escape(text('sheetNoData'))+'</h2><button class="btn primary" data-action="navigate" data-view="builder">'+escape(text('continueBuilding'))+'</button></div></div>';
+    }
     const d=state.draft;
-    const name=d.name.trim()||text('characterLabel');
-    const sp=entry('species',d.species), cl=entry('classes',d.class);
-    return `<div class="page">${titleArea('characterLabel','sheetTitle','sheetSubtitle')}
-      ${!d.species||!d.class?`<div class="empty-page"><span>✧</span><h2>${escape(text('sheetNoData'))}</h2><button class="btn primary" data-action="navigate" data-view="builder">${escape(text('continueBuilding'))}</button></div>`:`
-      <div class="sheet-hero"><div class="sheet-art">${image(sp)}</div><div class="sheet-identity"><div class="eyebrow accent">${escape(text('levelOne'))}</div><h2>${escape(name)}</h2><p>${escape(label(sp))} · ${escape(label(cl))}</p>
-      <div class="sheet-badges">${badge(text(state.status),'gold')}${badge(text('private'),'muted')}</div>
-      <div class="sheet-actions"><button class="btn secondary" data-action="navigate" data-view="builder">${escape(text('edit'))}</button></div></div></div>
-      <div class="stat-grid"><div class="stat-box"><span>${escape(text('health'))}</span><strong>—</strong><small>${escape(text('statSample'))}</small></div>
-      <div class="stat-box"><span>${escape(text('armor'))}</span><strong>—</strong></div><div class="stat-box"><span>${escape(text('initiative'))}</span><strong>—</strong></div>
-      <div class="stat-box"><span>${escape(text('prof'))}</span><strong>—</strong></div></div>
-      <div class="sheet-lower"><div class="panel"><h3>${escape(text('features'))}</h3><p>${escape(text('selectionInfo'))}</p></div><div class="panel"><h3>${escape(text('restShort'))} / ${escape(text('restLong'))}</h3><p>${escape(text('restHint'))}</p>
-      <div class="rest-controls"><button class="btn quiet" data-action="rest">♧ ${escape(text('restShort'))}</button><button class="btn quiet" data-action="rest">☾ ${escape(text('restLong'))}</button></div></div></div>`}
-    </div>`;
+    return playUI.render({draft:d,game:state.gameplay,tab:state.sheetTab,locale:state.locale,
+      builder:builderUI,insights,level:state.savedCampaign.startingLevel,status:state.status,role:state.role,
+      speciesName:label(entry('species',d.species)),className:label(entry('classes',d.class)),
+      backgroundName:label(entry('backgrounds',d.background)),
+      subclassName:subclassOptions().find(x=>x.id===d.subclass)?.name||null});
   }
 
   function stub(titleKey,introKey,withRole=false) {
@@ -245,7 +244,7 @@
       home, builder, sheet,
       party: () => campaignUI.renderParty({ role: state.role, status: state.status, draft: state.draft, campaign: state.savedCampaign, inviteCreated: state.inviteCreated, busy: state.campaignBusy, locale: state.locale, t: text, esc: escape, label, lookup: entry }),
       campaign: () => state.role === 'dm' ? campaignUI.renderCampaign({ campaign: state.campaign, busy: state.campaignBusy, locale: state.locale, t: text, esc: escape }) + libraryUI.render({locale:state.locale,role:state.role,preview:state.libraryPreview,error:state.libraryError,staged:state.libraryStaged,busy:state.libraryBusy,rights:state.libraryRights}) : stub('partyTitle','dmOnlyDemo'),
-      journal: () => stub('journalTitle','journalIntro'),
+      journal: () => playUI.journal({game:state.gameplay,locale:state.locale}),
       settings: () => stub('settingsTitle','settingsIntro',true),
     })[state.view]();
     document.title = `D&D Atlas 2.0 · ${text(({home:'navHome',builder:'navBuilder',sheet:'navSheet',party:'navParty',journal:'navJournal',settings:'navSettings',campaign:'navCampaign'})[state.view])}`;
@@ -271,59 +270,83 @@
     return checks[stepKeys()[state.step]]();
   }
 
+  // The prototype stores a real snapshot in IndexedDB, never in D1 or a remote API.
+  let writeQueue=Promise.resolve();
+  function snapshot() {
+    return {draft:structuredClone(state.draft),saved:state.saved?structuredClone(state.saved):null,
+      status:state.status,campaign:structuredClone(state.campaign),
+      savedCampaign:structuredClone(state.savedCampaign),inviteCreated:state.inviteCreated,
+      gameplay:structuredClone(state.gameplay)};
+  }
+  function persistLocal() {
+    const copy=snapshot();
+    writeQueue=writeQueue.catch(()=>{}).then(()=>localStore.save(copy));
+    return writeQueue;
+  }
+  function saveGameplay() {
+    persistLocal().then(()=>{},()=>notify(state.locale==='el'?
+      'Αδυναμία τοπικής αποθήκευσης. Έλεγξε τον διαθέσιμο χώρο ή τις ρυθμίσεις browser.':
+      'Local save failed. Check browser storage permissions or free space.'));
+  }
   function mockSave(submit=false) {
-    if (state.busy) return;
-    if (submit && (!selectable() || !validAbilities() || !state.draft.name.trim())) {
-      notify(!state.draft.name.trim() ? text('missingName') : text('missingChoices'));
-      return;
+    if(state.busy)return;
+    if(submit&&(!selectable()||!validAbilities()||!state.draft.name.trim())){
+      notify(!state.draft.name.trim()?text('missingName'):text('missingChoices'));return;
     }
-    state.busy = true;
-    render();
-    setTimeout(() => {
-      state.saved = structuredClone(state.draft);
-      state.dirty = false;
-      state.status = submit ? 'pending' : 'draft';
-      state.busy = false;
-      render();
-      notify(text(submit ? 'submitted' : 'saved') + '. ' + text('demoOnly'));
-    }, 450);
+    const previous={saved:state.saved,status:state.status,dirty:state.dirty};
+    state.saved=structuredClone(state.draft);state.status=submit?'pending':'draft';state.dirty=false;
+    state.busy=true;render();
+    persistLocal().then(()=>{
+      state.busy=false;render();
+      notify(state.locale==='el'?(submit?'Υποβλήθηκε τοπικά στον DM demo.':'Πρόχειρο αποθηκεύτηκε σε αυτή τη συσκευή.'):
+        (submit?'Submitted to local DM demo.':'Draft saved on this device.'));
+    }).catch(()=>{
+      state.saved=previous.saved;state.status=previous.status;state.dirty=previous.dirty;
+      state.busy=false;render();notify(state.locale==='el'?'Η τοπική αποθήκευση απέτυχε.':'Local save failed.');
+    });
   }
 
   function mockCampaignSave() {
-    if (state.role !== 'dm' || state.campaignBusy) return;
-    const checked = campaignUI.validateSettings(state.campaign);
-    if (!checked.valid) { notify(text('campaignInvalid')); return; }
-    state.campaignBusy = true;
-    render();
-    setTimeout(() => {
-      state.savedCampaign = structuredClone(state.campaign);
-      state.campaignDirty = false;
-      state.campaignBusy = false;
-      render();
-      notify(text('campaignSavedDemo') + '. ' + text('demoOnly'));
-    }, 400);
+    if(state.role!=='dm'||state.campaignBusy)return;
+    if(!campaignUI.validateSettings(state.campaign).valid){notify(text('campaignInvalid'));return;}
+    const old=structuredClone(state.savedCampaign);
+    state.savedCampaign=structuredClone(state.campaign);state.campaignDirty=false;state.campaignBusy=true;render();
+    persistLocal().then(()=>{
+      state.campaignBusy=false;render();notify(state.locale==='el'?'Οι ρυθμίσεις αποθηκεύτηκαν τοπικά.':'Campaign settings saved locally.');
+    }).catch(()=>{
+      state.savedCampaign=old;state.campaignDirty=true;state.campaignBusy=false;render();
+      notify(state.locale==='el'?'Η αποθήκευση απέτυχε.':'Save failed.');
+    });
   }
 
   function mockReview(decision) {
-    if (state.role !== 'dm' || state.status !== 'pending' || state.campaignBusy || !['approved','changes_requested','rejected'].includes(decision)) {
-      notify(text('unauthorizedDemo'));
-      return;
+    if(state.role!=='dm'||state.status!=='pending'||state.campaignBusy||
+      !['approved','changes_requested','rejected'].includes(decision)){
+      notify(text('unauthorizedDemo'));return;
     }
-    state.campaignBusy = true;
-    render();
-    setTimeout(() => {
-      state.campaignBusy = false;
-      state.status = decision;
-      render();
-      notify(text({approved:'reviewApprovedDemo',changes_requested:'reviewChangesDemo',rejected:'reviewRejectedDemo'}[decision]) + '. ' + text('demoOnly'));
-    }, 400);
+    const previous=state.status;
+    state.status=decision;state.campaignBusy=true;render();
+    persistLocal().then(()=>{
+      state.campaignBusy=false;render();
+      notify(state.locale==='el'?'Η απόφαση DM αποθηκεύτηκε τοπικά.':'DM decision saved locally.');
+    }).catch(()=>{
+      state.status=previous;state.campaignBusy=false;render();notify('Local save failed.');
+    });
   }
 
   document.addEventListener('click', (event) => {
     const trigger = event.target.closest('[data-action]');
     if (!trigger || trigger.disabled) return;
     const { action } = trigger.dataset;
-    if (action === 'navigate') navigate(trigger.dataset.view);
+    if (action === 'navigate') { navigate(trigger.dataset.view); return; }
+    if (action === 'sheet-tab') {
+      if(!['overview','actions','spells','equipment','features','description','notes'].includes(trigger.dataset.id))return;
+      state.sheetTab=trigger.dataset.id;render();return;
+    }
+    if (action.startsWith('game-')) {
+      const changed=playUI.adjust(state.gameplay,action,trigger.dataset.id,{draft:state.draft,builder:builderUI,insights,level:state.savedCampaign.startingLevel});
+      if(changed){saveGameplay();render();}return;
+    }
     if (action === 'remove-custom-item') {
       state.draft.customItems=(state.draft.customItems||[]).filter(item=>item.id!==trigger.dataset.id);
       markDirty();render();return;
@@ -486,18 +509,42 @@
       const i=Number(trigger.dataset.packIndex);
       if (Number.isInteger(i) && i>=0 && i<state.libraryStaged.length) { state.libraryStaged.splice(i,1);render(); }
     }
-    if (action === 'reset') { state.libraryPreview=null;state.libraryError=null;state.libraryStaged=[];state.libraryBusy=false;state.libraryRights=false;  state.draft=defaultDraft();state.saved=null;state.dirty=false;state.status='draft';state.step=0;state.inviteCreated=false;state.campaign=campaignUI.originalSettings();state.savedCampaign=campaignUI.originalSettings();state.campaignDirty=false;render();notify(text('resetDone')); }
-    if (action === 'rest') notify(text('restDemo'));
+    if(action==='reset'){
+      if(!window.confirm(state.locale==='el'?'Να διαγραφούν όλα τα τοπικά δεδομένα του prototype;':'Erase all local prototype data?'))return;
+      localStore.clear().then(()=>{
+        state.libraryPreview=null;state.libraryError=null;state.libraryStaged=[];state.libraryBusy=false;state.libraryRights=false;
+        state.draft=defaultDraft();state.saved=null;state.dirty=false;state.status='draft';state.step=0;
+        state.inviteCreated=false;state.gameplay=playUI.defaults();state.campaign=campaignUI.originalSettings();
+        state.savedCampaign=campaignUI.originalSettings();state.campaignDirty=false;render();notify(text('resetDone'));
+      },()=>notify('Local data could not be cleared.'));return;
+    }
+    if (action === 'rest') {state.gameplay.shortRests++;saveGameplay();render();}
   });
 
   document.addEventListener('submit',(event)=>{
-    if(event.target.id!=='custom-item-form')return;
+    const form=event.target, id=form.id;
+    if(!['custom-item-form','play-spell-form','play-journal-form','play-notes-form'].includes(id))return;
     event.preventDefault();
-    const form=new FormData(event.target);
-    const item=characterUI.normalizeCustom(Object.fromEntries(form.entries()));
-    if(!item){notify(state.locale==='el'?'Έλεγξε τα στοιχεία του custom αντικειμένου.':'Check the custom item fields.');return;}
-    state.draft.customItems||=[];state.draft.customItems.push(item);markDirty();render();
+    if(id==='custom-item-form'){
+      const item=characterUI.normalizeCustom(Object.fromEntries(new FormData(form).entries()));
+      if(!item){notify(state.locale==='el'?'Έλεγξε τα στοιχεία του αντικειμένου.':'Check item details.');return;}
+      state.draft.customItems||=[];state.draft.customItems.push(item);markDirty();render();return;
+    }
+    if(id==='play-notes-form'){
+      state.gameplay.personalNotes=String(form.querySelector('#play-personal-notes')?.value||'').slice(0,20000);
+    } else if(id==='play-spell-form'){
+      const values=new FormData(form),name=String(values.get('name')||'').trim().slice(0,100),level=Number(values.get('level'));
+      if(!name||!Number.isInteger(level)||level<0||level>9)return;
+      state.gameplay.spellNotes.push({id:crypto.randomUUID(),name,level});
+    } else if(id==='play-journal-form'){
+      const values=new FormData(form),title=String(values.get('title')||'').trim().slice(0,120),
+        body=String(values.get('body')||'').trim().slice(0,10000),visibility=values.get('visibility')==='campaign'?'campaign':'private';
+      if(!title||!body){notify(playUI.T[state.locale].required);return;}
+      state.gameplay.journal.push({id:crypto.randomUUID(),title,body,visibility,createdAt:new Date().toISOString()});
+    }
+    saveGameplay();render();notify(playUI.T[state.locale].savedLocal);
   });
+
   document.addEventListener('input',(event)=>{
     const target=event.target;
     if (target.id==='choice-search') { state.query=target.value; applyFilter(); }
@@ -508,6 +555,22 @@
   });
   document.addEventListener('change',(event)=>{
     const target=event.target;
+    if(target.dataset.gameSlot){
+      const level=target.dataset.gameSlot;
+      const total=Number(target.value);
+      if(!/^[1-9]$/.test(level)||!Number.isInteger(total)||total<0||total>20)return;
+      const old=state.gameplay.spellSlots[level]||{total:0,used:0};
+      state.gameplay.spellSlots[level]={total,used:Math.min(old.used,total)};
+      saveGameplay();render();return;
+    }
+    if(target.id==='play-worn-armor'){
+      if(target.value&&!characterUI.ownedArmor(state.draft,builderUI,insights).some(x=>x.id===target.value))return;
+      state.draft.equippedArmor=target.value||null;saveGameplay();render();return;
+    }
+    if(target.id==='play-shield'){
+      state.draft.shieldEquipped=target.checked&&insights.contents(state.draft,builderUI).has('shield');
+      saveGameplay();render();return;
+    }
     if (target.id === 'library-rights-confirm') { state.libraryRights=target.checked; render(); return; }
     if (target.id==='character-alignment') {state.draft.alignment=characterUI.ALIGNMENTS.some(row=>row[0]===target.value)?target.value:'';markDirty();render();return;}
     if (target.id==='review-worn-armor') {
@@ -551,4 +614,20 @@
 
   });
   render();
+  localStore.load().then(saved=>{
+    if(saved){
+      state.draft=Object.assign(defaultDraft(),saved.draft||{});
+      state.saved=saved.saved||null;
+      state.status=['draft','pending','approved','changes_requested','rejected'].includes(saved.status)?saved.status:'draft';
+      state.campaign=Object.assign(campaignUI.originalSettings(),saved.campaign||{});
+      state.savedCampaign=Object.assign(campaignUI.originalSettings(),saved.savedCampaign||{});
+      state.inviteCreated=!!saved.inviteCreated;
+      state.gameplay=playUI.normalize(saved.gameplay);
+      state.dirty=false;state.campaignDirty=false;
+    }
+    state.localLoaded=true;render();
+  }).catch(()=>{
+    state.localLoaded=true;render();
+    notify(state.locale==='el'?'Η τοπική αποθήκευση δεν είναι διαθέσιμη.':'Local persistence is unavailable.');
+  });
 })();
