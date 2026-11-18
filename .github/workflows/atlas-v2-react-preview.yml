@@ -1,0 +1,53 @@
+name: Test and deploy Atlas 2.0 React staging UI
+
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - 'apps/web-react/**'
+      - 'workers/atlas-v2-react-preview/**'
+      - '.github/workflows/atlas-v2-react-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-v2-react-preview-deploy
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install React dependencies
+        working-directory: apps/web-react
+        run: npm ci --no-audit --no-fund
+      - name: Verify 2024 rules adapter
+        working-directory: apps/web-react
+        run: npm run test:engine
+      - name: Check and build Claude UI with the existing Atlas engine
+        working-directory: apps/web-react
+        run: npm run build
+      - name: Deploy isolated Worker preview
+        run: npx --yes wrangler@4 deploy --config workers/atlas-v2-react-preview/wrangler.json
+      - name: Verify preview responds
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://dndatlas-v2-react-preview.pagkalosgeo.workers.dev'
+          for attempt in {1..12}; do
+            if curl --fail --silent "${base}/" | grep -q 'D&amp;D Atlas 2.0'; then exit 0; fi
+            sleep 4
+          done
+          exit 1

@@ -1,0 +1,115 @@
+name: Import Claude React UI and adapt to Atlas v2 engine
+
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - 'tools/claude-ui-source.tar.br'
+      - '.github/workflows/atlas-v2-react-ingest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atlas-v2-react-ui-integration
+  cancel-in-progress: false
+
+jobs:
+  ingest-build-deploy:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Extract user-supplied Claude UI only into new React app
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s tools/claude-ui-source.tar.br
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import zlib from 'node:zlib';
+          import crypto from 'node:crypto';
+          import { execFileSync } from 'node:child_process';
+          const input=fs.readFileSync('tools/claude-ui-source.tar.br');
+          const hash=crypto.createHash('sha256').update(input).digest('hex');
+          if(hash !== '90079730dc990e3435bbc13d8a149d9cfa8d97a12a6fa23c478d0f978b53848e') throw Error('Unexpected source archive hash');
+          const raw=zlib.brotliDecompressSync(input);
+          fs.writeFileSync('/tmp/atlas-claude-ui.tar',raw);
+          const paths=execFileSync('tar',['-tf','/tmp/atlas-claude-ui.tar'],{encoding:'utf8'}).trim().split('\n');
+          for(const p of paths){
+            if(p.startsWith('/')||p.split('/').includes('..')||p.includes('\\'))throw Error('Unsafe archive path: '+p);
+          }
+          fs.mkdirSync('apps/web-react',{recursive:true});
+          execFileSync('tar',['-xf','/tmp/atlas-claude-ui.tar','--no-same-owner','-C','apps/web-react'],{stdio:'inherit'});
+          if(!fs.existsSync('apps/web-react/src/engine/atlas2024.ts')) throw Error('Atlas engine adapter missing');
+          if(!fs.existsSync('apps/web-react/src/app/AppShell.tsx')) throw Error('Claude UI missing');
+          console.log('Extracted',paths.length,'files; SHA-256 verified.');
+          JS
+      - name: Commit React source without replacing legacy frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- apps/web-react
+          git rm -f -- tools/claude-ui-source.tar.br
+          git commit -m 'feat(ui): integrate Claude React interface with shared Atlas 2024 engine'
+          git push origin HEAD:atlas-2.0
+      - name: Install React dependencies
+        working-directory: apps/web-react
+        run: npm ci --no-audit --no-fund
+      - name: Verify existing Atlas engine source contracts
+        working-directory: apps/web-react
+        run: npm run test:engine
+      - name: Type-check and produce React application
+        working-directory: apps/web-react
+        run: npm run build
+      - name: Register isolated preview Worker if absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${CLOUDFLARE_ACCOUNT_ID}" =~ ^[0-9a-fA-F]{32}$ ]]
+          test -n "${CLOUDFLARE_API_TOKEN}"
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/workers"
+          body="$(curl --fail --silent --show-error -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "${api}?per_page=100")"
+          jq -e '.success == true' <<<"${body}" >/dev/null
+          found="$(jq '[.result[] | select(.name == "dndatlas-v2-react-preview")] | length' <<<"${body}")"
+          if [[ "${found}" == "0" ]]; then
+            response="$(curl --fail --silent --show-error --request POST -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data '{"name":"dndatlas-v2-react-preview","subdomain":{"enabled":true}}' "${api}")"
+            jq -e '.success == true' <<<"${response}" >/dev/null
+          elif [[ "${found}" != "1" ]]; then
+            echo 'Unexpected duplicate Worker results'; exit 1
+          fi
+      - name: Deploy React preview (no production or D1 changes)
+        run: npx --yes wrangler@4 deploy --config workers/atlas-v2-react-preview/wrangler.json
+      - name: Smoke-test isolated preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://dndatlas-v2-react-preview.pagkalosgeo.workers.dev'
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error "${base}/" | grep -q 'D&amp;D Atlas 2.0'; then
+              if curl --fail --silent --show-error "${base}/engine/catalog/srd-2024.js" | grep -q 'ATLAS_V2_SRD'; then
+                echo "React UI and Atlas SRD assets are live at ${base}/"
+                echo "### Claude UI integration preview" >> "${GITHUB_STEP_SUMMARY}"
+                echo "- URL: ${base}/" >> "${GITHUB_STEP_SUMMARY}"
+                echo "- Backend: reused from apps/web-v2, no D1 or authentication" >> "${GITHUB_STEP_SUMMARY}"
+                exit 0
+              fi
+            fi
+            sleep 4
+          done
+          echo 'React staging preview did not pass smoke test';exit 1

@@ -1,0 +1,12 @@
+{
+  "name": "dndatlas-v2-react-preview",
+  "main": "./index.js",
+  "compatibility_date": "2026-11-18",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "../../apps/web-react/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  }
+}
