@@ -75,6 +75,27 @@ function customInventory({draft,locale,esc:escape=esc}){
  <button type="submit" class="btn primary">${escape(t.addItem)}</button></form>
  ${(draft.customItems||[]).length?`<div class="custom-item-added"><h4>${escape(t.customItems)}</h4>${draft.customItems.map(item=>`<div class="custom-item-row"><span><b>${escape(item.name)}</b> ×${item.quantity}<small>${escape(item.description||'')}</small></span><button type="button" class="btn quiet" data-action="remove-custom-item" data-id="${escape(item.id)}">${escape(t.remove)}</button></div>`).join('')}</div>`:''}</section>`;
 }
+function attackRows(d,builder,insights,level=1){
+ const owned=insights.contents(d,builder);
+ const cl=builder.classInfo(d.class);
+ const trained=new Set((cl?.proficiencies||[]).map(x=>x.id));
+ const mod=Object.fromEntries(ABILITIES.map(k=>[k,insights.score(d,k,builder.bonusFor).modifier]));
+ const pb=2+Math.floor((level-1)/4);
+ return [...owned.values()].map(row=>{
+   const item=builder.itemById.get(row.id);
+   if(item?.category!=='weapons'||!item.damage)return null;
+   const props=(item.properties||[]).map(x=>x.name||x);
+   const ranged=(item.categories||[]).includes('ranged-weapons');
+   const finesse=props.includes('Finesse');
+   const ability=ranged?'dex':finesse&&(mod.dex>mod.str)?'dex':'str';
+   const type=(item.categories||[]).some(x=>x.startsWith('martial'))?'martial-weapons':'simple-weapons';
+   const proficient=trained.has(type)||trained.has(item.id);
+   const bonus=mod[ability]+(proficient?pb:0);
+   const damage=item.damage.damage_dice+sign(mod[ability]);
+   return {id:item.id,name:item.name,quantity:row.quantity,bonus,damage,damageType:item.damage.damage_type?.name||'',mastery:d.weaponMasteries?.includes(item.id)?item.mastery?.name:null,proficient,
+     shieldConflict:d.shieldEquipped&&props.includes('Two-Handed')};
+ }).filter(Boolean);
+}
 function review({draft,locale,builder,insights,level=1,selectedSpecies,selectedClass,selectedBackground,selectedSubclass,editIdentity}){
  const t=textFor(locale),lang=locale==='el'?'el':'en',d=draft;
  const summary=derived(d,builder,insights,level);
@@ -92,6 +113,8 @@ function review({draft,locale,builder,insights,level=1,selectedSpecies,selectedC
   return `<div class="sheet-skill ${saveProfs.has(id)?'is-proficient':''}"><span>${saveProfs.has(id)?'●':'○'} ${id.toUpperCase()}</span><b>${sign(score)}</b></div>`;
  }).join('');
  const wallet=builder.wallet(d),owned=insights.contents(d,builder);
+ const attacks=attackRows(d,builder,insights,level);
+ const attackHtml=attacks.map(a=>`<div class="sheet-attack-row"><strong>${esc(a.name)}</strong><b>${sign(a.bonus)}</b><span>${esc(a.damage)} ${esc(a.damageType)}</span>${a.mastery?`<small>Mastery: ${esc(a.mastery)}</small>`:''}${a.shieldConflict?`<small class="sheet-attack-warning">${esc(lang==='el'?'Ασυμβίβαστο με εξοπλισμένη ασπίδα (Two-Handed).':'Incompatible with equipped shield (Two-Handed).')}</small>`:''}${!a.proficient?`<small>${esc(lang==='el'?'Χωρίς weapon proficiency.':'Not proficient with this weapon.')}</small>`:''}</div>`).join('');
  const armorOptions=summary.owned.map(x=>`<option value="${esc(x.id)}" ${d.equippedArmor===x.id?'selected':''}>${esc(x.name)}</option>`).join('');
  const items=[...owned.values()].map(row=>{
   const item=builder.itemById.get(row.id);
@@ -118,6 +141,11 @@ function review({draft,locale,builder,insights,level=1,selectedSpecies,selectedC
  </section>
  <div class="sheet-columns"><section class="sheet-section"><h3>${esc(t.savingThrows)}</h3><div class="sheet-skill-list">${saveRows}</div></section>
  <section class="sheet-section"><h3>${esc(t.skills)}</h3><div class="sheet-skill-list">${skillRows}</div></section></div>
+ <section class="sheet-section"><h3>${esc(lang==='el'?'Επιθέσεις & Damage':'Attacks & damage')}</h3><p class="character-muted">${esc(lang==='el'?'Προεπισκόπηση bonus επίθεσης και ζημιάς από SRD όπλα. Δεν περιλαμβάνει όλα τα ειδικά class/item effects.':'Preview of SRD weapon attack and damage bonuses. Does not yet include all class or item effects.')}</p><div class="sheet-attack-list">${attackHtml||'—'}</div></section>
+ <section class="sheet-section"><h3>${esc(lang==='el'?'Πρόσθετα στοιχεία μάχης':'Additional combat fields')}</h3>
+ <div class="sheet-stat-list"><div><small>Hit Dice</small><strong>${cl?'d'+cl.hitDie+' × '+level:'—'}</strong></div>
+ <div><small>${esc(lang==='el'?'Παθητική Αντίληψη (Campaign default)':'Passive Perception (Campaign default)')}</small><strong>10</strong></div>
+ <div><small>Death Saves</small><strong>0 / 3 · 0 / 3</strong></div></div></section>
  <section class="sheet-section"><h3>${esc(t.feats)}</h3><div class="sheet-features">${features.map(v=>`<div>${esc(v)}</div>`).join('')||'—'}</div></section>
  <section class="sheet-section"><h3>${esc(t.equipment)}</h3><div class="sheet-equipment-grid">${items}${customs}</div></section>
  <section class="sheet-section"><h3>${esc(t.spells)}</h3><p class="character-muted">${esc(t.spellsUnknown)}</p></section>
@@ -125,5 +153,5 @@ function review({draft,locale,builder,insights,level=1,selectedSpecies,selectedC
  <section class="sheet-section"><h3>${esc(t.notes)}</h3><p class="character-story">${esc(d.backgroundStory||'—')}</p><small>${esc(t.private)}</small></section>
  <p class="sheet-validation-note">${esc(t.rulesNotice)}</p></div>`;
 }
-window.ATLAS_V2_CHARACTER_SHEET=Object.freeze({TEXT,ALIGNMENTS,SKILLS,normalizeCustom,ownedArmor,derived,profile,customInventory,review});
+window.ATLAS_V2_CHARACTER_SHEET=Object.freeze({TEXT,ALIGNMENTS,SKILLS,normalizeCustom,ownedArmor,derived,attackRows,profile,customInventory,review});
 })();
