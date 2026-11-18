@@ -68,7 +68,7 @@ test('spell slots are manual, and action never creates slots automatically',()=>
 test('sheet supports the seven D&D-style categories and uses the character formulas',()=>{
  const html=ui.render({draft,game:ui.defaults(),tab:'overview',locale:'en',builder,insights,level:3,status:'draft',role:'player',
  speciesName:'Human',className:'Fighter',backgroundName:'Soldier'});
- for(const title of ['Overview','Actions & Combat','Spells','Equipment','Features & Traits','Description','Notes','Borruk','Spear','16','Athletics'])
+ for(const title of ['Overview','Actions &amp; Combat','Spells','Equipment','Features & Traits','Description','Notes','Borruk','Spear','16','Athletics'])
    assert.ok(html.includes(title),title);
  assert.ok(html.includes('data-action="game-hp-minus"'));
  assert.ok(html.includes('role="tablist"'));
