@@ -1,0 +1,33 @@
+/* Atlas Builder v0.7 identity cards: same surface, animated reveal, no duplicate hero image. */
+.identity-v2-card{background:linear-gradient(125deg,#1b2940,#151f31);border:1px solid #455774;border-radius:15px;overflow:hidden;min-width:0;transition:border-color .2s,box-shadow .2s}
+.identity-v2-card.selected{border-color:#cead64;box-shadow:inset 0 0 0 1px #9e834b60}
+.identity-v2-card.expanded{border-color:#bca169;box-shadow:0 10px 28px #0006}
+.identity-v2-main{display:flex;gap:13px;align-items:center;padding:12px;min-height:105px}
+.identity-v2-photo{width:82px;height:82px;flex:none;position:relative;overflow:hidden;border-radius:11px;background-color:#23364c;border:1px solid #5a6375;background-repeat:no-repeat}
+.identity-v2-photo img{height:100%;width:100%;object-fit:cover}
+.atlas-photo-ready .identity-v2-photo.has-photo img{opacity:0}
+.identity-v2-heading{min-width:0;flex:1}
+.identity-v2-heading strong{display:block;color:#fff3d6;font-size:16px;line-height:1.4}
+.identity-v2-heading p{color:#c3ccde;line-height:1.55;font-size:12px;margin:5px 0 6px}
+.identity-v2-source{font-size:10px;color:#e2c587;letter-spacing:.03em}
+.identity-v2-expand{align-self:flex-start;width:36px;height:36px;border:1px solid #6b7b90;border-radius:10px;background:#293852;color:#f6d999;flex:none;font-size:22px;line-height:1}
+.identity-v2-expand:hover{background:#344764}
+.identity-v2-reveal{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .26s ease,opacity .2s ease}
+.identity-v2-reveal-inner{min-height:0;overflow:hidden;padding:0 14px;visibility:hidden;transition:visibility 0s linear .26s}
+.identity-v2-card.expanded .identity-v2-reveal{grid-template-rows:1fr;opacity:1}
+.identity-v2-card.expanded .identity-v2-reveal-inner{padding:8px 14px 15px;visibility:visible;transition:visibility 0s}
+.identity-v2-traits{border-top:1px solid #41506a;padding-top:11px;margin-bottom:14px}
+.identity-v2-traits h4{margin:0 0 10px;color:#f1d197;font-size:13px}
+.identity-v2-trait{display:grid;grid-template-columns:minmax(115px,.3fr) 1fr;gap:12px;padding:9px 0;border-bottom:1px solid #3d4d6273}
+.identity-v2-trait:last-child{border-bottom:0}
+.identity-v2-trait strong{font-size:12px;color:#eee6d7}
+.identity-v2-trait p,.identity-v2-traits>p{margin:0;color:#bfcbdd;font-size:12px;line-height:1.6}
+.identity-v2-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 16px}
+.identity-v2-facts>div{border:1px solid #445575;background:#202e45;padding:9px 10px;border-radius:10px}
+.identity-v2-facts dt{font-size:10px;color:#9fbbd8;margin-bottom:5px}
+.identity-v2-facts dd{font-size:12px;color:#f6e9d3;margin:0;line-height:1.55;overflow-wrap:anywhere}
+.identity-v2-reveal .btn{margin-top:4px}
+.identity-v2-card .identity-locked{font-size:12px;color:#d8ab98;margin:10px 0 0}
+@media(min-width:950px){.identity-grid:has(.identity-v2-card){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:12px}.identity-v2-card.expanded{grid-column:1/-1}}
+@media(max-width:580px){.identity-v2-main{gap:10px;padding:10px}.identity-v2-photo{width:70px;height:82px}.identity-v2-heading strong{font-size:14px}.identity-v2-heading p{font-size:11px}.identity-v2-trait{grid-template-columns:1fr;gap:3px}.identity-v2-facts{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.identity-v2-reveal,.identity-v2-reveal-inner,.identity-v2-card{transition:none!important}}
