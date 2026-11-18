@@ -93,3 +93,18 @@ Ability scores now support a D&D 2024 **Standard Array / 27-point Point Buy** to
 - Final Review renders a broad Character Sheet preview: identity, scores/modifiers, base HP from fixed progression, AC and explicit equipped armor/shield, initiative, proficiency bonus, saving throws, 18 skills, feats/features that the current fixture actually knows, starting inventory and custom gear, money, story, and placeholders for unresolved spells/conditions/speed.
 - Honest limitations: class/spell progression, all feature effects, item equip eligibility, species speed, spell slots and additional gameplay fields are **not** complete or authoritative yet. The sheet is a best-effort preview, not a fully validated 2024 character.
 - This release adds **no authentication, cloud synchronization, D1 writes or dice rolling UI**.
+
+## v0.8 — Human Skillful, Versatile and explained 2024 choices
+
+- **Human Skillful:** explicitly select one additional Skill Proficiency, independently of class choices (e.g., Fighter 2 + Human 1) and fixed Background proficiencies. Duplicate skills are disallowed.
+- **Human Versatile:** choose a second SRD Origin Feat in Background Training, independently of the Background's automatically granted Origin Feat. Nonrepeatable duplicates are disabled.
+- **Skilled feat:** requires three additional, distinct Skill or Tool Proficiencies and records their source. A Human Fighter with Soldier Background normally has five proficiencies (2 Fighter, 2 Soldier, 1 Skillful); Skilled can add three more if legal.
+- **Magic Initiate:** its description is visible, but choosing it as a second Human feat is not considered complete until the spell-list, cantrip, level-1 spell and spellcasting ability selector is implemented. The UI blocks character submission rather than silently granting invented spells. The same missing spell configuration applies to Acolyte/Sage background spells.
+- **Class selector:** skill options are clickable inside the expanded, selected Class card; they are shared with Class Training. Both class and training views display readable names without repeated `Skill:` prefixes.
+- **Background selector:** cleaned up Skill/Tool names and added an explanation for the automatically granted Origin Feat.
+- **Fighting Styles:** richer EN/EL original explanations describing effects and typical play, including 2024 Protection and Great Weapon Fighting. No 2014 wording is used for calculations.
+- **Weapon Mastery:** every SRD weapon in the training selector displays its mastery property and a concise EN/EL mechanics explanation (Cleave, Graze, Nick, Push, Sap, Slow, Topple and Vex).
+- **Character preview:** Human Skillful and Skilled proficiencies appear with their source in the proficiency summary; Versatile feat appears on the sheet. Alert adds proficiency bonus to Initiative in the preview.
+- No change to authentication, live sync, D1 API, production branch or dice-rolling UI. The frontend still has mock Save/Approval operations.
+
+Source reference: SRD 5.2.1 (CC BY 4.0). Non-SRD expansions remain licensed DM content packs, not copied into the core.
