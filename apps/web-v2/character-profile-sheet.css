@@ -68,3 +68,11 @@
 .training-panel .style-explainer.active{border-color:#dbbd75;background:#35402f}
 .training-panel .style-explainer.active strong{color:#ffe3a8}
 .training-panel .style-explainer.active small{color:#f2ead8}
+
+.sheet-attack-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sheet-attack-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;background:#202f46;border:1px solid #49627c;padding:10px;border-radius:9px;min-width:0}
+.sheet-attack-row strong{font-size:12px;color:#e8eefa}
+.sheet-attack-row b{font-size:17px;color:#f2d594}
+.sheet-attack-row span,.sheet-attack-row small{grid-column:1/-1;font-size:11px;color:#bccbdb;line-height:1.5}
+.sheet-attack-row .sheet-attack-warning{color:#ffbbac;border-left:3px solid #b77e62;padding-left:7px}
+@media(max-width:560px){.sheet-attack-list{grid-template-columns:1fr}}
