@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           npm install --prefix /tmp/atlas-playwright --no-audit --no-fund --no-save playwright@1.57.0
-          node /tmp/atlas-playwright/node_modules/playwright/cli.js install --with-deps --only-shell chromium
+          command -v google-chrome || command -v google-chrome-stable
       - name: Run live desktop + mobile UI smoke
         shell: bash
         run: |
