@@ -126,14 +126,27 @@
     if(!groups.length)return `<p class="inline-info">${esc(t('fixedTrainingOnly'))}</p>`;
     return groups.map(group=>{
       const selection=selected[group.id]||[];
-      return `<section class="training-group"><div class="training-head"><strong>${esc(t('chooseProficiencies'))}</strong>
-        <span class="chip ${selection.length===group.count?'gold':'muted'}">${selection.length}/${group.count}</span></div>
-        <p>${esc(t('proficiencyHint'))}</p><div class="skill-picker" role="group" aria-label="${esc(t('chooseProficiencies'))}">
+      const lang=locale==='el';
+      const kind=group.options.some(x=>x.id.startsWith('tool-'))?(lang?'εργαλείο ή δεξιότητα':'tool or skill'):(lang?'δεξιότητα':'skill');
+      return `<section class="training-group atlas-training-choices">
+        <div class="atlas-extra-heading">
+          <div><h4>${esc(lang?'Επίλεξε '+group.count+' '+(group.count===1?kind:'εξοικειώσεις'):'Choose '+group.count+' '+(group.count===1?kind:'proficiencies'))}</h4>
+          <p>${esc(t('proficiencyHint'))}</p></div>
+          <span class="chip ${selection.length===group.count?'gold':'muted'}">${selection.length} / ${group.count}</span>
+        </div>
+        <div class="atlas-choices-grid" role="group" aria-label="${esc(t('chooseProficiencies'))}">
         ${group.options.map(opt=>{
-          const checked=selection.includes(opt.id),blocked=disabledIds.includes(opt.id);
-          return `<button type="button" class="skill-chip ${checked?'active':''}" aria-pressed="${checked}"
+          const checked=selection.includes(opt.id);
+          const blocked=disabledIds.includes(opt.id)&&!checked;
+          const score=draft?window.ATLAS_V2_INSIGHTS?.grantScore(draft,opt.id,bonusFor,checked):null;
+          return `<button type="button" class="atlas-choice-row ${checked?'active':''}" aria-pressed="${checked}"
             data-action="${action}" data-group="${esc(group.id)}" data-id="${esc(opt.id)}" ${blocked?'disabled':''}>
-            ${checked?'✓ ':''}${esc(prefLabel(opt,locale))}${draft&&window.ATLAS_V2_INSIGHTS?.grantScore(draft,opt.id,bonusFor,true)!==null?` <strong class="skill-mod">${window.ATLAS_V2_INSIGHTS.sign(window.ATLAS_V2_INSIGHTS.grantScore(draft,opt.id,bonusFor,checked||blocked))}</strong>`:''}${blocked?' · '+esc(t('alreadyGranted')):''}</button>`;
+            <span class="atlas-choice-indicator">${checked?'✓':'+'}</span>
+            <span class="atlas-choice-name"><strong>${esc(prefLabel(opt,locale))}</strong>
+              ${blocked?`<small class="atlas-choice-note">${esc(t('alreadyGranted'))}</small>`:''}
+            </span>
+            ${score!==null?`<b class="skill-mod">${window.ATLAS_V2_INSIGHTS.sign(score)}</b>`:''}
+          </button>`;
         }).join('')}</div></section>`;
     }).join('');
   }
