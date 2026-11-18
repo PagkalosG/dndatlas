@@ -108,3 +108,20 @@ Ability scores now support a D&D 2024 **Standard Array / 27-point Point Buy** to
 - No change to authentication, live sync, D1 API, production branch or dice-rolling UI. The frontend still has mock Save/Approval operations.
 
 Source reference: SRD 5.2.1 (CC BY 4.0). Non-SRD expansions remain licensed DM content packs, not copied into the core.
+
+## v0.9 — Persistent Builder controls and playable Character Sheet
+
+**Original Atlas UI remains the primary frontend** in `apps/web-v2`. This release does not use Claude's React UI, change GitHub Pages production, or introduce authentication/cloud synchronization.
+
+- Builder progress steps stick immediately below the application header while scrolling Species, Classes, Backgrounds, Skills, Equipment, etc. The current step scrolls horizontally on smaller screens.
+- Back / Save Draft / Next stays fixed and accessible above the bottom mobile navigation. Space is reserved at the bottom of the Builder so the last fields can still be reached.
+- Character Sheet follows a familiar **character header + core statistics + tabbed character information** organization, inspired by D&D Beyond's information hierarchy but using the original Atlas visual system: **Overview**, **Actions & Combat**, **Spells**, **Equipment**, **Features & Traits**, **Description**, **Notes**.
+- Overview displays ability scores/modifiers, saving throws, skills/proficiencies, core combat statistics, weapon attacks, rest actions and conditions.
+- Combat provides locally persisted current/temporary HP updates, recorded rests, death-save counters and conditions. It lists basic D&D 2024 actions with explanations. **No dice rolling UI**.
+- Equipment uses the Builder's SRD item and starting pack data, with provenance, quantity consumption/restoration and worn armor/shield selections.
+- Spells provides **explicitly manual** local spell notes and configurable slot counters; spellbook legality, granted spells and the complete spell slot progression are **not yet implemented**.
+- Features & Traits and Description show details already present in the SRD-based Builder, while explicitly indicating rules not yet implemented.
+- Personal Notes and Session Journal can be added/removed and saved. Note visibility is a label only until real server-side permissions exist.
+- All local state uses a single IndexedDB snapshot (`dnd-atlas-v2-prototype`) via `components/local-state.js`. Save Draft, DM Approve/Request Changes/Reject and Campaign Settings Save persist in this browser. Gameplay actions and journal/notes persist immediately. Reopening the same browser reloads them.
+- **No cross-device synchronization or authentication.** Browser data can be lost if the user clears site data. Users should not treat the local prototype as a cloud backup.
+- Character HP from fixed hit-die progression, AC and attacks are **previews of implemented rules only**. Feats such as Tough, class effects, spell slots and unmodeled species/class features can affect the actual character sheet; more Rules Engine work is required before these are authoritative.
