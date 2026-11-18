@@ -43,6 +43,8 @@ jobs:
           node --check apps/web-v2/components/builder-2024.js
           node --check apps/web-v2/components/identity-v2.js
           node --check apps/web-v2/components/character-profile-sheet.js
+          node --check apps/web-v2/components/gameplay-v2.js
+          node --check apps/web-v2/components/local-state.js
           node --check apps/web-v2/components/builder-insights.js
           node --check apps/web-v2/catalog/srd-2024.js
           node --test tests/web-v2-*.test.cjs
@@ -103,6 +105,10 @@ jobs:
               echo "- ${preview}/" >> "${GITHUB_STEP_SUMMARY}"
               echo '- Verified all core UI components, including new Ability Allocation' >> "${GITHUB_STEP_SUMMARY}"
               echo '- Frontend mock only; NO D1, API or authentication binding' >> "${GITHUB_STEP_SUMMARY}"
+              curl --fail --silent --show-error --max-time 15 -o /tmp/atlas-play.js "${preview}/components/gameplay-v2.js"
+              grep -Fq 'ATLAS_V2_PLAY' /tmp/atlas-play.js
+              curl --fail --silent --show-error --max-time 15 -o /tmp/atlas-local.js "${preview}/components/local-state.js"
+              grep -Fq 'ATLAS_V2_LOCAL' /tmp/atlas-local.js
               echo 'UI preview deployed and checked.'
               exit 0
             fi
