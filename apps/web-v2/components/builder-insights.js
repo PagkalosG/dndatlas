@@ -12,8 +12,8 @@
     'skill-stealth':'dex','skill-survival':'wis'
   };
   const L={
-    en:{hitDie:'Hit Die',originFeat:'Origin Feat',base:'Assigned',bonus:'Background',final:'Final score',modifier:'Modifier',grants:'Proficiencies & bonuses',automatic:'Automatically granted',class:'Class',background:'Background',classChoice:'Chosen from class',backgroundChoice:'Chosen from background',saves:'Saving throws',skills:'Skills',tools:'Tools',weapons:'Weapons & armor',none:'No additional grants yet',skill:'Skill',uses:'Uses',weight:'Weight',damage:'Damage',properties:'Properties',mastery:'Mastery',ac:'Armor class',contains:'Contains',category:'Category',details:'Details',included:'Starting equipment',owned:'Already selected',fromPack:'Included in pack',bought:'Purchased separately',packContents:'Contents of this pack',unknownContents:'No detailed pack contents in the SRD snapshot',notOfficial:'Original concept art shown until licensed realistic images are added.',model:'UI preview values, not full rules validation',currency:'Available funds',selectedItems:'Selected / included',primaryAbility:'Key abilities',extra:'Selected via a class or background choice'},
-    el:{hitDie:'Ζάρι Ζωής',originFeat:'Ταλέντο Προέλευσης',base:'Ανάθεση',bonus:'Προέλευση',final:'Τελική τιμή',modifier:'Τροποποιητής',grants:'Εξοικειώσεις & μπόνους',automatic:'Αυτόματες εξοικειώσεις',class:'Κλάση',background:'Προέλευση',classChoice:'Επιλογή Κλάσης',backgroundChoice:'Επιλογή Προέλευσης',saves:'Σωτήριες Βολές',skills:'Δεξιότητες',tools:'Εργαλεία',weapons:'Όπλα & πανοπλίες',none:'Δεν υπάρχουν άλλες εξοικειώσεις',skill:'Δεξιότητα',uses:'Χρήσεις',weight:'Βάρος',damage:'Ζημιά',properties:'Ιδιότητες',mastery:'Ικανότητα Όπλου',ac:'Κλάση πανοπλίας',contains:'Περιέχει',category:'Κατηγορία',details:'Λεπτομέρειες',included:'Αρχικός εξοπλισμός',owned:'Ήδη επιλεγμένο',fromPack:'Περιλαμβάνεται στο πακέτο',bought:'Αγοράστηκε ξεχωριστά',packContents:'Περιεχόμενα πακέτου',unknownContents:'Δεν υπάρχουν αναλυτικά περιεχόμενα για αυτό το πακέτο στην πηγή',notOfficial:'Προσωρινές εικονογραφήσεις, μέχρι να προστεθούν ρεαλιστικές εικόνες με κατάλληλη άδεια.',model:'Προεπισκόπηση UI — όχι πλήρης επικύρωση κανόνων',currency:'Διαθέσιμα χρήματα',selectedItems:'Επιλεγμένα / περιλαμβανόμενα',primaryAbility:'Βασικά χαρακτηριστικά',extra:'Επιλογή από Κλάση ή Προέλευση'}
+    en:{hitDie:'Hit Die',originFeat:'Origin Feat',base:'Assigned',bonus:'Background',final:'Final score',modifier:'Modifier',grants:'Proficiencies & bonuses',automatic:'Automatically granted',class:'Class',background:'Background',classChoice:'Chosen from class',backgroundChoice:'Chosen from background',speciesChoice:'Human · Skillful',featChoice:'Origin Feat · Skilled',saves:'Saving throws',skills:'Skills',tools:'Tools',weapons:'Weapons & armor',none:'No additional grants yet',skill:'Skill',uses:'Uses',weight:'Weight',damage:'Damage',properties:'Properties',mastery:'Mastery',ac:'Armor class',contains:'Contains',category:'Category',details:'Details',included:'Starting equipment',owned:'Already selected',fromPack:'Included in pack',bought:'Purchased separately',packContents:'Contents of this pack',unknownContents:'No detailed pack contents in the SRD snapshot',notOfficial:'Original concept art shown until licensed realistic images are added.',model:'UI preview values, not full rules validation',currency:'Available funds',selectedItems:'Selected / included',primaryAbility:'Key abilities',extra:'Selected via a class or background choice'},
+    el:{hitDie:'Ζάρι Ζωής',originFeat:'Ταλέντο Προέλευσης',base:'Ανάθεση',bonus:'Προέλευση',final:'Τελική τιμή',modifier:'Τροποποιητής',grants:'Εξοικειώσεις & μπόνους',automatic:'Αυτόματες εξοικειώσεις',class:'Κλάση',background:'Προέλευση',classChoice:'Επιλογή Κλάσης',backgroundChoice:'Επιλογή Προέλευσης',speciesChoice:'Human · Skillful',featChoice:'Origin Feat · Skilled',saves:'Σωτήριες Βολές',skills:'Δεξιότητες',tools:'Εργαλεία',weapons:'Όπλα & πανοπλίες',none:'Δεν υπάρχουν άλλες εξοικειώσεις',skill:'Δεξιότητα',uses:'Χρήσεις',weight:'Βάρος',damage:'Ζημιά',properties:'Ιδιότητες',mastery:'Ικανότητα Όπλου',ac:'Κλάση πανοπλίας',contains:'Περιέχει',category:'Κατηγορία',details:'Λεπτομέρειες',included:'Αρχικός εξοπλισμός',owned:'Ήδη επιλεγμένο',fromPack:'Περιλαμβάνεται στο πακέτο',bought:'Αγοράστηκε ξεχωριστά',packContents:'Περιεχόμενα πακέτου',unknownContents:'Δεν υπάρχουν αναλυτικά περιεχόμενα για αυτό το πακέτο στην πηγή',notOfficial:'Προσωρινές εικονογραφήσεις, μέχρι να προστεθούν ρεαλιστικές εικόνες με κατάλληλη άδεια.',model:'Προεπισκόπηση UI — όχι πλήρης επικύρωση κανόνων',currency:'Διαθέσιμα χρήματα',selectedItems:'Επιλεγμένα / περιλαμβανόμενα',primaryAbility:'Βασικά χαρακτηριστικά',extra:'Επιλογή από Κλάση ή Προέλευση'}
   };
   const sign=value=>value>=0?`+${value}`:String(value);
   const modifier=score=>Math.floor((Number(score)-10)/2);
@@ -37,6 +37,17 @@
     for(const item of bg?.proficiencies||[])add(item,'background','automatic');
     for(const group of cl?.skillChoices||[])for(const id of draft.classChoices[group.id]||[])add(group.options.find(x=>x.id===id), 'class','choice');
     for(const group of bg?.skillChoices||[])for(const id of draft.backgroundChoices[group.id]||[])add(group.options.find(x=>x.id===id),'background','choice');
+    const extra=window.ATLAS_V2_ORIGINS;
+    if(draft.species==='human'&&draft.humanSkill){
+      const o=extra?.skillOptions.find(s=>s.id===draft.humanSkill);
+      if(o)add({id:o.id,name:o.en},'species','choice');
+    }
+    if(draft.species==='human'&&draft.humanFeat==='skilled'){
+      for(const id of draft.skilledChoices||[]){
+        const o=[...(extra?.skillOptions||[]),...(extra?.toolOptions||[])].find(s=>s.id===id);
+        if(o)add({id:o.id,name:o.en},'feat','choice');
+      }
+    }
     return entries;
   }
   function abilityForGrant(id){
@@ -57,7 +68,8 @@
       ${sections.map(([kind,title])=>{const entries=values.filter(e=>e.kind===kind);if(!entries.length)return '';
         return `<div class="grant-group"><h4>${esc(title)}</h4><div class="grant-rows">${entries.map(e=>{
           const total=grantScore(draft,e.id,bonusFor);
-          const from=e.sources.map(s=>s.source==='choice'?(s.origin==='class'?t.classChoice:t.backgroundChoice):(s.origin==='class'?t.class:t.background)).join(' + ');
+          const from=e.sources.map(s=>s.origin==='species'?t.speciesChoice:s.origin==='feat'?t.featChoice:
+            s.source==='choice'?(s.origin==='class'?t.classChoice:t.backgroundChoice):(s.origin==='class'?t.class:t.background)).join(' + ');
           return `<div class="grant-row"><span><strong>${esc(cleanName(e))}</strong><small>${esc(from)}</small></span>${total!==null?`<b class="grant-modifier">${esc(sign(total))}</b>`:''}</div>`;
         }).join('')}</div></div>`;}).join('')}</section>`;
   }
