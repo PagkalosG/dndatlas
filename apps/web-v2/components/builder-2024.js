@@ -11,20 +11,20 @@
   const fighterStyles=['Archery','Defense','Dueling','Great Weapon Fighting','Protection','Two-Weapon Fighting'];
   const fightingStyleDescriptions={
     en:{
-      'Archery':'Improve your accuracy with ranged weapons.',
-      'Defense':'Improve Armor Class while wearing armor.',
-      'Dueling':'Improve damage when fighting with a single one-handed melee weapon.',
-      'Great Weapon Fighting':'Improve low damage rolls with two-handed melee weapons.',
-      'Protection':'Use your shield and Reaction to protect a nearby ally against an attacker.',
-      'Two-Weapon Fighting':'Add your ability modifier to damage from the extra attack with a Light weapon.'
+      'Archery':'You gain +2 to attack rolls with Ranged weapons. This makes shots with bows and crossbows more likely to hit. It does not increase the damage when you hit.',
+      'Defense':'While wearing Light, Medium or Heavy armor, your Armor Class rises by 1. Higher AC makes enemies less likely to hit you; it does not give extra Hit Points.',
+      'Dueling':'With a Melee weapon held in one hand and no other weapon held, your hits deal +2 damage. A shield in the other hand is allowed; carrying two weapons removes this bonus.',
+      'Great Weapon Fighting':'For melee weapon damage rolled while holding a Two-Handed or Versatile weapon with two hands, treat each damage die showing 1 or 2 as a 3. It improves low damage rolls rather than accuracy.',
+      'Protection':'While holding a shield, when a creature you can see attacks an ally within 5 feet of you, spend your Reaction to impose Disadvantage on that attack and further attacks against that ally until your next turn begins, provided you stay near them.',
+      'Two-Weapon Fighting':'When the Light weapon property grants an extra attack with another weapon, you can also add your ability modifier to that extra attack’s damage. This does not grant an additional attack on its own.'
     },
     el:{
-      'Archery':'Βελτιώνει την ακρίβεια με όπλα από απόσταση.',
-      'Defense':'Αυξάνει την Κλάση Πανοπλίας (AC) όταν φοράς πανοπλία.',
-      'Dueling':'Ενισχύει τη ζημιά όταν κρατάς ένα μόνο όπλο μάχης ενός χεριού.',
-      'Great Weapon Fighting':'Βελτιώνει χαμηλές ζαριές ζημιάς με όπλα μάχης δύο χεριών.',
-      'Protection':'Χρησιμοποιείς την ασπίδα και το Reaction για να προστατεύσεις κοντινό σύμμαχο.',
-      'Two-Weapon Fighting':'Προσθέτεις το Ability Modifier στη ζημιά της πρόσθετης επίθεσης με Light όπλο.'
+      'Archery':'Κερδίζεις +2 στα attack rolls με Ranged όπλα, όπως τόξα και βαλλίστρες. Έτσι πετυχαίνεις συχνότερα τον στόχο, χωρίς να αυξάνεται η ζημιά της επιτυχίας.',
+      'Defense':'Όταν φοράς Light, Medium ή Heavy armor, το Armor Class (AC) αυξάνεται κατά 1. Οι εχθροί δυσκολεύονται περισσότερο να σε πετύχουν· δεν αποκτάς επιπλέον HP.',
+      'Dueling':'Όταν κρατάς ένα Melee όπλο στο ένα χέρι και κανένα άλλο όπλο, προκαλείς +2 damage σε κάθε επιτυχημένο χτύπημα. Μπορείς να κρατάς Shield στο άλλο χέρι.',
+      'Great Weapon Fighting':'Με Melee όπλο που έχει Two-Handed ή Versatile property και το κρατάς με τα δύο χέρια, κάθε damage die που δείχνει 1 ή 2 υπολογίζεται ως 3. Βελτιώνει τις χαμηλές ζαριές ζημιάς, όχι την ακρίβεια.',
+      'Protection':'Όταν κρατάς Shield και βλέπεις κάποιον να επιτίθεται σε σύμμαχο εντός 5 feet, ξοδεύεις Reaction για να του επιβάλεις Disadvantage. Η προστασία συνεχίζεται και σε επόμενες επιθέσεις κατά του ίδιου συμμάχου έως τον επόμενο γύρο σου, όσο παραμένεις δίπλα του.',
+      'Two-Weapon Fighting':'Όταν το Light property σου επιτρέπει μια επιπλέον επίθεση με άλλο όπλο, προσθέτεις και το Ability Modifier στη ζημιά αυτής της επίθεσης. Δεν δημιουργεί από μόνο του μια νέα επίθεση.'
     }
   };
   const skillEL = {
@@ -55,7 +55,7 @@
   const classChoicesValid = draft => {
     const cl=classInfo(draft.class);
     if(!cl)return false;
-    const grantedSkills = new Set(granted(backgroundInfo(draft.background)));
+    const grantedSkills = new Set([...granted(backgroundInfo(draft.background)), ...(draft.species==='human'&&draft.humanSkill?[draft.humanSkill]:[]), ...(draft.humanFeat==='skilled'?(draft.skilledChoices||[]):[])]);
     return cl.skillChoices.every(group=>{
       const selected=draft.classChoices[group.id]||[];
       return selected.length===group.count && new Set(selected).size===selected.length &&
@@ -148,7 +148,8 @@
         <span>${esc(t('hitDie'))}: d${cl.hitDie}</span>
         <span>${esc(t('savingThrows'))}: ${cl.savingThrows.map(s=>esc(s.name)).join(', ')}</span></div>
       <h3>${esc(t('classProficiencies'))}</h3>
-      ${renderChoices({groups:cl.skillChoices,selected:draft.classChoices,action:'class-proficiency',locale,t,esc,draft,disabledIds:granted(bg)})}
+      ${renderChoices({groups:cl.skillChoices,selected:draft.classChoices,action:'class-proficiency',locale,t,esc,draft,disabledIds:[...granted(bg),...(draft.species==='human'&&draft.humanSkill?[draft.humanSkill]:[]),...(draft.humanFeat==='skilled'?(draft.skilledChoices||[]):[])]})}
+      ${window.ATLAS_V2_ORIGINS.renderHumanSkill({draft,locale,esc})}
       <div class="training-grants"><b>${esc(t('automaticallyGranted'))}</b><div class="grant-chips">
         ${cl.proficiencies.filter(p=>!/^saving-throw/.test(p.id)).map(p=>`<span class="chip muted">${esc(grantLabel(p,locale))}</span>`).join('')}</div></div>
       ${window.ATLAS_V2_INSIGHTS.renderGrantOverview({draft,locale,esc,cl,bg,bonusFor})}
@@ -160,7 +161,7 @@
         <section class="training-group"><div class="training-head"><strong>${esc(t('weaponMastery'))}</strong><span class="chip ${draft.weaponMasteries.length===3?'gold':'muted'}">${draft.weaponMasteries.length}/3</span></div>
           <p>${esc(t('fighterMasteryHint'))}</p><div class="mastery-grid">${source.equipment.filter(i=>i.category==='weapons').map(item=>`
             <button type="button" class="skill-chip ${draft.weaponMasteries.includes(item.id)?'active':''}" aria-pressed="${draft.weaponMasteries.includes(item.id)}"
-              data-action="weapon-mastery" data-id="${esc(item.id)}">${draft.weaponMasteries.includes(item.id)?'★ ':''}${esc(item.name)}</button>`).join('')}</div></section>`:
+              data-action="weapon-mastery" data-id="${esc(item.id)}"><strong>${draft.weaponMasteries.includes(item.id)?'★ ':''}${esc(item.name)}</strong><span class="atlas-mastery-name">${esc(item.mastery?.name||'—')}</span><small>${esc(window.ATLAS_V2_ORIGINS.MASTERIES[item.mastery?.index]?.[locale==='el'?'el':'en']||'')}</small></button>`).join('')}</div></section>`:
         `<div class="inline-info">${esc(t('advancedClassOptions'))}</div>`}
       
       ${cl.subclasses.length?`<p class="source-note">${esc(t('subclassAfterLevelThree'))}: ${cl.subclasses.map(x=>esc(x.name)).join(', ')} (${esc(t('srdSource'))})</p>`:''}
@@ -173,7 +174,9 @@
       <span>${esc(t('originFeat'))}: ${esc(bg.feat?.name||'—')}</span></div>
       <h3>${esc(t('backgroundGrants'))}</h3><div class="grant-chips">
       ${bg.proficiencies.map(p=>`<span class="chip muted">${esc(prefLabel(p,locale))}</span>`).join('')}</div>
+      ${window.ATLAS_V2_ORIGINS.renderBackgroundFeat({draft,locale,esc})}
       ${renderChoices({groups:bg.skillChoices,selected:draft.backgroundChoices,action:'background-proficiency',locale,t,esc,draft})}
+      ${window.ATLAS_V2_ORIGINS.renderHumanFeat({draft,locale,esc})}
       <div class="inline-info">${esc(t('backgroundBonusHint'))}</div></div>`;
   }
   function renderBackgroundBonuses({draft,t,esc}){
