@@ -1,0 +1,45 @@
+name: Browser-test Atlas v2 playable UI
+
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - 'apps/web-v2/**'
+      - 'tests/web-v2-browser-smoke.mjs'
+      - '.github/workflows/atlas-v2-browser-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-v2-browser-smoke
+  cancel-in-progress: true
+
+jobs:
+  browser-smoke:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install temporary browser test runtime
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/atlas-playwright --no-audit --no-fund --no-save playwright@1.57.0
+          node /tmp/atlas-playwright/node_modules/playwright/cli.js install --with-deps --only-shell chromium
+      - name: Run live desktop + mobile UI smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8787 --bind 127.0.0.1 --directory apps/web-v2 >/tmp/atlas-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent http://127.0.0.1:8787/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/web-v2-browser-smoke.mjs
