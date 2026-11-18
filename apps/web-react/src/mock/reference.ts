@@ -251,5 +251,5 @@ export const items: Item[] = fromCatalogItems(original_items);
 
 // Origin feat catalog is the verified 2024 core (no PHB-only general feats).
 export const feats: Feat[] = Object.entries(window.ATLAS_V2_ORIGINS?.FEATS || {}).map(([id, feat]) => ({
-  id, name: L(feat.name, feat.name), summary: L(feat.en, feat.el), minLevel: 1, category: 'origin' as const,
+  id, name: L(feat.name), summary: L(feat.en, feat.el), minLevel: 1, category: 'origin' as const,
 }));
