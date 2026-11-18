@@ -274,7 +274,7 @@
   let writeQueue=Promise.resolve();
   function snapshot() {
     return {draft:structuredClone(state.draft),saved:state.saved?structuredClone(state.saved):null,
-      status:state.status,campaign:structuredClone(state.campaign),
+      status:state.status,dirty:state.dirty,campaignDirty:state.campaignDirty,campaign:structuredClone(state.campaign),
       savedCampaign:structuredClone(state.savedCampaign),inviteCreated:state.inviteCreated,
       gameplay:structuredClone(state.gameplay)};
   }
@@ -623,7 +623,7 @@
       state.savedCampaign=Object.assign(campaignUI.originalSettings(),saved.savedCampaign||{});
       state.inviteCreated=!!saved.inviteCreated;
       state.gameplay=playUI.normalize(saved.gameplay);
-      state.dirty=false;state.campaignDirty=false;
+      state.dirty=!!saved.dirty;state.campaignDirty=!!saved.campaignDirty;
     }
     state.localLoaded=true;render();
   }).catch(()=>{
