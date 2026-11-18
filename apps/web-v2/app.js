@@ -8,6 +8,9 @@
   const insights = window.ATLAS_V2_INSIGHTS;
   const abilityUI = window.ATLAS_V2_ABILITIES;
   const identityUI = window.ATLAS_V2_IDENTITY;
+  const identityV2 = window.ATLAS_V2_IDENTITY_V2;
+  const characterUI = window.ATLAS_V2_CHARACTER_SHEET;
+  if (!identityV2 || !characterUI) throw new Error('Missing character details components');
   if (!identityUI) throw new Error('Missing identity card UI');
   identityUI.initPhotos();
   if (!abilityUI) throw new Error('Missing 2024 Ability Allocation component');
@@ -20,12 +23,13 @@
   const abilityKeys = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
   // v0.6: single-class starting-level flow. Class-specific multiclass leveling comes later.
   const stepKeys = () => ['Species', 'Class', ...(state.savedCampaign.startingLevel >= 3 ? ['Subclass'] : []),
-    'Background', 'Ability', 'ClassTraining', 'BackgroundTraining', 'StartingEquipment', 'Inventory', 'Review'];
+    'Background', 'Ability', 'ClassTraining', 'BackgroundTraining', 'StartingEquipment', 'Inventory', 'Profile', 'Review'];
   const subclassOptions = () => builderUI.classInfo(state.draft.class)?.subclasses || [];
   const subclassRequired = () => state.savedCampaign.startingLevel >= 3 && subclassOptions().length > 0;
   const defaultDraft = () => ({ name: '', species: null, class: null, subclass: null, background: null, equipment: null, abilityMethod: 'standard', abilities: abilityUI.initialScores('standard'), abilityAllocations: {},
     classChoices: {}, backgroundChoices: {}, fightingStyle: null, weaponMasteries: [], bonusMode: 'split', bonusTwo: null, bonusOne: null,
-    classPackage: null, backgroundPackage: null, packageChoices: {}, purchases: {} });
+    classPackage: null, backgroundPackage: null, packageChoices: {}, purchases: {}, customItems: [],
+    alignment: '', backgroundStory: '', portraitData: null, equippedArmor: null, shieldEquipped: false });
   const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false, libraryPreview: null, libraryError: null, libraryStaged: [], libraryBusy: false, libraryRights: false, expandedOption: null };
   const main = document.getElementById('main');
   const text = (key) => catalog.strings[state.locale][key] ?? key;
@@ -122,13 +126,13 @@
   }
 
   function optionCards(group,key){
-    const discovery=group==='species'||group==='classes';
+    const discovery=['species','classes','backgrounds'].includes(group);
     return `<div class="catalog-toolbar"><label class="search-box"><span aria-hidden="true">⌕</span><input id="choice-search" type="search" placeholder="${escape(text('filterPlaceholder'))}" aria-label="${escape(text('search'))}" value="${escape(state.query)}"></label>
       <div class="filter-set" role="group"><button data-action="filter" data-filter="all" class="filter-chip ${state.filter==='all'?'active':''}">${escape(text('showAll'))}</button>
       <button data-action="filter" data-filter="available" class="filter-chip ${state.filter==='available'?'active':''}">${escape(text('availableOnly'))}</button></div></div>
       <div class="${discovery?'identity-grid':'option-grid'}" id="choice-grid">${catalog[group].map(item=>{
        const selected=state.draft[key]===item.id;
-       if(discovery)return identityUI.renderCard({item,group,selected,expanded:state.expandedOption===group+':'+item.id,locale:state.locale,esc:escape,sourceClass:builderUI.classInfo});
+       if(discovery)return identityV2.renderCard({item,group,selected,expanded:state.expandedOption===group+':'+item.id,locale:state.locale,esc:escape,sourceClass:builderUI.classInfo,sourceBackground:builderUI.backgroundInfo});
        return `<button type="button" data-option-card data-available="${!!item.licensed}" class="illustrated-option ${selected?'selected':''} ${!item.licensed?'locked':''}" data-action="choose" data-id="${escape(item.id)}" data-kind="${escape(group)}" data-search="${escape((item.title.en+' '+item.title.el).toLowerCase())}" ${!item.licensed?'disabled':''} aria-pressed="${selected}">
          <div class="illustration">${image(item)}${selected?'<span class="selected-check">✓</span>':''}</div>
          <div class="option-detail"><strong>${escape(label(item))}</strong><p>${escape(item.description[state.locale])}</p><span class="option-source">${escape(item.source)}</span>${!item.licensed?`<span class="lock-hint">${escape(text('lockedHint'))}</span>`:''}</div></button>`;
@@ -156,23 +160,13 @@
 
   function reviewStep() {
     const d=state.draft;
-    const rows=[['stepSpecies','species'],['stepClass','class'],['stepBackground','background']];
-    const chosenClass=builderUI.classInfo(d.class), chosenBg=builderUI.backgroundInfo(d.background);
-    const selectedSkills=Object.values(d.classChoices).flat().map(id=>id.replace(/^skill-/, '').replaceAll('-',' ')).join(', ') || '—';
-    const gold=builderUI.wallet(d);
-    return `<div class="review-panel"><div class="review-head"><h2>${escape(text('reviewTitle'))}</h2>${badge(text(({approved:'approvedStatus',changes_requested:'changesRequestedStatus',rejected:'rejectedStatus',pending:'pending',draft:'draft'})[state.status] || 'draft'), state.status==='pending'?'gold':'muted')}</div>
+    return `<section class="review-panel">
+      <div class="review-head"><h2>${escape(text('reviewTitle'))}</h2>${badge(text(({approved:'approvedStatus',changes_requested:'changesRequestedStatus',rejected:'rejectedStatus',pending:'pending',draft:'draft'})[state.status] || 'draft'),'gold')}</div>
       <label class="form-field"><span>${escape(text('name'))}</span><input id="character-name" type="text" maxlength="80" autocomplete="off" placeholder="${escape(text('namePlaceholder'))}" value="${escape(d.name)}"><small>${escape(text('nameHint'))}</small></label>
-      <div class="review-rows">${rows.map(([key,id])=>`<div class="review-row"><span>${escape(text(key))}</span><strong>${escape(label(entry(id==='class'?'classes':id==='background'?'backgrounds':id, d[id])))}</strong></div>`).join('')}
-        ${subclassRequired()?`<div class="review-row"><span>${escape(text('stepSubclass'))}</span><strong>${escape(subclassOptions().find(x=>x.id===d.subclass)?.name||text('notChosen'))}</strong></div>`:''}
-        <div class="review-row"><span>${escape(text('classProficiencies'))}</span><strong>${escape(selectedSkills)}</strong></div>
-        ${abilityKeys.map(key=>{const x=insights.score(d,key,builderUI.bonusFor);return `<div class="review-row"><span>${escape(key.toUpperCase())}</span><strong>${x.total} (${insights.sign(x.modifier)})</strong></div>`;}).join('')}
-        ${d.class==='fighter'?`<div class="review-row"><span>${escape(text('fightingStyle'))}</span><strong>${escape(d.fightingStyle||'—')}</strong></div><div class="review-row"><span>${escape(text('weaponMastery'))}</span><strong>${escape(d.weaponMasteries.join(', ')||'—')}</strong></div>`:''}
-        <div class="review-row"><span>${escape(text('originFeat'))}</span><strong>${escape(chosenBg?.feat?.name||'—')}</strong></div>
-        <div class="review-row"><span>${escape(text('stepClassTraining'))}</span><strong>${escape(chosenClass?.name||'—')}</strong></div>
-        <div class="review-row"><span>${escape(text('stepStartingEquipment'))}</span><strong>${builderUI.pack(d,'class')?'✓':'—'} / ${builderUI.pack(d,'background')?'✓':'—'}</strong></div>
-        <div class="review-row"><span>${escape(text('remainingMoney'))}</span><strong>${builderUI.gb(gold.remaining)}</strong></div>
-        <div class="review-row"><span>${escape(text('purchasedItems'))}</span><strong>${Object.values(d.purchases).reduce((a,b)=>a+b,0)}</strong></div></div>
-      <div class="inline-info">✧ ${escape(text('selectionInfo'))}</div></div>`;
+      ${characterUI.review({draft:d,locale:state.locale,builder:builderUI,insights,level:state.savedCampaign.startingLevel,
+        selectedSpecies:label(entry('species',d.species)),selectedClass:label(entry('classes',d.class)),
+        selectedBackground:label(entry('backgrounds',d.background)),selectedSubclass:subclassOptions().find(x=>x.id===d.subclass)?.name||null})}
+    </section>`;
   }
 
   function previewPanel() {
@@ -204,7 +198,8 @@
       ClassTraining:()=>builderUI.renderClassTraining(props),
       BackgroundTraining:()=>builderUI.renderBackgroundTraining(props),
       StartingEquipment:()=>builderUI.renderPackages(props),
-      Inventory:()=>builderUI.renderShop({...props,category:state.gearCategory,query:state.gearQuery}),
+      Inventory:()=>builderUI.renderShop({...props,category:state.gearCategory,query:state.gearQuery})+characterUI.customInventory(props),
+      Profile:()=>characterUI.profile(props),
       Review:()=>reviewStep()};
     const panel=panels[kind]();
     return `<div class="page builder-page"><div class="eyebrow accent">${escape(text('builderEyebrow'))} ${badge('D&D 2024','outline')}</div>
@@ -270,7 +265,7 @@
       Background:()=>!!d.background,Ability:()=>validAbilities()&&builderUI.bonusesValid(d),
       ClassTraining:()=>builderUI.classChoicesValid(d)&&builderUI.fighterChoicesValid(d),
       BackgroundTraining:()=>builderUI.backgroundChoicesValid(d),StartingEquipment:()=>builderUI.packReady(d),
-      Inventory:()=>builderUI.wallet(d).remaining>=0,Review:()=>true};
+      Inventory:()=>builderUI.wallet(d).remaining>=0,Profile:()=>true,Review:()=>true};
     return checks[stepKeys()[state.step]]();
   }
 
@@ -327,6 +322,10 @@
     if (!trigger || trigger.disabled) return;
     const { action } = trigger.dataset;
     if (action === 'navigate') navigate(trigger.dataset.view);
+    if (action === 'remove-custom-item') {
+      state.draft.customItems=(state.draft.customItems||[]).filter(item=>item.id!==trigger.dataset.id);
+      markDirty();render();return;
+    }
     if (action === 'step') { const next=Number(trigger.dataset.step);if(Number.isInteger(next)&&next>=0&&next<stepKeys().length){state.step=next;state.query='';state.gearQuery='';state.expandedOption=null;render();} }
     if (action === 'expand-option') {
       const key=trigger.dataset.kind+':'+trigger.dataset.id;
@@ -442,16 +441,39 @@
     if (action === 'rest') notify(text('restDemo'));
   });
 
+  document.addEventListener('submit',(event)=>{
+    if(event.target.id!=='custom-item-form')return;
+    event.preventDefault();
+    const form=new FormData(event.target);
+    const item=characterUI.normalizeCustom(Object.fromEntries(form.entries()));
+    if(!item){notify(state.locale==='el'?'Έλεγξε τα στοιχεία του custom αντικειμένου.':'Check the custom item fields.');return;}
+    state.draft.customItems||=[];state.draft.customItems.push(item);markDirty();render();
+  });
   document.addEventListener('input',(event)=>{
     const target=event.target;
     if (target.id==='choice-search') { state.query=target.value; applyFilter(); }
     if (target.id==='gear-search') { state.gearQuery=target.value;main.querySelectorAll('.shop-item').forEach(card=>{card.hidden=!card.dataset.search.includes(state.gearQuery.toLowerCase());}); }
     if (target.id==='character-name') { state.draft.name=target.value; markDirty(); }
+    if (target.id==='character-story') { state.draft.backgroundStory=target.value.slice(0,10000);markDirty(); }
     if (target.id==='campaign-name') { state.campaign.name=target.value; state.campaignDirty=true; const preview=main.querySelector('.campaign-info h3'); if (preview) preview.textContent = target.value.trim() || text('campaignName'); renderNav(); }
   });
   document.addEventListener('change',(event)=>{
     const target=event.target;
     if (target.id === 'library-rights-confirm') { state.libraryRights=target.checked; render(); return; }
+    if (target.id==='character-alignment') {state.draft.alignment=characterUI.ALIGNMENTS.some(row=>row[0]===target.value)?target.value:'';markDirty();render();return;}
+    if (target.id==='review-worn-armor') {
+      if(target.value&&!characterUI.ownedArmor(state.draft,builderUI,insights).some(x=>x.id===target.value))return;
+      state.draft.equippedArmor=target.value||null;markDirty();render();return;
+    }
+    if (target.id==='review-shield') {state.draft.shieldEquipped=target.checked&&insights.contents(state.draft,builderUI).has('shield');markDirty();render();return;}
+    if (target.id==='character-portrait') {
+      const file=target.files?.[0];if(!file)return;
+      if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>900*1024){notify(state.locale==='el'?'Δέχονται μόνο PNG/JPEG/WebP έως 900 KB.':'PNG/JPEG/WebP only, up to 900 KB.');return;}
+      const reader=new FileReader();reader.onload=()=>{
+        const value=String(reader.result||'');if(!/^data:image\\/(png|jpeg|webp);base64,/.test(value))return;
+        state.draft.portraitData=value;markDirty();render();
+      };reader.readAsDataURL(file);return;
+    }
     if (target.id === 'library-json-file' && state.role === 'dm') {
       const file=target.files?.[0]; if (!file) return;
       state.libraryBusy=true;state.libraryError=null;state.libraryPreview=null;state.libraryRights=false;render();
