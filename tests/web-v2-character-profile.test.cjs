@@ -61,3 +61,12 @@ test('integration exposes new steps, CSS, inputs and no authenticated sync',()=>
  assert.match(app,/characterUI\.profile/);assert.match(app,/data-action="expand-option"/);
  assert.match(html,/identity-v2.css/);assert.match(html,/character-profile-sheet.js/);
 });
+
+test('2024 Fighter weapon preview shows attack bonus, damage and shield conflict',()=>{
+ const item={id:'greatsword',name:'Greatsword',category:'weapons',categories:['martial-melee-weapons','martial-weapons','melee-weapons','weapons'],properties:[{name:'Two-Handed'}],damage:{damage_dice:'2d6',damage_type:{name:'Slashing'}},mastery:{name:'Graze'}};
+ const builder={classInfo:()=>({proficiencies:[{id:'martial-weapons'}]}),bonusFor:()=>0,itemById:new Map([['greatsword',item]])};
+ const insights={contents:()=>new Map([['greatsword',{id:'greatsword',quantity:1,sources:[]}]]),score:(d,k)=>({modifier:k==='str'?3:0})};
+ const rows=sheet.attackRows({class:'fighter',shieldEquipped:true,weaponMasteries:['greatsword']},builder,insights,3);
+ assert.equal(rows.length,1);assert.equal(rows[0].bonus,5);assert.equal(rows[0].damage,'2d6+3');
+ assert.equal(rows[0].mastery,'Graze');assert.equal(rows[0].shieldConflict,true);
+});
