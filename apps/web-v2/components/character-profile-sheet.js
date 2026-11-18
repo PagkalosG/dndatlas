@@ -51,7 +51,8 @@ function derived(d,builder,insights,level){
  const owned=ownedArmor(d,builder,insights);
  const armor=owned.find(x=>x.id===d.equippedArmor);
  const ac=(armor?armor.armorClass.base+(armor.armorClass.dex_bonus?Math.min(ability.dex.modifier,armor.armorClass.max_bonus??100):0):10+ability.dex.modifier)+ (d.shieldEquipped&&insights.contents(d,builder).has('shield')?2:0);
- return {ability,pb,hp,ac,armor,owned,initiative:ability.dex.modifier,grants:insights.grants(d,cl,builder.backgroundInfo(d.background))};
+ const initiativeBonus=(builder.backgroundInfo(d.background)?.feat?.id==='alert'||(d.species==='human'&&d.humanFeat==='alert'))?pb:0;
+ return {ability,pb,hp,ac,armor,owned,initiative:ability.dex.modifier+initiativeBonus,grants:insights.grants(d,cl,builder.backgroundInfo(d.background))};
 }
 function profile({draft,locale,esc:escape=esc}){
  const t=textFor(locale),lang=locale==='el'?'el':'en';
@@ -114,7 +115,7 @@ function review({draft,locale,builder,insights,level=1,selectedSpecies,selectedC
  }).join('');
  const wallet=builder.wallet(d),owned=insights.contents(d,builder);
  const attacks=attackRows(d,builder,insights,level);
- const attackHtml=attacks.map(a=>`<div class="sheet-attack-row"><strong>${esc(a.name)}</strong><b>${sign(a.bonus)}</b><span>${esc(a.damage)} ${esc(a.damageType)}</span>${a.mastery?`<small>Mastery: ${esc(a.mastery)}</small>`:''}${a.shieldConflict?`<small class="sheet-attack-warning">${esc(lang==='el'?'Ασυμβίβαστο με εξοπλισμένη ασπίδα (Two-Handed).':'Incompatible with equipped shield (Two-Handed).')}</small>`:''}${!a.proficient?`<small>${esc(lang==='el'?'Χωρίς weapon proficiency.':'Not proficient with this weapon.')}</small>`:''}</div>`).join('');
+ const attackHtml=attacks.map(a=>`<div class="sheet-attack-row"><strong>${esc(a.name)}</strong><b>${sign(a.bonus)}</b><span>${esc(a.damage)} ${esc(a.damageType)}</span>${a.mastery?`<small>Mastery: ${esc(a.mastery)}</small><small>${esc(window.ATLAS_V2_ORIGINS.MASTERIES[a.mastery.toLowerCase()]?.[lang]||'')}</small>`:''}${a.shieldConflict?`<small class="sheet-attack-warning">${esc(lang==='el'?'Ασυμβίβαστο με εξοπλισμένη ασπίδα (Two-Handed).':'Incompatible with equipped shield (Two-Handed).')}</small>`:''}${!a.proficient?`<small>${esc(lang==='el'?'Χωρίς weapon proficiency.':'Not proficient with this weapon.')}</small>`:''}</div>`).join('');
  const armorOptions=summary.owned.map(x=>`<option value="${esc(x.id)}" ${d.equippedArmor===x.id?'selected':''}>${esc(x.name)}</option>`).join('');
  const items=[...owned.values()].map(row=>{
   const item=builder.itemById.get(row.id);
@@ -123,7 +124,11 @@ function review({draft,locale,builder,insights,level=1,selectedSpecies,selectedC
  }).join('');
  const customs=(d.customItems||[]).map(item=>`<div class="sheet-equipment-row"><strong>${esc(item.name)}</strong><span>×${item.quantity}</span><small>${esc(t.custom)} · ${esc(item.description||'')}</small></div>`).join('');
  const abilityRows=ABILITIES.map(id=>{const s=summary.ability[id];return `<div class="sheet-ability"><span>${id.toUpperCase()}</span><strong>${s.total}</strong><b>${sign(s.modifier)}</b><small>${s.base} + ${s.bonus}</small></div>`;}).join('');
- const features=[...(bg?.feat?[t.background+': '+bg.feat.name]:[]),...(d.fightingStyle?[t.styles+': '+d.fightingStyle]:[]),
+ const features=[...(bg?.feat?[t.background+': '+bg.feat.name]:[]),
+  ...(d.species==='human'&&d.humanSkill?['Human · Skillful: '+d.humanSkill.replace(/^skill-/,'').replaceAll('-',' ')]:[]),
+  ...(d.species==='human'&&d.humanFeat?['Human · Versatile: '+(window.ATLAS_V2_ORIGINS.FEATS[d.humanFeat]?.name||d.humanFeat)]:[]),
+  ...(d.species==='human'&&d.humanFeat==='skilled'?['Skilled: '+(d.skilledChoices||[]).map(v=>v.replace(/^(skill-|tool-)/,'').replaceAll('-',' ')).join(', ')]:[]),
+  ...(d.fightingStyle?[t.styles+': '+d.fightingStyle]:[]),
   ...(d.weaponMasteries?.length?[t.weapons+': '+d.weaponMasteries.join(', ')]:[])];
  const photo=d.portraitData&&/^data:image\/(png|jpeg|webp);base64,/.test(d.portraitData)?`<img src="${esc(d.portraitData)}" alt="">`:'';
  return `<div class="full-sheet-review">
