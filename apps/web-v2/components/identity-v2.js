@@ -3,6 +3,7 @@
  */
 (function(){
 'use strict';
+const cleanLabel=value=>String(value||'').replace(/^(Skill|Tool):\\s*/i,'');
 const T={
  en:{traits:'Traits',classFeatures:'Class at a glance',backgroundBenefits:'What you gain',hitDie:'Hit Die',saves:'Saving Throws',proficiencies:'Proficiencies',skills:'Choose skills',feat:'Origin Feat',ability:'Ability increases',equipment:'Starting packages',choose:'Choose',selected:'Selected',expand:'Details',collapse:'Hide details',locked:'This option needs an enabled, appropriately licensed content pack.',srd:'SRD 5.2.1'},
  el:{traits:'Χαρακτηριστικά (Traits)',classFeatures:'Η κλάση με μια ματιά',backgroundBenefits:'Τι προσφέρει',hitDie:'Ζάρι Ζωής',saves:'Σωτήριες Βολές',proficiencies:'Εξοικειώσεις',skills:'Επιλογή δεξιοτήτων',feat:'Ταλέντο Προέλευσης (Origin Feat)',ability:'Αυξήσεις χαρακτηριστικών',equipment:'Πακέτα αρχικού εξοπλισμού',choose:'Επιλογή',selected:'Επιλεγμένο',expand:'Λεπτομέρειες',collapse:'Απόκρυψη',locked:'Απαιτείται ενεργή βιβλιοθήκη περιεχομένου με κατάλληλη άδεια.',srd:'SRD 5.2.1'}
@@ -80,7 +81,7 @@ function portrait(item,esc){
  return `<div class="identity-v2-photo ${pos?'has-photo':''}" style="${esc(background)}"><img src="${esc(item.art||'')}" loading="lazy" decoding="async" alt=""></div>`;
 }
 const compact=(str,max=480)=>String(str||'').slice(0,max);
-function renderCard({item,group,selected,expanded,locale,esc,sourceClass,sourceBackground}){
+function renderCard({item,group,selected,expanded,locale,esc,sourceClass,sourceBackground,draft}){
  const lang=locale==='el'?'el':'en',t=T[lang],name=item.title?.[lang]||item.title?.en||item.id;
  const introduction=group==='classes'?classCopy[item.id]?.[lang==='el'?1:0]:
    group==='species'?window.ATLAS_V2_IDENTITY?.descriptions?.species?.[item.id]?.[lang==='el'?1:0]:null;
@@ -88,20 +89,22 @@ function renderCard({item,group,selected,expanded,locale,esc,sourceClass,sourceB
  const cl=group==='classes'?sourceClass?.(item.id):null;
  const bg=group==='backgrounds'?sourceBackground?.(item.id):null;
  const traits=group==='species'?(traitCopy[item.id]||[]):[];
- const cFacts=cl?[[t.hitDie,'d'+cl.hitDie],[t.saves,(cl.savingThrows||[]).map(x=>x.name).join(', ')],[t.proficiencies,(cl.proficiencies||[]).filter(x=>!x.id.startsWith('saving-throw-')).map(x=>x.name).join(', ')],[t.skills,(cl.skillChoices||[]).map(x=>x.count+' / '+x.options.map(o=>o.name).join(', ')).join('; ')]]:[];
- const bgFacts=bg?[[t.feat,bg.feat?.name||'—'],[t.proficiencies,(bg.proficiencies||[]).map(x=>x.name).join(', ')],[t.ability,(bg.abilityScores||[]).map(x=>x.name).join(', ')],[t.equipment,String(bg.startingOptions?.length||0)]]:[];
+ const cFacts=cl?[[t.hitDie,'d'+cl.hitDie],[t.saves,(cl.savingThrows||[]).map(x=>x.name).join(', ')],[t.proficiencies,(cl.proficiencies||[]).filter(x=>!x.id.startsWith('saving-throw-')).map(x=>cleanLabel(x.name)).join(', ')]]:[];
+ const bgFacts=bg?[[t.feat,bg.feat?.name||'—'],[t.proficiencies,(bg.proficiencies||[]).map(x=>cleanLabel(x.name)).join(', ')],[t.ability,(bg.abilityScores||[]).map(x=>x.name).join(', ')],[t.equipment,bg.startingOptions?.length===2?(lang==='el'?'Εξοπλισμός ή αρχικά χρήματα':'Equipment or starting gold'):String(bg.startingOptions?.length||0)]]:[];
  const facts=cl?cFacts:bgFacts;
  return `<article class="identity-v2-card ${expanded?'expanded':''} ${selected?'selected':''}" data-option-card data-available="${!!item.licensed}" data-search="${esc((name+' '+item.title?.en+' '+item.title?.el).toLowerCase())}">
    <div class="identity-v2-main">
      ${portrait(item,esc)}
-     <div class="identity-v2-heading"><strong>${esc(name)}</strong><p>${esc(summary)}</p><span class="identity-v2-source">${esc(item.source||'')}</span></div>
+     <div class="identity-v2-heading"><strong>${esc(name)}</strong><p>${esc(summary)}</p>${item.source && !/^SRD\b/i.test(item.source)?`<span class="identity-v2-source">${esc(item.source)}</span>`:''}</div>
      <button type="button" class="identity-v2-expand" data-action="expand-option" data-kind="${esc(group)}" data-id="${esc(item.id)}" aria-expanded="${expanded}" aria-label="${esc((expanded?t.collapse:t.expand)+' '+name)}"><span aria-hidden="true">${expanded?'−':'+'}</span></button>
    </div>
    <div class="identity-v2-reveal" aria-hidden="${!expanded}"><div class="identity-v2-reveal-inner">
-     ${traits.length?`<div class="identity-v2-traits"><h4>${esc(t.traits)}</h4>${traits.map(([label,en,el])=>`<div class="identity-v2-trait"><strong>${esc(label)}</strong><p>${esc(lang==='el'?el:en)}</p></div>`).join('')}</div>`:''}
+     ${traits.length?`<div class="identity-v2-traits"><h4>${esc(t.traits)}</h4>${traits.map(([label,en,el])=>{const raw=lang==='el'?el:en;const copy=raw.startsWith(label+':')?raw.slice(label.length+1).trim():raw;return `<div class="identity-v2-trait"><strong>${esc(label)}</strong><p>${esc(copy)}</p></div>`;}).join('')}</div>`:''}
      ${group==='classes'?`<div class="identity-v2-traits"><h4>${esc(t.classFeatures)}</h4><p>${esc(summary)}</p></div>`:''}
      ${group==='backgrounds'?`<div class="identity-v2-traits"><h4>${esc(t.backgroundBenefits)}</h4><p>${esc(summary)}</p></div>`:''}
      ${facts.length?`<dl class="identity-v2-facts">${facts.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v||'—')}</dd></div>`).join('')}</dl>`:''}
+     ${group==='classes'&&cl&&draft&&selected?window.ATLAS_V2_ORIGINS.renderClassSkillPreview({draft,cl,locale,esc}):''}
+     ${group==='backgrounds'&&draft&&selected?window.ATLAS_V2_ORIGINS.renderBackgroundFeat({draft,locale,esc}):''}
      ${item.licensed?`<button type="button" class="btn ${selected?'secondary':'primary'}" data-action="choose" data-kind="${esc(group)}" data-id="${esc(item.id)}" aria-pressed="${selected}">${selected?'✓ '+esc(t.selected):esc(t.choose)}</button>`:`<p class="identity-locked">${esc(t.locked)}</p>`}
    </div></div>
  </article>`;
