@@ -59,3 +59,12 @@
 .sheet-validation-note{font-size:11px;color:#ced6e6;line-height:1.6;border:1px solid #796947;background:#292b2a;padding:11px;border-radius:10px}
 @media(max-width:840px){.sheet-columns{grid-template-columns:1fr}.sheet-abilities{grid-template-columns:repeat(3,minmax(0,1fr))}.sheet-stat-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.profile-fields{grid-template-columns:1fr}.profile-photo{width:125px;min-height:135px}.profile-photo img{height:135px}.custom-item-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sheet-review-header h2{font-size:18px}.sheet-review-photo{width:80px;height:100px}.sheet-abilities{grid-template-columns:repeat(3,minmax(0,1fr))}.sheet-stat-list{grid-template-columns:repeat(2,minmax(0,1fr))}.sheet-equipment-grid,.sheet-skill-list{grid-template-columns:1fr}.sheet-section{padding:12px}}
+
+/* Readable Fighting Style explanations in Class Training, responsive and touch-sized. */
+.training-panel .skill-picker:has(.style-explainer){display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px}
+.training-panel .style-explainer{display:flex;flex-direction:column;align-items:flex-start;text-align:left;justify-content:flex-start;gap:7px;white-space:normal;min-height:84px;padding:13px;border-radius:11px;line-height:1.5}
+.training-panel .style-explainer strong{color:#f1dbad;font-size:13px}
+.training-panel .style-explainer small{color:#bdcce0;font-weight:450;font-size:11px}
+.training-panel .style-explainer.active{border-color:#dbbd75;background:#35402f}
+.training-panel .style-explainer.active strong{color:#ffe3a8}
+.training-panel .style-explainer.active small{color:#f2ead8}
