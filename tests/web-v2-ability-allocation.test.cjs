@@ -8,11 +8,17 @@ test('2024 standard array uses fixed six scores',()=>{
   assert.equal(a.validate('standard',[15,14,13,12,10,8]).valid,true);
   assert.equal(a.validate('standard',[15,15,13,12,10,8]).valid,false);
 });
-test('standard plus and minus swap instead of inventing a value',()=>{
+test('Standard Array minus frees points without silently changing another score',()=>{
   const first=[15,14,13,12,10,8],next=a.adjust(first,0,-1,'standard');
-  assert.deepEqual(Array.from(next),[14,15,13,12,10,8]);
-  assert.deepEqual(Array.from(a.adjust(next,0,1,'standard')),first);
+  assert.deepEqual(Array.from(next),[14,14,13,12,10,8]);
+  assert.equal(a.validate('standard',next).remaining,1);
+  assert.equal(a.validate('standard',next).valid,false);
+  const restored=a.adjust(next,1,1,'standard');
+  assert.deepEqual(Array.from(restored),[14,15,13,12,10,8]);
+  assert.equal(a.validate('standard',restored).valid,true);
   assert.equal(a.adjust(first,0,1,'standard'),null);
+  assert.equal(a.adjust(next,0,1,'standard')[0],15);
+  assert.equal(a.adjust([9,9,9,9,9,9],0,1,'standard')[0],10);
 });
 test('point buy uses 27 budget and exact costs, not linear pricing',()=>{
   assert.deepEqual(Array.from(a.initialScores('pointbuy')),[8,8,8,8,8,8]);
