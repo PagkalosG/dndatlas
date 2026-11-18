@@ -72,7 +72,7 @@ This is still an **isolated UI prototype**. No auth, D1 writes, realtime sync or
 
 ## v0.5 — Ability Scores
 
-Ability scores now support a D&D 2024 **Standard Array / 27-point Point Buy** toggle, using + / − controls rather than dropdown inputs. In Standard Array, an increase or decrease swaps to the next available score while preserving the original six values. In Point Buy, all scores begin at 8, each score stays within 8–15, and the cost table enforces a maximum of 27 spent points. Scores are kept separately when switching between methods. Background +2/+1 or +1/+1/+1 choices remain below the base score grid, with final score and modifier updating live. No dice UI, accounts, sync, or D1 writes.
+Ability scores now support a D&D 2024 **Standard Array / 27-point Point Buy** toggle, using + / − controls rather than dropdown inputs. In Standard Array, + / − change only the selected ability. Lowering a score frees unassigned score points shown in the budget bar. A character can continue only when the final six scores again match 15, 14, 13, 12, 10, 8. In Point Buy, all scores begin at 8, each score stays within 8–15, and the cost table enforces a maximum of 27 spent points. Scores are kept separately when switching between methods. Background +2/+1 or +1/+1/+1 choices remain below the base score grid, with final score and modifier updating live. No dice UI, accounts, sync, or D1 writes.
 
 ## v0.6 — Expandable species and class cards
 
@@ -81,3 +81,15 @@ Ability scores now support a D&D 2024 **Standard Array / 27-point Point Buy** to
 - Player and DM demo views can be switched from the topbar. This is only a view selector: it is not an authentication or authorization system.
 - The cards support an optional original photoreal portrait sprite; existing SVG art remains a fallback when the asset is unavailable. Portraits are **not official D&D art**.
 - Multiclass progression and character-level-based subclass availability will require a future dedicated multiclass builder rather than treating overall character level as class level.
+
+## v0.7 — compact card discovery, character identity and complete-sheet preview
+
+- Species, Class and Background selections use small portraits and one inline expanding card surface. There is no duplicate hero image or "What is it?" header. Species traits receive original EN/EL practical explanations; Class facts and Background Origin Feats/Proficiencies come from the current SRD fixture.
+- `identity-v2.css` uses a height reveal transition, supports `prefers-reduced-motion`, and does not re-render the card on expansion. Licensed content can be chosen with a separate button; disabled options remain viewable.
+- Fighter Fighting Style choices display EN/EL descriptions, not names alone.
+- Standard Array adjustments never swap a second ability automatically. While reassigning, the current distribution can be temporarily incomplete. The Builder blocks continuation until the official array is restored.
+- The Inventory screen offers local custom item creation (name, category, quantity, weight, GP cost and free-text description). Custom items do not silently grant mechanics or modify the SRD catalog.
+- A new Character Identity step allows Alignment, private background story and an optional PNG/JPEG/WebP portrait (up to 900 KB, stored in the current browser session).
+- Final Review renders a broad Character Sheet preview: identity, scores/modifiers, base HP from fixed progression, AC and explicit equipped armor/shield, initiative, proficiency bonus, saving throws, 18 skills, feats/features that the current fixture actually knows, starting inventory and custom gear, money, story, and placeholders for unresolved spells/conditions/speed.
+- Honest limitations: class/spell progression, all feature effects, item equip eligibility, species speed, spell slots and additional gameplay fields are **not** complete or authoritative yet. The sheet is a best-effort preview, not a fully validated 2024 character.
+- This release adds **no authentication, cloud synchronization, D1 writes or dice rolling UI**.
