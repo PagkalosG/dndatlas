@@ -125,10 +125,10 @@
       return '<div class="play-skill '+(prof?'trained':'')+'"><span>'+(prof?'● ':'○ ')+esc(l==='el'?el+' ('+en+')':en)+'</span><b>'+sign(core.ability[k].modifier+(prof?core.pb:0))+'</b></div>';
     }).join('');
     const saves=KEYS.map(k=>'<div class="play-skill '+(saveIds.has(k)?'trained':'')+'"><span>'+(saveIds.has(k)?'● ':'○ ')+k.toUpperCase()+'</span><b>'+sign(core.ability[k].modifier+(saveIds.has(k)?core.pb:0))+'</b></div>').join('');
-    const button=(action,content,id,extra='')=>'<button type="button" class="play-action" data-action="'+action+'" '+(id?'data-id="'+esc(id)+'" ':'')+extra+'>'+content+'</button>';
+    const button=(action,content,id,extra='',cls='play-action')=>'<button type="button" class="'+cls+'" data-action="'+action+'" '+(id?'data-id="'+esc(id)+'" ':'')+extra+'>'+content+'</button>';
     const stat=(name,value,tip='')=>'<div class="play-stat"><small>'+esc(name)+'</small><strong>'+esc(value)+'</strong>'+(tip?'<span>'+esc(tip)+'</span>':'')+'</div>';
     const tabs=['overview','actions','spells','equipment','features','description','notes'];
-    const nav='<div class="play-tabs" role="tablist" aria-label="Character sheet sections">'+tabs.map(k=>button('sheet-tab',esc(t[k]),k,'role="tab" aria-selected="'+(tab===k)+'" class="play-tab"')).join('')+'</div>';
+    const nav='<div class="play-tabs" role="tablist" aria-label="Character sheet sections">'+tabs.map(k=>button('sheet-tab',esc(t[k]),k,'role="tab" aria-selected="'+(tab===k)+'"','play-action play-tab')).join('')+'</div>';
     function hud(){
       return '<div class="play-hud">'+stat(t.ac,core.ac,core.armor?.name||t.unarmored)+stat(t.initiative,sign(core.initiative))+stat(t.prof,'+'+core.pb)+stat(t.speed,'—',t.unresolved)+
         '<div class="play-health"><div><span>'+esc(t.hp)+'</span><strong>'+current+' <small>/ '+cap+'</small></strong></div><div class="play-hp-actions">'+button('game-hp-minus','−')+button('game-hp-plus','+')+'</div><small>'+esc(t.baseHp)+'</small></div>'+
@@ -149,7 +149,7 @@
         (a.shieldConflict?'<p class="play-warning">'+t.shieldWarning+'</p>':'')+'</div>').join('')+'</div>';
     }
     function conditionList(){
-      return '<div class="play-conditions">'+CONDITIONS.map(c=>button('game-toggle-condition',esc(c),c,'aria-pressed="'+g.conditions.includes(c)+'" class="play-condition '+(g.conditions.includes(c)?'active':'')+'"')).join('')+'</div>';
+      return '<div class="play-conditions">'+CONDITIONS.map(c=>button('game-toggle-condition',esc(c),c,'aria-pressed="'+g.conditions.includes(c)+'"','play-action play-condition '+(g.conditions.includes(c)?'active':'')+'')).join('')+'</div>';
     }
     function combat(){
       return '<div class="play-columns"><section class="play-pane"><h3>'+t.actionsTitle+'</h3><p class="play-muted">'+t.actionHelp+'</p>'+attacks()+
