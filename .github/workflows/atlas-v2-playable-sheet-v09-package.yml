@@ -1,0 +1,63 @@
+name: Package Atlas 2.0 playable sheet v0.9 changed files
+
+on:
+  push:
+    branches: [atlas-2.0]
+    paths:
+      - '.github/workflows/atlas-v2-playable-sheet-v09-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    if: github.repository == 'PagkalosG/dndatlas' && github.ref == 'refs/heads/atlas-2.0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source and all current UI contract tests
+        run: |
+          set -euo pipefail
+          node --check apps/web-v2/app.js
+          node --check apps/web-v2/components/gameplay-v2.js
+          node --check apps/web-v2/components/local-state.js
+          node --test tests/web-v2-*.test.cjs
+      - name: Package exactly the changed paths since the last v0.8 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,zipfile,hashlib
+          baseline='0946b990fd15b26760b6971471da0b3be1ffc456'
+          subprocess.run(['git','cat-file','-e',baseline+'^{commit}'],check=True)
+          raw=subprocess.check_output(['git','diff','--name-only','--diff-filter=ACMRT','-z',baseline,'HEAD'])
+          changed=sorted(set(x.decode('utf-8') for x in raw.split(b'\0') if x))
+          assert len(changed)>=8, 'Missing expected patch files'
+          allowed=('apps/web-v2/','tests/web-v2-','.github/workflows/atlas-v2-')
+          assert all(x.startswith(allowed) for x in changed), f'Unexpected path: {changed}'
+          target=Path('DND_Atlas_2_Playable_Sheet_v0.9_Changed_Files.zip')
+          with zipfile.ZipFile(target,'w',zipfile.ZIP_DEFLATED) as z:
+              for path in changed:
+                  file=Path(path)
+                  assert file.is_file() and not file.is_symlink(),path
+                  z.write(file,arcname=path)
+          with zipfile.ZipFile(target) as z:
+              assert z.namelist()==changed and z.testzip() is None
+          print('Patch ZIP:',target.name,'files:',len(changed))
+          print('\n'.join(changed))
+          print('sha256:',hashlib.sha256(target.read_bytes()).hexdigest())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DND_Atlas_2_Playable_Sheet_v0.9_Changed_Files
+          path: DND_Atlas_2_Playable_Sheet_v0.9_Changed_Files.zip
+          if-no-files-found: error
+          retention-days: 30
