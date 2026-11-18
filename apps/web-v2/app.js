@@ -10,7 +10,8 @@
   const identityUI = window.ATLAS_V2_IDENTITY;
   const identityV2 = window.ATLAS_V2_IDENTITY_V2;
   const characterUI = window.ATLAS_V2_CHARACTER_SHEET;
-  if (!identityV2 || !characterUI) throw new Error('Missing character details components');
+  const originUI = window.ATLAS_V2_ORIGINS;
+  if (!identityV2 || !characterUI || !originUI) throw new Error('Missing character details and Origin choices components');
   if (!identityUI) throw new Error('Missing identity card UI');
   identityUI.initPhotos();
   if (!abilityUI) throw new Error('Missing 2024 Ability Allocation component');
@@ -29,7 +30,8 @@
   const defaultDraft = () => ({ name: '', species: null, class: null, subclass: null, background: null, equipment: null, abilityMethod: 'standard', abilities: abilityUI.initialScores('standard'), abilityAllocations: {},
     classChoices: {}, backgroundChoices: {}, fightingStyle: null, weaponMasteries: [], bonusMode: 'split', bonusTwo: null, bonusOne: null,
     classPackage: null, backgroundPackage: null, packageChoices: {}, purchases: {}, customItems: [],
-    alignment: '', backgroundStory: '', portraitData: null, equippedArmor: null, shieldEquipped: false });
+    alignment: '', backgroundStory: '', portraitData: null, equippedArmor: null, shieldEquipped: false,
+    humanSkill:null, humanFeat:null, skilledChoices:[] });
   const state = { locale: 'en', view: 'home', role: 'player', step: 0, draft: defaultDraft(), saved: null, dirty: false, status: 'draft', filter: 'all', query: '', gearCategory: 'weapons', gearQuery: '', busy: false, campaign: campaignUI.originalSettings(), savedCampaign: campaignUI.originalSettings(), campaignBusy: false, campaignDirty: false, inviteCreated: false, libraryPreview: null, libraryError: null, libraryStaged: [], libraryBusy: false, libraryRights: false, expandedOption: null };
   const main = document.getElementById('main');
   const text = (key) => catalog.strings[state.locale][key] ?? key;
@@ -40,8 +42,8 @@
   const totalRequired = () => 7 + (subclassRequired() ? 1 : 0);
   const completion = () => [!!state.draft.species, !!state.draft.class, ...(subclassRequired() ? [!!state.draft.subclass] : []),
     !!state.draft.background, validAbilities() && builderUI.bonusesValid(state.draft),
-    builderUI.classChoicesValid(state.draft) && builderUI.fighterChoicesValid(state.draft),
-    builderUI.backgroundChoicesValid(state.draft), builderUI.packReady(state.draft)].filter(Boolean).length;
+    builderUI.classChoicesValid(state.draft) && builderUI.fighterChoicesValid(state.draft) && originUI.validHumanSkill(state.draft),
+    builderUI.backgroundChoicesValid(state.draft) && originUI.validHumanFeat(state.draft), builderUI.packReady(state.draft)].filter(Boolean).length;
   const selectable = () => completion() === totalRequired() && builderUI.wallet(state.draft).remaining >= 0;
   const validAbilities = () => abilityUI.validate(state.draft.abilityMethod, state.draft.abilities).valid;
   const markDirty = () => { state.dirty = true; state.status = 'draft'; };
@@ -132,7 +134,7 @@
       <button data-action="filter" data-filter="available" class="filter-chip ${state.filter==='available'?'active':''}">${escape(text('availableOnly'))}</button></div></div>
       <div class="${discovery?'identity-grid':'option-grid'}" id="choice-grid">${catalog[group].map(item=>{
        const selected=state.draft[key]===item.id;
-       if(discovery)return identityV2.renderCard({item,group,selected,expanded:state.expandedOption===group+':'+item.id,locale:state.locale,esc:escape,sourceClass:builderUI.classInfo,sourceBackground:builderUI.backgroundInfo});
+       if(discovery)return identityV2.renderCard({item,group,selected,expanded:state.expandedOption===group+':'+item.id,locale:state.locale,esc:escape,sourceClass:builderUI.classInfo,sourceBackground:builderUI.backgroundInfo,draft:state.draft});
        return `<button type="button" data-option-card data-available="${!!item.licensed}" class="illustrated-option ${selected?'selected':''} ${!item.licensed?'locked':''}" data-action="choose" data-id="${escape(item.id)}" data-kind="${escape(group)}" data-search="${escape((item.title.en+' '+item.title.el).toLowerCase())}" ${!item.licensed?'disabled':''} aria-pressed="${selected}">
          <div class="illustration">${image(item)}${selected?'<span class="selected-check">✓</span>':''}</div>
          <div class="option-detail"><strong>${escape(label(item))}</strong><p>${escape(item.description[state.locale])}</p><span class="option-source">${escape(item.source)}</span>${!item.licensed?`<span class="lock-hint">${escape(text('lockedHint'))}</span>`:''}</div></button>`;
@@ -263,8 +265,8 @@
     const d=state.draft;
     const checks={Species:()=>!!d.species,Class:()=>!!d.class,Subclass:()=>!subclassRequired()||subclassOptions().some(x=>x.id===d.subclass),
       Background:()=>!!d.background,Ability:()=>validAbilities()&&builderUI.bonusesValid(d),
-      ClassTraining:()=>builderUI.classChoicesValid(d)&&builderUI.fighterChoicesValid(d),
-      BackgroundTraining:()=>builderUI.backgroundChoicesValid(d),StartingEquipment:()=>builderUI.packReady(d),
+      ClassTraining:()=>builderUI.classChoicesValid(d)&&builderUI.fighterChoicesValid(d)&&originUI.validHumanSkill(d),
+      BackgroundTraining:()=>builderUI.backgroundChoicesValid(d)&&originUI.validHumanFeat(d),StartingEquipment:()=>builderUI.packReady(d),
       Inventory:()=>builderUI.wallet(d).remaining>=0,Profile:()=>true,Review:()=>true};
     return checks[stepKeys()[state.step]]();
   }
@@ -352,12 +354,19 @@
       const prop = group === 'classes' ? 'class' : group === 'backgrounds' ? 'background' : group;
       const next = catalog[group].find(item=>item.id===trigger.dataset.id);
       if (!next?.licensed) return;
+      if (state.draft[prop] !== next.id && prop==='species') {
+        state.draft.humanSkill=null;state.draft.humanFeat=null;state.draft.skilledChoices=[];
+      }
       if (state.draft[prop] !== next.id && prop==='class') {
         state.draft.subclass=null;state.draft.classChoices={};state.draft.fightingStyle=null;state.draft.weaponMasteries=[]; state.draft.classPackage=null; state.draft.packageChoices={}; state.draft.purchases={};
       }
       if (state.draft[prop] !== next.id && prop==='background') {
         state.draft.backgroundChoices={}; state.draft.backgroundPackage=null; state.draft.bonusTwo=null;state.draft.bonusOne=null;
         state.draft.packageChoices={};state.draft.purchases={};
+        const grants=new Set(builderUI.backgroundInfo(next.id)?.proficiencies?.map(x=>x.id)||[]);
+        for(const id of Object.keys(state.draft.classChoices))state.draft.classChoices[id]=state.draft.classChoices[id].filter(x=>!grants.has(x));
+        if(grants.has(state.draft.humanSkill))state.draft.humanSkill=null;
+        state.draft.skilledChoices=state.draft.skilledChoices.filter(x=>!grants.has(x));
       }
       state.draft[prop] = next.id;state.expandedOption=group+':'+next.id;markDirty();render();
     }
@@ -376,6 +385,29 @@
       else{notify(text('masteryLimit'));return;}
       markDirty();render();
     }
+    if (action === 'human-skill') {
+      const id=trigger.dataset.id;
+      if(state.draft.species!=='human'||!originUI.skillOptions.some(o=>o.id===id))return;
+      if(originUI.alreadyGranted(state.draft,{exclude:'human'}).has(id)){notify(text('alreadyGranted'));return;}
+      state.draft.humanSkill=state.draft.humanSkill===id?null:id;markDirty();render();return;
+    }
+    if (action === 'human-feat') {
+      const id=trigger.dataset.id,original=originUI.backgroundFeat(state.draft);
+      if(state.draft.species!=='human'||!originUI.FEATS[id])return;
+      if(id===original&&!['skilled','magic-initiate'].includes(id)){notify(text('alreadyGranted'));return;}
+      state.draft.humanFeat=state.draft.humanFeat===id?null:id;
+      state.draft.skilledChoices=[];markDirty();render();return;
+    }
+    if (action === 'skilled-proficiency') {
+      const id=trigger.dataset.id,choices=state.draft.skilledChoices||[];
+      if(state.draft.species!=='human'||state.draft.humanFeat!=='skilled')return;
+      if(![...originUI.skillOptions,...originUI.toolOptions].some(o=>o.id===id))return;
+      if(originUI.alreadyGranted(state.draft,{exclude:'skilled'}).has(id)){notify(text('alreadyGranted'));return;}
+      if(choices.includes(id))state.draft.skilledChoices=choices.filter(x=>x!==id);
+      else if(choices.length<3)state.draft.skilledChoices=[...choices,id];
+      else{notify(text('proficiencyLimit'));return;}
+      markDirty();render();return;
+    }
     if (action === 'class-proficiency' || action === 'background-proficiency') {
       const groups=action==='class-proficiency'?builderUI.classInfo(state.draft.class)?.skillChoices:builderUI.backgroundInfo(state.draft.background)?.skillChoices;
       const group=groups?.find(x=>x.id===trigger.dataset.group);
@@ -383,6 +415,11 @@
       if (!group?.options.some(x=>x.id===option)) return;
       const values=action==='class-proficiency'?state.draft.classChoices:state.draft.backgroundChoices;
       const current=values[group.id]||[];
+      if(!current.includes(option)&&(
+        (action==='class-proficiency'&&builderUI.granted(builderUI.backgroundInfo(state.draft.background)).includes(option))||
+        state.draft.humanSkill===option||
+        (state.draft.humanFeat==='skilled'&&state.draft.skilledChoices.includes(option))
+      )){notify(text('alreadyGranted'));return;}
       if(current.includes(option))values[group.id]=current.filter(x=>x!==option);
       else if(current.length<group.count)values[group.id]=[...current,option];
       else {notify(text('proficiencyLimit'));return;}
