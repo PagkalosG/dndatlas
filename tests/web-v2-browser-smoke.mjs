@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from '/tmp/atlas-playwright/node_modules/playwright/index.mjs';
 
-const browser=await chromium.launch({headless:true});
+const browser=await chromium.launch({headless:true,channel:'chrome'});
 const errors=[];
 try {
   const context=await browser.newContext({viewport:{width:1440,height:900}});
