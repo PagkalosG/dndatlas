@@ -56,7 +56,7 @@ jobs:
           node --check /tmp/dndatlas-production-patched.mjs
           echo 'Patch and syntax validation passed.'
       - name: Replace Worker content only (existing D1 bindings and settings are preserved)
-        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY')
         shell: bash
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -79,7 +79,7 @@ jobs:
           print('Cloudflare confirmed production Worker content update.')
           PY
       - name: Verify live source after deployment
-        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY')
         shell: bash
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -93,12 +93,14 @@ jobs:
           python3 - <<'PY'
           import hashlib
           from pathlib import Path
-          deployed=Path('/tmp/dndatlas-production-verified.js').read_bytes()
+          from importlib.machinery import SourceFileLoader
+          parser=SourceFileLoader('worker_patch','workers/patch-production-character-delete.py').load_module()
+          deployed=parser.extract_module_bytes(Path('/tmp/dndatlas-production-verified.js').read_bytes())
           expected=Path('/tmp/dndatlas-production-patched.mjs').read_bytes()
           if hashlib.sha256(deployed).digest()!=hashlib.sha256(expected).digest():
               raise SystemExit('Post-deployment source mismatch; check Cloudflare dashboard.')
           print('Verified exact production Worker content matches scoped patch.')
           PY
       - name: Report dry-run status
-        if: github.event_name == 'push' || inputs.deploy != 'DEPLOY'
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy != 'DEPLOY'
         run: echo 'DRY RUN ONLY. To deploy, run this workflow manually with input DEPLOY.'
