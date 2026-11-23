@@ -1,6 +1,6 @@
 # D&D Atlas production: Creator History and Google Drive backup
 
-Version: 3.3.6. Worker deployed through the SHA-locked GitHub Action.
+Version: 3.3.7. Worker deployed through the SHA-locked GitHub Action.
 D1 remains the single source of truth. Google Drive backup/restore is NEVER automatic.
 
 ## Creator actions
