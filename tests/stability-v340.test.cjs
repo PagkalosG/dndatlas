@@ -14,6 +14,10 @@ test('live refresh does not overwrite unsaved drafts and avoids aggressive D1 po
  assert.match(frontend,/cloud\.pendingWrites\|\|cloud\.syncBlocked\|\|/);
  assert.match(frontend,/\},30000\);/);
  assert.match(frontend,/cloud\.syncBlocked=true;/);
+ assert.match(frontend,/failedWrites:new Set\(\)/);
+ assert.match(frontend,/cloud\.failedWrites\.add\(id\)/);
+ assert.match(frontend,/cloud\.failedWrites\.delete\(id\)/);
+ assert.match(frontend,/!cloud\.pendingWrites\&\&!cloud\.syncBlocked/);
  assert.match(frontend,/cloud\.syncBlocked=false;/);
 });
 test('client JSON backup warns about privacy redaction and marks scope',()=>{
