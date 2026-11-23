@@ -1,9 +1,5 @@
 name: Validate and deploy production v3.4 revision sync (one-time)
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/deploy-v340-revisions.yml'
   workflow_dispatch:
     inputs:
       deploy:
@@ -48,7 +44,7 @@ jobs:
           node --check /tmp/atlas-next.mjs
           echo 'Verification complete; existing Worker routes and bindings preserved.'
       - name: Deploy verified Worker code
-        if: (github.event_name == 'push') || inputs.deploy == 'DEPLOY'
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
@@ -67,7 +63,7 @@ jobs:
           print('Production Worker deployment confirmed')
           PY
       - name: Verify published code and health
-        if: (github.event_name == 'push') || inputs.deploy == 'DEPLOY'
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
