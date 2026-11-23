@@ -1,0 +1,34 @@
+name: Validate D&D Atlas history and Drive API patch
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-production-history-drive.yml'
+      - 'workers/production/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read production Worker and build patch (no deployment)
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          curl --silent --show-error --fail \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o /tmp/atlas-production-source \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 workers/production/patch-history-drive.py \
+            /tmp/atlas-production-source \
+            /tmp/atlas-production-history-drive.mjs \
+            workers/production/history-drive-extension.js
+          node --check /tmp/atlas-production-history-drive.mjs
+          echo 'Verified source hash and JavaScript syntax. No changes deployed.'
