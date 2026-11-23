@@ -80,3 +80,54 @@ test('revision polling rejects writes and unauthorised Drive operations',async()
     pathname:'/sync/drive/import',method:'POST',env:{},actor:{id:9,role:'player'},err,respond:x=>x
   }),e=>e.code===403);
 });
+
+test('atomic group undo prepares one D1 batch for all characters and logs each restore',async()=>{
+ const id='01234567-89ab-cdef-0123-456789abcdef';
+ const first={id:101,group_id:id,character_id:'borruk',owner_before:7,owner_after:7,before_json:JSON.stringify(c('borruk','Original Borruk')),after_json:JSON.stringify(c('borruk','Updated Borruk'))};
+ const second={id:102,group_id:id,character_id:'luna',owner_before:null,owner_after:null,before_json:null,after_json:JSON.stringify(c('luna'))};
+ let batch=null;
+ const queries=[];
+ const env={DB:{
+  prepare(sql){
+   const query={sql,args:[],bind(...params){this.args=params;return this},run:async()=>({}),first:async()=>null,all:async()=>{
+    if(sql.startsWith('SELECT * FROM character_history WHERE group_id='))return {results:[first,second]};
+    if(sql.startsWith('SELECT character_id,MAX(id)'))return {results:[{character_id:'borruk',last_id:101},{character_id:'luna',last_id:102}]};
+    if(sql.startsWith('SELECT * FROM characters WHERE id IN'))return {results:[
+      {id:'borruk',owner_user_id:7,revision:4,data_json:first.after_json},
+      {id:'luna',owner_user_id:null,revision:1,data_json:second.after_json}
+    ]};
+    if(sql.startsWith('SELECT id,owner_character_id FROM users'))return {results:[{id:7,owner_character_id:'borruk'}]};
+    throw Error('Unexpected SQL: '+sql);
+   }};
+   queries.push(query);return query;
+  },
+  async batch(items){batch=items;return []}
+ }};
+ const error=(code,message)=>Object.assign(Error(message),{code});
+ const response=await h.handler({env,actor:{id:1,role:'creator',username:'admin'},request:new Request('https://atlas.test/history/group/'+id+'/undo',{method:'POST'}),pathname:'/history/group/'+id+'/undo',method:'POST',respond:x=>x,err:error,audit:async()=>{}});
+ assert.equal(response.count,2);
+ assert.ok(Array.isArray(batch));
+ assert.equal(batch.filter(q=>q.sql.startsWith('INSERT INTO character_history')).length,2);
+ assert.equal(batch.filter(q=>q.sql.startsWith('DELETE FROM characters')).length,1);
+ assert.equal(batch.filter(q=>q.sql.startsWith('INSERT INTO characters')).length,1);
+ assert.equal(batch.find(q=>q.sql.startsWith('INSERT INTO characters')).args[4],5);
+ assert.ok(batch.some(q=>q.sql.startsWith('UPDATE users SET owner_character_id=NULL')));
+});
+test('group undo refuses when a grouped character received a newer change',async()=>{
+ const group='01234567-89ab-cdef-0123-456789abcdef';
+ const entry={id:101,group_id:group,character_id:'borruk',owner_before:null,owner_after:null,before_json:null,after_json:JSON.stringify(c('borruk'))};
+ let batchCalls=0;
+ const env={DB:{
+  prepare(sql){return {bind(){return this},run:async()=>({}),all:async()=>{
+   if(sql.startsWith('SELECT * FROM character_history WHERE group_id='))return {results:[entry,{...entry,id:102,character_id:'luna'}]};
+   if(sql.startsWith('SELECT character_id,MAX(id)'))return {results:[{character_id:'borruk',last_id:105},{character_id:'luna',last_id:102}]};
+   throw Error('Unexpected SQL: '+sql);
+  }}},
+  batch:async()=>{batchCalls++}
+ }};
+ await assert.rejects(()=>h.handler({
+  request:new Request('https://atlas.test/history/group/'+group+'/undo',{method:'POST'}),
+  pathname:'/history/group/'+group+'/undo',method:'POST',env,actor:{id:1,role:'creator',username:'admin'},respond:x=>x,err:(code,message)=>Object.assign(Error(message),{code}),audit:async()=>{}
+ }),e=>e.code===409);
+ assert.equal(batchCalls,0);
+});
