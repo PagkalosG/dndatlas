@@ -36,7 +36,9 @@ def patch(raw,previous,updated):
     begin=source.index(START)
     finish=source.index(END,begin)
     old_region=source[begin:finish]
-    if old_region.strip()!=previous.strip():raise ValueError('Existing production extension differs from backed-up historical source')
+    if previous.count(START)!=1:raise ValueError('Previous extension must contain one history anchor')
+    previous_region=previous[previous.index(START):]
+    if old_region.strip()!=previous_region.strip():raise ValueError('Existing production extension differs from backed-up historical source')
     result=source[:begin]+updated.rstrip()+'\n\n'+source[finish:]
     if source[:begin]!=result[:begin] or not result.endswith(source[finish:]):raise ValueError('Unexpected patch region')
     if 'atlasHistorySchema' not in result or 'atlasExtensionRequest' not in result:
