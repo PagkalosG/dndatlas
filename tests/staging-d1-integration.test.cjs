@@ -32,7 +32,7 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
   modules:true,
   compatibilityDate:'2026-08-01',
   d1Databases:{DB:'atlas-isolated-test-database'},
-  bindings:{ALLOWED_ORIGIN:origin,RECOVERY_PEPPER:'integration-only-not-a-real-production-secret'},
+  bindings:{ALLOWED_ORIGIN:origin,RECOVERY_PEPPER:'integration-only-not-a-real-production-secret',ATLAS_BACKUP_SECRET:'INTEGRATION_ONLY_very_long_random_not_a_prod_key_2026'},
   verbose:false
  });
  try{
@@ -196,6 +196,39 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
    assert.equal(next.skills.Medicine,1);
    assert.equal(next.backgroundStory,before.backgroundStory);
    assert.equal(next.notes,before.notes);
+  });
+  await t.test('Creator secure backup is opaque, authenticated and restores private story exactly',async()=>{
+   const forbidden=await req(mf,'/backup/secure',2);
+   assert.equal(forbidden.status,403,JSON.stringify(forbidden.body));
+   const exported=await req(mf,'/backup/secure',1);
+   assert.equal(exported.status,200,JSON.stringify(exported.body));
+   assert.equal(exported.body.format,'dndatlas-sealed-party-v1');
+   assert.ok(exported.body.count>=2);
+   assert.ok(!JSON.stringify(exported.body).includes('SECRET luna'));
+   assert.ok(!JSON.stringify(exported.body).includes('PRIVATE borruk'));
+   const wrongBody={...exported.body,ciphertext:exported.body.ciphertext.slice(0,-4)+'AAAA'};
+   assert.equal((await req(mf,'/backup/secure/restore',1,'POST',wrongBody)).status,422);
+   const previous=await req(mf,'/characters/luna',4);
+   const changed={...previous.body.data,backgroundStory:'UPDATED AFTER BACKUP'};
+   const updated=await req(mf,'/characters/luna',4,'PUT',{character:changed,revision:previous.body.revision});
+   assert.equal(updated.status,200,JSON.stringify(updated.body));
+   const restored=await req(mf,'/backup/secure/restore',1,'POST',exported.body);
+   assert.equal(restored.status,200,JSON.stringify(restored.body));
+   const after=await req(mf,'/characters/luna',4);
+   assert.equal(after.body.data.backgroundStory,'SECRET luna');
+   assert.equal(after.body.data.notes,'PRIVATE luna');
+   const filtered=await req(mf,'/characters',1);
+   assert.equal(filtered.body.characters.find(c=>c.id==='luna').data.backgroundStory,undefined);
+  });
+  await t.test('transactional Undo guard refuses stale history inside one D1 batch',async()=>{
+   await db.prepare('CREATE TABLE IF NOT EXISTS atlas_undo_guard(id INTEGER PRIMARY KEY CHECK(id=1), valid INTEGER NOT NULL CHECK(valid=1))').run();
+   let before=await db.prepare('SELECT COUNT(*) AS n FROM characters').first();
+   await assert.rejects(()=>db.batch([
+    db.prepare('INSERT INTO atlas_undo_guard(id,valid) VALUES(1,0) ON CONFLICT(id) DO UPDATE SET valid=excluded.valid'),
+    db.prepare('DELETE FROM characters')
+   ]));
+   const after=await db.prepare('SELECT COUNT(*) AS n FROM characters').first();
+   assert.equal(after.n,before.n);
   });
   await t.test('direct Drive API remains forbidden or disabled',async()=>{
    assert.equal((await req(mf,'/sync/drive/publish',1,'POST',{})).status,410);
