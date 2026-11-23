@@ -1,0 +1,52 @@
+name: Inspect D&D Atlas production Worker (read only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect deployed Worker source without publishing it
+        shell: bash
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+          WORKER_NAME: dndatlas-api
+        run: |
+          set -euo pipefail
+          if [[ -z "$CF_ACCOUNT_ID" || -z "$CF_API_TOKEN" ]]; then
+            echo 'Missing production Cloudflare secrets.' >&2
+            exit 1
+          fi
+          umask 077
+          code=$(curl --silent --show-error --location \
+            --output /tmp/atlas-worker-response \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${WORKER_NAME}")
+          if [[ "$code" != "200" ]]; then
+            echo "Cloudflare API returned HTTP ${code}; source not printed." >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          data = Path('/tmp/atlas-worker-response').read_bytes()
+          markers = [
+              '/characters/replace', '/sync/drive/import',
+              '/sync/drive/publish', '/sync/revisions',
+              '/characters', '/auth/login', '/sessions',
+          ]
+          print('Production Worker: dndatlas-api')
+          print('Source bytes:', len(data))
+          print('Source SHA256:', hashlib.sha256(data).hexdigest())
+          print('Endpoint markers (indicative; check actual routes before deploy):')
+          for marker in markers:
+              print(f'  {marker}: {"found" if marker.encode() in data else "not found"}')
+          print('Read-only inspection complete. No Worker or D1 writes were made.')
+          PY
