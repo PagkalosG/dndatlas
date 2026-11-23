@@ -129,3 +129,54 @@ test('PWA behavior, rule limits and existing Creator/DM permissions remain uncha
  assert.match(app,/data-action="cloud-secure-backup"/);
  assert.match(app,/data-action="cloud-history"/);
 });
+
+test('2024 Builder validation rejects illegal levels, duplicate skills and self-approved overrides',()=>{
+ const source=extract('function bFinalAbilities(){','function bRender(){');
+ const base={
+  rules:'2024',name:'Borruk',class:'Fighter',species:'Human',background:'Soldier',level:1,
+  base:{STR:15,DEX:14,CON:13,INT:8,WIS:10,CHA:12},method:'Standard Array',
+  boostA:'STR',boostB:'CON',boostPattern:'2+1',languages:['Draconic','Elvish'],
+  gamingSet:'Dice Set',subclass:'',originFeat:'feat-tough',weapons:['Greatsword','Spear','Battleaxe'],
+  skills:{fighter1:'Perception',fighter2:'Survival',human:'Medicine',bm:''},maneuvers:[],
+  dmOverride:false,dmReason:''
+ };
+ const context={
+  B:base,
+  D:{
+   species:['Human','Elf'],
+   background:['Soldier','Acolyte'],
+   classes:{Fighter:{caster:'none'},Bard:{caster:'full'}},
+   skills:[['Athletics','STR'],['Intimidation','CHA'],['Perception','WIS'],['Survival','WIS'],['Medicine','WIS']]
+  },
+  cloud:{enabled:false,user:null},
+  B_GAMES:['Dice Set'],
+  B_LANGUAGES:['Draconic','Elvish'],
+  B_SKILLS:['Perception','Survival','Medicine','Athletics','Intimidation'],
+  B_ORIGINS:[{id:'feat-tough'}],
+  B_ARTISAN:['Smith’s Tools']
+ };
+ const check=vm.runInNewContext(source+';bValidate',context);
+ assert.equal(check().errors.length,0,JSON.stringify(check()));
+ context.B={...base,level:21};
+ assert.ok(check().errors.some(e=>e.includes('1–20')));
+ context.B={...base,skills:{...base.skills,fighter1:'Athletics'}};
+ assert.ok(check().errors.some(e=>e.includes('duplicate')));
+ context.B={...base,species:'Unknown'};
+ assert.ok(check().errors.some(e=>e.includes('2024 species')));
+ context.B={...base,dmOverride:true,dmReason:'Approved by myself'};
+ context.cloud={enabled:true,user:{role:'player'}};
+ assert.ok(check().errors.some(e=>e.includes('Players may not grant')));
+ context.B={...base,class:'Bard',dmOverride:false,dmReason:''};
+ const result=check();
+ assert.equal(result.review,true);
+ assert.ok(!result.errors.some(e=>e.includes('DM Override and a reason')));
+});
+
+test('DM Player draft import asks for manual review and only resolves approval on import',()=>{
+ const source=extract("if(e.target.matches('#import-character-file'))","if(e.target.matches('#import-file, #drive-restore-file'))");
+ assert.match(source,/playerDraft=documentData\?\.exportScope==='player-draft-for-dm-review'/);
+ assert.match(source,/DM review/);
+ assert.match(source,/entry\.key==='dm-character-approval'/);
+ assert.match(source,/approval\.status='resolved'/);
+ assert.match(source,/cloudRequest\('\/characters\/'\+encodeURIComponent\(reviewed\.id\),'POST'/);
+});
