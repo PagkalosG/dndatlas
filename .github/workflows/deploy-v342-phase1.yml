@@ -1,9 +1,5 @@
 name: Deploy Atlas v3.4.2 consolidated Stage 1 Worker (one-time)
 on:
-  push:
-    branches: [feature/v342-stability-skill-proficiency]
-    paths:
-      - '.github/workflows/deploy-v342-phase1.yml'
   workflow_dispatch:
     inputs:
       deploy:
@@ -57,7 +53,7 @@ jobs:
           ATLAS_WORKER_SOURCE: .atlas-staging-worker.mjs
         run: node --test tests/staging-d1-integration.test.cjs
       - name: Deploy Worker module only (D1 binding and secrets unchanged)
-        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
@@ -76,7 +72,7 @@ jobs:
           print('Cloudflare production Worker update confirmed')
           PY
       - name: Read back production Worker and verify byte-for-byte and /health
-        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
