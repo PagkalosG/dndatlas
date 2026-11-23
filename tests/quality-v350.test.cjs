@@ -181,3 +181,12 @@ test('DM Player draft import asks for manual review and only resolves approval o
  assert.match(source,/approval\.status='resolved'/);
  assert.match(source,/cloudRequest\('\/characters\/'\+encodeURIComponent\(reviewed\.id\),'POST'/);
 });
+
+test('Journal keeps and sorts session numbers without changing image gallery behavior',()=>{
+ assert.match(app,/sessionNumber:Number\.isInteger\(x\.sessionNumber\)/);
+ assert.match(app,/function journalTiles\(entries,remote\)\{return \[\.\.\.entries\]\.sort/);
+ assert.match(app,/atlas-session-timeline-entry/);
+ assert.match(app,/data-atlas-journal-open/);
+ assert.match(app,/mediaCards\(j\.images\|\|\[\]\)/);
+ assert.match(css,/\.atlas-session-timeline-entry/);
+});
