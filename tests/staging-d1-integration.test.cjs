@@ -30,7 +30,7 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
  const mf=new Miniflare({
   scriptPath:source,
   modules:true,
-  compatibilityDate:'2026-11-01',
+  compatibilityDate:'2026-08-01',
   d1Databases:{DB:'atlas-isolated-test-database'},
   bindings:{ALLOWED_ORIGIN:origin,RECOVERY_PEPPER:'integration-only-not-a-real-production-secret'},
   verbose:false
