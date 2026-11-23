@@ -1,0 +1,96 @@
+name: Deploy manual Drive restore / remove remote Drive API (one-time)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-manual-drive-restore.yml'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Enter DEPLOY to apply patch; DRY_RUN otherwise'
+        required: true
+        default: 'DRY_RUN'
+permissions:
+  contents: read
+concurrency:
+  group: dndatlas-production-worker-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify Creator permission tests and frontend syntax
+        run: |
+          node --test tests/history-drive-extension.test.cjs
+          node --check src/app.js
+      - name: Obtain current production script and build verified patch
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          curl --silent --show-error --fail -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o /tmp/atlas-live.raw \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          git show 513735fe2f769838734b890ccca0c8cefc06651f:workers/production/history-drive-extension.js > /tmp/atlas-previous-extension.js
+          python3 workers/production/patch-manual-drive-restore.py \
+            /tmp/atlas-live.raw \
+            /tmp/atlas-previous-extension.js \
+            workers/production/history-drive-extension.js \
+            /tmp/atlas-manual-restore.mjs
+          node --check /tmp/atlas-manual-restore.mjs
+      - name: Deploy only production Worker script content, retain all bindings
+        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail \
+            -o /tmp/atlas-deploy-result.json -X PUT \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -F 'metadata={"main_module":"index.js"};type=application/json' \
+            -F 'index.js=@/tmp/atlas-manual-restore.mjs;filename=index.js;type=application/javascript+module' \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api/content"
+          python3 - <<'PY'
+          import json
+          response=json.load(open('/tmp/atlas-deploy-result.json'))
+          if not response.get('success'):raise SystemExit('Cloudflare did not confirm deployment')
+          print('Cloudflare confirmed manual-only Drive restore Worker update.')
+          PY
+      - name: Verify deployed script bytes and production health
+        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o /tmp/atlas-verified.raw \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 - <<'PY'
+          import hashlib
+          from importlib.machinery import SourceFileLoader
+          parser=SourceFileLoader('patcher','workers/production/patch-manual-drive-restore.py').load_module()
+          actual=parser.extract(open('/tmp/atlas-verified.raw','rb').read())
+          expected=open('/tmp/atlas-manual-restore.mjs','rb').read()
+          if actual!=expected:raise SystemExit('Published production Worker mismatch')
+          print('Verified deployed Worker SHA256:',hashlib.sha256(actual).hexdigest())
+          PY
+          curl --silent --show-error --fail \
+            -o /tmp/atlas-health.json \
+            "https://dndatlas-api.pagkalosgeo.workers.dev/health"
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/atlas-health.json'))
+          if data.get('status')!='ok':raise SystemExit('Production health was not OK')
+          print('Health check: ok')
+          PY
+      - name: Dry-run summary
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy != 'DEPLOY'
+        run: echo 'Dry run only; production Worker unchanged.'
