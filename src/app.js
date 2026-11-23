@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.3.6';
+ const APP_VERSION='3.3.7';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -1758,7 +1758,7 @@ document.addEventListener('submit',e=>{
     const roster=Array.isArray(doc?.characters)?doc.characters:(doc?.character?[doc.character]:null);
     if(!roster||!roster.length||roster.length>25||roster.some(ch=>!ch||typeof ch.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(ch.id)||typeof ch.name!=='string'||!ch.name.trim()||!Array.isArray(ch.classes))||new Set(roster.map(ch=>ch.id)).size!==roster.length)throw Error(tr('Το αρχείο δεν περιέχει έγκυρο party. Έλεγξε τα IDs και τα classes.','Invalid party backup: check character IDs and classes.'));
     if(cloud.enabled){
-     if(!cloud.ready||cloud.user?.role!=='creator')throw Error(tr('Η πλήρης αντικατάσταση επιτρέπεται μόνο στον Creator. Για προσθήκη χαρακτήρων χρησιμοποίησε Import character.','Only Creator can replace the roster. Use Import character to add missing entries.'));
+     if(!cloud.ready||!['creator','dm'].includes(cloud.user?.role||''))throw Error(tr('Μόνο Creator ή DM μπορούν να αντικαταστήσουν το party από τοπικό JSON.','Only Creator or DM can replace the party from a local JSON backup.'));
      if(!confirm(tr('ΑΝΤΙΚΑΤΑΣΤΑΣΗ D1: Το JSON περιέχει '+roster.length+' χαρακτήρες. Θα αντικαταστήσει την τρέχουσα λίστα, ακόμη κι αν κάποιοι είχαν διαγραφεί. Πάρε πρώτα backup.','REPLACE D1: The JSON contains '+roster.length+' characters. It will replace the current roster, including previously deleted characters. Export a backup first.')))return;
      if(!confirm(tr('Τελική επιβεβαίωση: αντικατάσταση όλων των χαρακτήρων από αυτό το αρχείο;','Final confirmation: replace every character using this file?')))return;
      await Promise.all([...cloud.queues.values()]);
