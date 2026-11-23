@@ -10,7 +10,7 @@ const sandbox=vm.createContext({
   TextEncoder,TextDecoder,URLSearchParams,URL,Response,Request,
   btoa,atob,console,fetch:async()=>{throw Error('Unexpected network access in tests')}
 });
-vm.runInContext(extension+'\nglobalThis.atlasTest = { valid:atlasValidRoster, changed:atlasFieldsChanged, encrypt:atlasDriveEncrypt, decrypt:atlasDriveDecrypt, handler:atlasExtensionRequest };',sandbox);
+vm.runInContext(extension+'\nglobalThis.atlasTest = { valid:atlasValidRoster, changed:atlasFieldsChanged, handler:atlasExtensionRequest };',sandbox);
 const h=sandbox.atlasTest;
 const validCharacter=c=>typeof c?.id==='string'&&typeof c?.name==='string'&&Array.isArray(c?.classes);
 const c=(id,name='Hero')=>({id,name,classes:[{name:'Fighter',level:3}]});
@@ -31,18 +31,16 @@ test('history diffs exclude private stories and portraits',()=>{
   assert.equal(changes[0].before,'30');
   assert.equal(changes[0].after,'12');
 });
-test('encrypted Drive JSON round-trips character roster',async()=>{
-  const env={DRIVE_BACKUP_ENCRYPTION_KEY:'test-32-byte-secret-not-for-real-use-12345'};
-  const roster=[{...c('one'),backgroundStory:'Private DM story'}];
-  const encrypted=await h.encrypt(env,roster);
-  assert.equal(encrypted.format,'dndatlas-encrypted-backup-v1');
-  assert.ok(!JSON.stringify(encrypted).includes('Private DM story'));
-  const decrypted=await h.decrypt(env,encrypted);
-  assert.equal(JSON.stringify(decrypted.characters),JSON.stringify(roster));
+test('Google OAuth and Drive writes are completely absent',()=>{
+  assert.equal(extension.includes('GOOGLE_CLIENT_ID'),false);
+  assert.equal(extension.includes('DRIVE_JSON_FILE_ID'),false);
+  assert.equal(extension.includes('https://www.googleapis.com/'),false);
+  assert.equal(extension.includes('atlasDriveEncrypt'),false);
 });
-test('Drive and History routes enforce Creator role server-side',async()=>{
-  const context={pathname:'/sync/drive/status',method:'GET',actor:{id:3,role:'dm'},env:{},err:(code,message)=>Object.assign(Error(message),{code}),respond:x=>x};
-  await assert.rejects(()=>h.handler(context),e=>e.code===403);
-  const status=await h.handler({...context,actor:{id:1,role:'creator'}});
-  assert.equal(status.configured,false);
+test('Drive sync is disabled for Creator and forbidden for DM',async()=>{
+  const err=(code,message)=>Object.assign(Error(message),{code});
+  const base={pathname:'/sync/drive/import',method:'POST',env:{},err,respond:x=>x};
+  await assert.rejects(()=>h.handler({...base,actor:{id:3,role:'dm'}}),e=>e.code===403);
+  await assert.rejects(()=>h.handler({...base,actor:{id:1,role:'creator'}}),e=>e.code===410);
+  await assert.rejects(()=>h.handler({...base,pathname:'/sync/drive/publish',actor:{id:1,role:'creator'}}),e=>e.code===410);
 });
