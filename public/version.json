@@ -1,6 +1,6 @@
 {
-  "version": "3.4.3",
-  "updated": "2026-11-23",
+  "version": "3.5.0",
+  "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Restore original skill proficiency dots; minimal stat edit pencils and compact themed popups"
+  "notes": "Character Sheet quick stats, combat spells for all classes, resilient D1 save recovery, 2024 Builder validation, privacy and Level Up improvements"
 }
