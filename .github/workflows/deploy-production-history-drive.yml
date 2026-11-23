@@ -1,0 +1,94 @@
+name: Deploy production Creator history and Drive API (one-time)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-production-history-drive.yml'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Type DEPLOY to apply SHA-locked Worker code (no data changed)'
+        required: true
+        default: 'DRY_RUN'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dndatlas-production-worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test feature access controls and encryption
+        run: node --test tests/history-drive-extension.test.cjs
+      - name: Download current production Worker
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          curl --silent --show-error --fail \
+            -o /tmp/atlas-before.raw \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 workers/production/patch-history-drive.py /tmp/atlas-before.raw /tmp/atlas-patched.mjs workers/production/history-drive-extension.js
+          node --check /tmp/atlas-patched.mjs
+      - name: Upload verified Worker content without changing bindings
+        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail \
+            -o /tmp/atlas-deploy-result.json \
+            -X PUT \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -F 'metadata={"main_module":"index.js"};type=application/json' \
+            -F 'index.js=@/tmp/atlas-patched.mjs;filename=index.js;type=application/javascript+module' \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api/content"
+          python3 - <<'PY'
+          import json
+          result=json.load(open('/tmp/atlas-deploy-result.json'))
+          if not result.get('success'):raise SystemExit('Cloudflare did not confirm successful deployment')
+          print('Cloudflare confirmed production Worker update.')
+          PY
+      - name: Verify deployed Worker and public health endpoint
+        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o /tmp/atlas-verified.raw \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 - <<'PY'
+          import sys,hashlib
+          sys.path.insert(0,'workers/production')
+          from importlib.machinery import SourceFileLoader
+          mod=SourceFileLoader('patcher','workers/production/patch-history-drive.py').load_module()
+          actual=mod.main_module(open('/tmp/atlas-verified.raw','rb').read())
+          expected=open('/tmp/atlas-patched.mjs','rb').read()
+          if actual!=expected:raise SystemExit('Published Worker does not match SHA-verified patch')
+          print('Verified production Worker SHA256:',hashlib.sha256(actual).hexdigest())
+          PY
+          curl --silent --show-error --fail \
+            --output /tmp/atlas-health.json \
+            "https://dndatlas-api.pagkalosgeo.workers.dev/health"
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/atlas-health.json'))
+          assert data.get('status')=='ok',data
+          print('Production /health: ok')
+          PY
+      - name: Dry run summary
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy != 'DEPLOY'
+        run: echo 'Dry run complete. Production Worker unchanged.'
