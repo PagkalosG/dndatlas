@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.3.2';
+ const APP_VERSION='3.3.3';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -194,7 +194,14 @@
  const panel=(title,content,actions='',hint='')=>`<section class="panel"><div class="panel-title"><h3>${title}</h3><div class="actions-inline">${hint?`<span>${hint}</span>`:''}${actions}</div></div><div class="panel-content">${content}</div></section>`;
  const textbutton=(name,ref)=>`<button class="linklike" data-detail="${attr(ref)}">${esc(name)}</button>`;
  function renderApp(){
-  const ch=c();if(!ch)return;
+  const ch=c();
+  if(!ch){
+   // An empty D1 roster is a valid state; never manufacture or re-import a character.
+   document.title='D&D Atlas · Empty party';
+   document.getElementById('app').innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="logo">A</div><div><strong>CHARACTER ATLAS</strong><small>D&D 2024 · Shared party</small></div></div><div class="top-actions"><button class="btn sm" data-atlas-session>☁ ${tr('Λογαριασμός','Account')}</button>${cloud.user&&['creator','dm'].includes(cloud.user.role)?`<button class="btn sm primary" data-action="new-character">+ ${tr('Νέος χαρακτήρας','New character')}</button>`:''}</div></header><main class="main"><div class="content"><section class="panel"><div class="panel-content"><h2>${tr('Δεν υπάρχουν χαρακτήρες','No characters in the campaign')}</h2><p>${tr('Η βάση D1 είναι κενή. Δεν γίνεται αυτόματη εισαγωγή από JSON.','The D1 roster is empty. No JSON file is imported automatically.')}</p><div class="actions-inline"><button class="btn" data-cloud-refresh>↻ ${tr('Ανανέωση από D1','Refresh from D1')}</button>${cloud.user?.role==='creator'?`<button class="btn" data-action="cloud-drive-import">${tr('Χειροκίνητη εισαγωγή JSON','Manually import Drive JSON')}</button>`:''}</div></div></section></div></main></div>`;
+   L.translateRoot(document.getElementById('app'));
+   return;
+  }
   const lvl=totalLevel(ch);document.title=`${ch.name} · Character Atlas`;
   document.getElementById('app').innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="logo">A</div><div><strong>CHARACTER ATLAS</strong><small>D&D 2024 · Shared party</small></div></div><div class="top-actions"><select class="language-select" data-language-select aria-label="Language"><option value="en" ${L.getLanguage()==="en"?"selected":""}>EN</option><option value="el" ${L.getLanguage()==="el"?"selected":""}>ΕΛ</option></select><select class="select-character" aria-label="Επιλογή χαρακτήρα" data-char-select>${characters.map(x=>`<option value="${attr(x.id)}" ${x.id===ch.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><button class="btn sm" data-action="new-character" title="New Character">+ ${tr('Νέος Χαρακτήρας','New Character')}</button><button class="btn sm" type="button" data-atlas-session title="Cloud account">☁ ${tr('Σύνδεση','Account')}</button>${cloud.enabled&&cloud.ready&&canEditCharacter(ch)?`<button class="btn sm primary" data-action="cloud-save-now">💾 ${tr('Αποθήκευση','Save')}</button>`:''}<button class="btn sm" data-action="settings" aria-label="Settings">${svg('settings')} ${tr('Ρυθμίσεις','Settings')}</button></div></header><div class="shell"><aside class="sidebar"><div class="side-head">ADVENTURE DESK</div><nav class="nav-list">${navigation.map(([id,name])=>`<button data-tab="${id}" class="nav-item ${id===view?'active':''}">${svg(id)} ${name}</button>`).join('')}</nav><div class="side-footer"><span class="chip gold">2024 Rules Only</span><br/>Οι χαρακτήρες συγχρονίζονται από Cloudflare D1 όταν έχεις συνδεθεί.</div></aside><main class="main"><div class="content">${view==='overview'?'':hero(ch)}${renderPage(ch)}<footer class="footer">D&D Atlas v${APP_VERSION} · Fan-made, unofficial companion · Summaries only · Rulebook/DM have final say · <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener">SRD 5.2.1</a> (CC BY 4.0). Not affiliated with Wizards of the Coast.</footer></div></main></div><nav class="mobile-nav">${navigation.map(([id,name])=>`<button data-tab="${id}" class="${id===view?'active':''}">${svg(id)}<span>${name}</span></button>`).join('')}</nav><input id="edit-json-file" type="file" accept="application/json,.json" hidden><input id="import-docx-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><input id="session-import-file" type="file" accept=".json,application/json" hidden><input id="portrait-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" aria-label="Choose character image" hidden /></div>`;
   L.translateRoot(document.getElementById('app'));
@@ -740,6 +747,7 @@ document.addEventListener('submit',e=>{
   case 'check-updates':checkUpdates(true);break;
   case 'cloud-save-now':cloudSaveNow();break;
   case 'cloud-drive-import':cloudImportFromDrive();break;
+  case 'cloud-drive-publish':cloudPublishDriveNow();break;
   case 'reload-app':refreshApp(false);break;
   case 'clear-app-cache':refreshApp(true);break;
   case 'reset-local-data':resetLocalData();break;
@@ -1262,8 +1270,7 @@ document.addEventListener('submit',e=>{
    characters=(result.characters||[]).map(row=>({...row.data,_ownerId:row.ownerUserId}));
    cloud.revisions=Object.fromEntries((result.characters||[]).map(row=>[row.id,row.revision]));
    cloud.user=result.me||cloud.user;
-   if(!characters.length)characters=[defaultChar('No characters yet')];
-   selectedId=characters.find(x=>x.id===prev)?.id||characters[0].id;
+   selectedId=characters.find(x=>x.id===prev)?.id||characters[0]?.id||null;
    cloud.ready=true;renderApp();
   }
 
@@ -1274,35 +1281,32 @@ document.addEventListener('submit',e=>{
     const character=c();
     if(!character||!canEditCharacter(character))return toast(tr('Δεν έχεις δικαίωμα επεξεργασίας αυτού του χαρακτήρα.','You cannot edit this character.'));
     try{
-      // Queue a snapshot of the currently selected sheet, then wait for every
-      // outstanding character write. The Worker enforces role + revision checks.
       cloudPush(character);
       await Promise.all([...cloud.queues.values()]);
-      if(cloud.user.role!=='creator'){
-        toast(tr('Οι αλλαγές αποθηκεύτηκαν στην κοινή D1. Το αρχείο Drive διαχειρίζεται ο Creator.','Changes saved to the shared D1. The Drive mirror is managed by the Creator.'));
-        return;
-      }
-      // Creator-only mirror publishing does not affect DM character editing.
-      try{
-        const result=await cloudRequest('/sync/drive/publish','POST',{});
-        toast(result.notActivated?
-          tr('Αποθηκεύτηκε στη D1. Ενεργοποίησε το Drive JSON από Account → Import missing.','Saved to D1. Initialize Drive JSON from Account → Import missing.'):
-          result.queued?
-          tr('Αποθηκεύτηκε στη D1. Το Drive ενημερώνεται.','Saved to D1. Drive update is already running.'):
-          tr('Αποθηκεύτηκε στη D1 και στο ιδιωτικό JSON του Drive.','Saved to D1 and the private Drive JSON.'));
-      }catch(e){
-        toast(tr('Αποθηκεύτηκε στη D1, αλλά απέτυχε ο συγχρονισμός Drive: ','Saved to D1, but Drive sync failed: ')+e.message);
-      }
+      toast(tr('Αποθηκεύτηκε στη D1. Το JSON του Drive δεν άλλαξε.','Saved to D1. The Drive JSON was not modified.'));
     }catch(e){
       toast(tr('Η αποθήκευση στη D1 απέτυχε: ','D1 save failed: ')+e.message);
     }
+  }
+  async function cloudPublishDriveNow(){
+    if(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
+    if(!confirm(tr('Να αντικατασταθεί το ιδιωτικό JSON του Drive με τα τρέχοντα δεδομένα της D1;','Replace the private Drive JSON with the current D1 roster?')))return;
+    try{
+      await Promise.all([...cloud.queues.values()]);
+      const result=await cloudRequest('/sync/drive/publish','POST',{});
+      toast(result.notActivated?
+        tr('Το Drive JSON δεν έχει ενεργοποιηθεί.','The Drive JSON mirror is not activated.'):
+        result.queued?
+        tr('Ο συγχρονισμός Drive προγραμματίστηκε.','Drive sync has been queued.'):
+        tr('Ο συγχρονισμός D1 → Drive ολοκληρώθηκε.','D1 to Drive synchronization completed.'));
+    }catch(e){toast(tr('Αποτυχία συγχρονισμού Drive: ','Drive sync failed: ')+e.message);}
   }
   async function cloudPullLatest(){
     if(!cloud.enabled||!cloud.ready)return;
     try{
       await Promise.all([...cloud.queues.values()]);
       await cloudRefresh();await fetchSharedData();
-      toast(tr('Τα δεδομένα συγχρονίστηκαν.','Campaign data synchronized.'));
+      toast(tr('Τα δεδομένα ανανεώθηκαν από τη D1. Δεν έγινε εισαγωγή JSON.','Campaign refreshed from D1. No JSON file was imported.'));
     }catch(e){toast(tr('Σφάλμα συγχρονισμού: ','Sync failed: ')+e.message);}
   }
   async function cloudImportFromDrive(){
@@ -1358,7 +1362,7 @@ document.addEventListener('submit',e=>{
   }
   function cloudAccount(){
    if(!cloud.enabled)return;
-   let u=cloud.user;const options=`<button class="btn" data-cloud-refresh>${cloudMsg('↻ Συγχρονισμός δεδομένων party','↻ Sync party data')}</button>${u.role==='creator'?`<button class="btn" data-action="cloud-drive-import">${cloudMsg('Εισαγωγή ελλειπόντων από Drive JSON','Import missing from Drive JSON')}</button>`:''}${u.role==='creator'?`<button class="btn primary" data-cloud-admin>${cloudMsg('Διαχείριση χρηστών','Manage users')}</button>`:''}<button class="btn warn" data-cloud-logout>${cloudMsg('Αποσύνδεση','Sign out')}</button>`;
+   let u=cloud.user;const options=`<button class="btn" data-cloud-refresh>${cloudMsg('↻ Ανανέωση από D1','↻ Refresh from D1')}</button>${u.role==='creator'?`<button class="btn" data-action="cloud-drive-import">${cloudMsg('Χειροκίνητη εισαγωγή από Drive JSON','Manual import from Drive JSON')}</button><button class="btn" data-action="cloud-drive-publish">${cloudMsg('Αντικατάσταση Drive JSON από D1','Replace Drive JSON from D1')}</button>`:''}${u.role==='creator'?`<button class="btn primary" data-cloud-admin>${cloudMsg('Διαχείριση χρηστών','Manage users')}</button>`:''}<button class="btn warn" data-cloud-logout>${cloudMsg('Αποσύνδεση','Sign out')}</button>`;
    openModal(cloudMsg('Λογαριασμός','Account'),`<p>${cloudMsg('Συνδεδεμένος ως','Signed in as')} <strong>${esc(u.username)}</strong> (${esc(u.role)})</p><p>${cloudMsg('Τα δεδομένα της παρέας είναι κοινά στη Cloudflare D1.','Party data is shared in Cloudflare D1.')}</p><div class="cloud-account-grid">${options}</div>`, `<button class="btn" data-action="close-modal">${cloudMsg('Κλείσιμο','Close')}</button>`);
   }
   async function cloudResetPinScreen(id){
