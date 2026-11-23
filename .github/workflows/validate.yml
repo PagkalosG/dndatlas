@@ -16,3 +16,5 @@ jobs:
         run: node --test tests/rules-2024.test.cjs
       - name: Character Sheet UI regression tests
         run: node --test tests/ui-skill-stat-controls-v343.test.cjs
+      - name: Character quality, 2024 Builder and sync resilience
+        run: node --test tests/quality-v350.test.cjs
