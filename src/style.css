@@ -147,3 +147,78 @@ body.building{overflow:hidden!important}.atlas-builder{position:fixed;inset:0;ba
 .atlas-tool-card .rowline b{min-width:110px;color:#e5c17a}
 .atlas-tool-card .rowline span{flex:1;min-width:180px;white-space:normal}
 .atlas-tool-card a{color:#e5c17a}
+
+/* v3.4.3: Restore the original minimal proficiency dots (no boxed controls). */
+button.atlas-prof-dot-toggle,
+.skill-row button.prof-dot.atlas-prof-dot-toggle{
+  appearance:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 18px;
+  width:18px;
+  height:20px;
+  min-width:0;
+  min-height:0;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  font:inherit;
+  font-size:15px;
+  line-height:1;
+  color:#62758a;
+  cursor:pointer;
+}
+button.atlas-prof-dot-toggle.proficient,
+.skill-row button.prof-dot.atlas-prof-dot-toggle.prof{color:#f0d19a}
+button.atlas-prof-dot-toggle.expert,
+.skill-row button.prof-dot.atlas-prof-dot-toggle.expert{color:#8fdbce}
+button.atlas-prof-dot-toggle:hover{filter:brightness(1.25)}
+button.atlas-prof-dot-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+/* Stat editing is a subtle pencil over the existing cards, not an extra action box. */
+.atlas-core-card,.statcard{position:relative}
+.atlas-stat-edit{
+  appearance:none;
+  position:absolute;
+  top:8px;
+  right:8px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:26px;
+  height:26px;
+  padding:0;
+  margin:0;
+  border:0;
+  border-radius:6px;
+  background:transparent;
+  color:#9bb2c4;
+  cursor:pointer;
+}
+.atlas-stat-edit svg{display:block;width:15px;height:15px}
+.atlas-stat-edit:hover{background:#263c50;color:#f0d19a}
+.atlas-stat-edit:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.atlas-stat-edit-inline{position:static;flex:0 0 26px;margin-left:auto}
+
+/* Compact editing popup using the existing Atlas modal frame. */
+.modal.atlas-stat-modal{width:min(100%,420px)}
+.atlas-stat-popup{display:grid;gap:15px}
+.atlas-stat-popup-current{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:13px 15px;
+  border:1px solid #32485d;
+  border-radius:11px;
+  background:#1a2e42;
+}
+.atlas-stat-popup-current small{font-size:11px;color:#aac0d1}
+.atlas-stat-popup-current strong{font-family:Georgia,serif;font-size:23px;color:#f3dfc1}
+.atlas-stat-popup .field label{font-size:12px}
+.atlas-stat-popup input{font-size:18px;font-variant-numeric:tabular-nums}
+.atlas-stat-popup p{margin:0;font-size:11px;line-height:1.55}
