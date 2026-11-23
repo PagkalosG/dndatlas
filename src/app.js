@@ -1271,15 +1271,31 @@ document.addEventListener('submit',e=>{
   // JSON is a private mirror/initial seed, never downloaded directly by players.
   async function cloudSaveNow(){
     if(!cloud.enabled||!cloud.ready)return toast(tr('Συνδέσου στο campaign.','Sign in to your campaign.'));
+    const character=c();
+    if(!character||!canEditCharacter(character))return toast(tr('Δεν έχεις δικαίωμα επεξεργασίας αυτού του χαρακτήρα.','You cannot edit this character.'));
     try{
+      // Queue a snapshot of the currently selected sheet, then wait for every
+      // outstanding character write. The Worker enforces role + revision checks.
+      cloudPush(character);
       await Promise.all([...cloud.queues.values()]);
-      const result=await cloudRequest('/sync/drive/publish','POST',{});
-      toast(result.notActivated?
-        tr('Αποθηκεύτηκε στη D1. Ο Creator πρέπει πρώτα να ενεργοποιήσει το Drive JSON από Account → Import missing.','Saved to D1. Creator must initialize Drive JSON via Account → Import missing first.'):
-        result.queued?
-        tr('Αποθηκεύτηκε στη D1. Το Drive ενημερώνεται.','Saved to D1. Drive update is already running.'):
-        tr('Αποθηκεύτηκε στη D1 και στο ιδιωτικό JSON του Drive.','Saved to D1 and the private Drive JSON.'));
-    }catch(e){toast(tr('Η αποθήκευση στη D1 είναι ανεξάρτητη από το Drive. Έλεγξε: ','D1 and Drive saves are independent. Check: ')+e.message);}
+      if(cloud.user.role!=='creator'){
+        toast(tr('Οι αλλαγές αποθηκεύτηκαν στην κοινή D1. Το αρχείο Drive διαχειρίζεται ο Creator.','Changes saved to the shared D1. The Drive mirror is managed by the Creator.'));
+        return;
+      }
+      // Creator-only mirror publishing does not affect DM character editing.
+      try{
+        const result=await cloudRequest('/sync/drive/publish','POST',{});
+        toast(result.notActivated?
+          tr('Αποθηκεύτηκε στη D1. Ενεργοποίησε το Drive JSON από Account → Import missing.','Saved to D1. Initialize Drive JSON from Account → Import missing.'):
+          result.queued?
+          tr('Αποθηκεύτηκε στη D1. Το Drive ενημερώνεται.','Saved to D1. Drive update is already running.'):
+          tr('Αποθηκεύτηκε στη D1 και στο ιδιωτικό JSON του Drive.','Saved to D1 and the private Drive JSON.'));
+      }catch(e){
+        toast(tr('Αποθηκεύτηκε στη D1, αλλά απέτυχε ο συγχρονισμός Drive: ','Saved to D1, but Drive sync failed: ')+e.message);
+      }
+    }catch(e){
+      toast(tr('Η αποθήκευση στη D1 απέτυχε: ','D1 save failed: ')+e.message);
+    }
   }
   async function cloudPullLatest(){
     if(!cloud.enabled||!cloud.ready)return;
