@@ -153,7 +153,8 @@ test('2024 Builder validation rejects illegal levels, duplicate skills and self-
   B_LANGUAGES:['Draconic','Elvish'],
   B_SKILLS:['Perception','Survival','Medicine','Athletics','Intimidation'],
   B_ORIGINS:[{id:'feat-tough'}],
-  B_ARTISAN:['Smith’s Tools']
+  B_ARTISAN:['Smith’s Tools'],
+  ATLAS_SKILL_RULES_2024:{backgrounds:{Soldier:'Athletics,Intimidation',Acolyte:'Insight,Religion'}}
  };
  const check=vm.runInNewContext(source+';bValidate',context);
  assert.equal(check().errors.length,0,JSON.stringify(check()));
