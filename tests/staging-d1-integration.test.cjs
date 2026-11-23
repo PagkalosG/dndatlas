@@ -37,26 +37,12 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
  });
  try{
   const db=await mf.getD1Database('DB');
-  await db.exec(`
-   CREATE TABLE users (
-     id INTEGER PRIMARY KEY,username TEXT NOT NULL,role TEXT NOT NULL,
-     active INTEGER NOT NULL DEFAULT 1,owner_character_id TEXT,
-     password_salt TEXT DEFAULT '',password_hash TEXT DEFAULT ''
-   );
-   CREATE TABLE auth_sessions (
-     token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL,
-     expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL
-   );
-   CREATE TABLE characters (
-     id TEXT PRIMARY KEY,owner_user_id INTEGER,
-     data_json TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 1,
-     modified_by INTEGER,updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-   );
-   CREATE TABLE audit_log (
-     id INTEGER PRIMARY KEY AUTOINCREMENT,actor_user_id INTEGER,
-     action TEXT NOT NULL,subject TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP
-   );
-  `);
+  for(const statement of [
+   "CREATE TABLE users (\n     id INTEGER PRIMARY KEY,username TEXT NOT NULL,role TEXT NOT NULL,\n     active INTEGER NOT NULL DEFAULT 1,owner_character_id TEXT,\n     password_salt TEXT DEFAULT '',password_hash TEXT DEFAULT ''\n   )",
+   "CREATE TABLE auth_sessions (\n     token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL,\n     expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL\n   )",
+   "CREATE TABLE characters (\n     id TEXT PRIMARY KEY,owner_user_id INTEGER,\n     data_json TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 1,\n     modified_by INTEGER,updated_at TEXT DEFAULT CURRENT_TIMESTAMP\n   )",
+   "CREATE TABLE audit_log (\n     id INTEGER PRIMARY KEY AUTOINCREMENT,actor_user_id INTEGER,\n     action TEXT NOT NULL,subject TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP\n   )",
+  ])await db.prepare(statement).run();
   for(const [id,username,role,char] of [[1,'creator','creator',null],[2,'dm','dm',null],[3,'player_a','player','borruk'],[4,'player_b','player','luna']]){
    await db.prepare('INSERT INTO users(id,username,role,active,owner_character_id) VALUES(?,?,?,1,?)').bind(id,username,role,char).run();
    await db.prepare('INSERT INTO auth_sessions(token_hash,user_id,expires_at,created_at) VALUES(?,?,?,?)')
