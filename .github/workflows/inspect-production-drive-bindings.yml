@@ -1,9 +1,5 @@
 name: Inspect Atlas production Drive integrations (read only)
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/inspect-production-drive-bindings.yml'
   workflow_dispatch:
 permissions:
   contents: read
