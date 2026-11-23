@@ -1,6 +1,6 @@
 {
-  "version": "3.3.8",
+  "version": "3.4.0",
   "updated": "2026-11-23",
   "ruleset": "D&D 5e 2024",
-  "notes": "Creator-only manual Drive JSON restore with no OAuth or remote Drive writes; Activity History retained"
+  "notes": "Stability: authenticated D1 revision polling, per-character failed-save protection, JSON export privacy warning and CI regression tests"
 }
