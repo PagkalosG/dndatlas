@@ -1337,7 +1337,7 @@ document.addEventListener('submit',e=>{
         const grouped=event.groupId&&(groups.get(event.groupId)?.length||0)>1;
         const groupEntries=grouped?groups.get(event.groupId):[];
         const groupRecent=grouped&&groupEntries.every(item=>events.find(e=>e.characterId===item.characterId)?.id===item.id);
-        const canUndo=recent&&!grouped&&event.characterId!=='__party__';
+        const canUndo=recent&&!event.groupId&&event.characterId!=='__party__';
         const canUndoGroup=groupRecent&&!groupButtonsShown.has(event.groupId);
         if(canUndoGroup)groupButtonsShown.add(event.groupId);
         const differences=(event.changes||[]).map(change=>'<div class="tiny muted">'+esc(change.field)+': '+esc(change.before??'—')+' → '+esc(change.after??'—')+'</div>').join('');
