@@ -14,3 +14,5 @@ jobs:
           for js in src/*.js; do node --check "$js"; done
       - name: 2024 rules tests
         run: node --test tests/rules-2024.test.cjs
+      - name: Character Sheet UI regression tests
+        run: node --test tests/ui-skill-stat-controls-v343.test.cjs
