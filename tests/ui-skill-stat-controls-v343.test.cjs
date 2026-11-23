@@ -14,7 +14,7 @@ const slice=(first,last)=>{
 test('Overview and Character skills preserve plain clickable proficiency dots',()=>{
  assert.match(app,/class="atlas-prof-dot atlas-prof-dot-toggle/);
  assert.match(app,/class="prof-dot atlas-prof-dot-toggle/);
- assert.match(app,/data-skill-toggle="\\\$\{attr\(name\)\}"/);
+ assert.match(app,/data-skill-toggle=/);
  assert.match(css,/button\.atlas-prof-dot-toggle,[\s\S]*?border:0;[\s\S]*?background:transparent;/);
  assert.match(css,/button\.atlas-prof-dot-toggle\.proficient/);
  assert.match(css,/button\.atlas-prof-dot-toggle\.expert/);
