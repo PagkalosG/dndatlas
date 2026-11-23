@@ -1,0 +1,47 @@
+name: Export D&D Atlas Creator history and Drive sync changed-files ZIP
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/export-production-history-drive.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package only modified files (retain folder paths)
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from zipfile import ZipFile,ZIP_DEFLATED
+          from pathlib import Path
+          paths=[
+            'src/app.js',
+            'public/index.html',
+            'public/sw.js',
+            'public/version.json',
+            'workers/production/history-drive-extension.js',
+            'workers/production/patch-history-drive.py',
+            'tests/history-drive-extension.test.cjs',
+            'docs/CREATOR_HISTORY_DRIVE_SYNC.md',
+            '.github/workflows/inspect-production-drive-bindings.yml',
+            '.github/workflows/validate-production-history-drive.yml',
+            '.github/workflows/deploy-production-history-drive.yml',
+            '.github/workflows/export-production-history-drive.yml'
+          ]
+          with ZipFile('dndatlas-creator-history-drive-v3.3.7.zip','w',ZIP_DEFLATED) as z:
+            for path in paths:
+              if not Path(path).is_file():raise SystemExit('Missing file '+path)
+              z.write(path,path)
+          print('Packaged',len(paths),'changed files')
+          PY
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: dndatlas-creator-history-drive-v3.3.7
+          path: dndatlas-creator-history-drive-v3.3.7.zip
+          if-no-files-found: error
+          retention-days: 30
