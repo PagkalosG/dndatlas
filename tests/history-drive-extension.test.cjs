@@ -44,3 +44,26 @@ test('Drive sync is disabled for Creator and forbidden for DM',async()=>{
   await assert.rejects(()=>h.handler({...base,actor:{id:1,role:'creator'}}),e=>e.code===410);
   await assert.rejects(()=>h.handler({...base,pathname:'/sync/drive/publish',actor:{id:1,role:'creator'}}),e=>e.code===410);
 });
+
+test('authenticated revision polling exposes only ids and revision numbers',async()=>{
+  let query='';
+  const env={DB:{prepare(sql){query=sql;return {all:async()=>({results:[{id:'borruk',revision:5},{id:'luna',revision:2}]})};}}};
+  const result=await h.handler({
+    pathname:'/sync/revisions',method:'GET',env,
+    actor:{id:9,role:'player'},respond:x=>x,
+    err:(code,message)=>Object.assign(Error(message),{code})
+  });
+  assert.equal(query,'SELECT id,revision FROM characters');
+  assert.equal(result.revisions.borruk,5);
+  assert.equal(result.revisions.luna,2);
+  assert.equal(JSON.stringify(result).includes('story'),false);
+});
+test('revision polling rejects writes and unauthorised Drive operations',async()=>{
+  const err=(code,message)=>Object.assign(Error(message),{code});
+  await assert.rejects(()=>h.handler({
+    pathname:'/sync/revisions',method:'POST',env:{},actor:{id:9,role:'player'},err,respond:x=>x
+  }),e=>e.code===405);
+  await assert.rejects(()=>h.handler({
+    pathname:'/sync/drive/import',method:'POST',env:{},actor:{id:9,role:'player'},err,respond:x=>x
+  }),e=>e.code===403);
+});
