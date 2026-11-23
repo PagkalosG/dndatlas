@@ -64,6 +64,13 @@ async function atlasReplaceRoster(env, actor, roster, action) {
 }
 
 async function atlasExtensionRequest({request,env,actor,pathname,method,respond,err,jsonBody,validCharacter,audit}) {
+ // Lightweight authenticated revision check for all campaign members.
+ // Returns no character contents or private story fields.
+ if(pathname==='/sync/revisions'){
+  if(method!=='GET')throw err(405,'Method not allowed');
+  const rows=(await env.DB.prepare('SELECT id,revision FROM characters').all()).results||[];
+  return respond({revisions:Object.fromEntries(rows.map(row=>[row.id,Number(row.revision)]))});
+ }
  const isHistory=pathname==='/history'||/^\/history\/\d+\/undo$/.test(pathname);
  const isDrive=pathname.startsWith('/sync/drive/');
  if(!isHistory&&!isDrive)return null;
