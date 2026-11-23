@@ -4,6 +4,20 @@
 const atlasHistorySchema = "CREATE TABLE IF NOT EXISTS character_history (id INTEGER PRIMARY KEY AUTOINCREMENT, actor_user_id INTEGER NOT NULL, actor_name TEXT NOT NULL, action TEXT NOT NULL, character_id TEXT NOT NULL, character_name TEXT, owner_before INTEGER, owner_after INTEGER, before_json TEXT, after_json TEXT, group_id TEXT, undo_of INTEGER, changed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)";
 const atlasEnsureHistory = async env => env.DB.prepare(atlasHistorySchema).run();
 const atlasSnapshot = row => row ? JSON.parse(row.data_json) : null;
+const atlasUndoGuardSchema='CREATE TABLE IF NOT EXISTS atlas_undo_guard(id INTEGER PRIMARY KEY CHECK(id=1),valid INTEGER NOT NULL CHECK(valid=1))';
+const atlasEnsureUndoGuard=env=>env.DB.prepare(atlasUndoGuardSchema).run();
+// A failed CHECK aborts the entire D1 batch, including any earlier statements.
+// The latest history ID, exact snapshot, ownership and revision are checked
+// inside the transaction instead of relying only on non-atomic preflight reads.
+const atlasUndoGuardWrite=(env,event,current)=>{
+ const hasAfter=event.after_json!==null;
+ const where=hasAfter?'EXISTS(SELECT 1 FROM characters WHERE id=? AND owner_user_id IS ? AND data_json=? AND revision=?)':'NOT EXISTS(SELECT 1 FROM characters WHERE id=?)';
+ const sql='INSERT INTO atlas_undo_guard(id,valid) VALUES(1,CASE WHEN (SELECT MAX(id) FROM character_history WHERE character_id=?)=? AND '+where+' THEN 1 ELSE 0 END) ON CONFLICT(id) DO UPDATE SET valid=excluded.valid';
+ const args=[event.character_id,event.id,event.character_id];
+ if(hasAfter)args.push(event.owner_after,event.after_json,Number(current?.revision||0));
+ return env.DB.prepare(sql).bind(...args);
+};
+
 const atlasHistoryWrite = (env, actor, action, id, before, after, ownerBefore = null, ownerAfter = null, group = null, undoOf = null) => env.DB.prepare(
  "INSERT INTO character_history(actor_user_id,actor_name,action,character_id,character_name,owner_before,owner_after,before_json,after_json,group_id,undo_of) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
 ).bind(actor.id,actor.username,action,id,(after?.name||before?.name||id).slice(0,159),ownerBefore,ownerAfter,before ? JSON.stringify(before):null,after ? JSON.stringify(after):null,group,undoOf);
@@ -181,8 +195,10 @@ async function atlasExtensionRequest({request,env,actor,pathname,method,respond,
     if(owner.owner_character_id&&!ids.includes(owner.owner_character_id))
      throw err(409,'The original owner is now assigned to another character.');
    }
+   await atlasEnsureUndoGuard(env);
    const restoreId=crypto.randomUUID();
    const mutations=[
+    ...entries.map(event=>atlasUndoGuardWrite(env,event,now.get(event.character_id)||null)),
     env.DB.prepare('UPDATE users SET owner_character_id=NULL WHERE owner_character_id IN ('+slots+')').bind(...ids),
     env.DB.prepare('DELETE FROM characters WHERE id IN ('+slots+')').bind(...ids)
    ];
@@ -218,7 +234,8 @@ async function atlasExtensionRequest({request,env,actor,pathname,method,respond,
    if(JSON.stringify(atlasSnapshot(current))!==JSON.stringify(after))throw err(409,'The character changed since this history entry. Refresh.');
    const before=event.before_json?JSON.parse(event.before_json):null;
    const targetOwner=event.owner_before;
-   const mutations=[env.DB.prepare('UPDATE users SET owner_character_id=NULL WHERE owner_character_id=?').bind(event.character_id)];
+   await atlasEnsureUndoGuard(env);
+   const mutations=[atlasUndoGuardWrite(env,event,current),env.DB.prepare('UPDATE users SET owner_character_id=NULL WHERE owner_character_id=?').bind(event.character_id)];
    if(before){
     const user=targetOwner===null?null:await env.DB.prepare('SELECT id FROM users WHERE id=?').bind(targetOwner).first();
     const owner=user?.id??null;
