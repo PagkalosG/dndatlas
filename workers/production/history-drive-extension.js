@@ -66,6 +66,55 @@ async function atlasReplaceRoster(env, actor, roster, action) {
 }
 
 async function atlasExtensionRequest({request,env,actor,pathname,method,respond,err,jsonBody,validCharacter,audit}) {
+ // A minimal privileged patch: never accept an arbitrary character JSON body.
+ // DM/Creator can adjust skill rank or a sheet statistic without touching
+ // private journals/background stories or unrelated progression choices.
+ const dmOverrideRoute=pathname.match(/^\/characters\/([\w-]{1,80})\/dm-override$/);
+ if(dmOverrideRoute){
+  if(actor.role!=='creator'&&actor.role!=='dm')throw err(403,'Creator/DM only');
+  if(method!=='PATCH')throw err(405,'Method not allowed');
+  const id=dmOverrideRoute[1],body=await jsonBody(request);
+  if(!Number.isInteger(body?.revision)||body.revision<1)throw err(400,'Expected character revision');
+  const isSkill=typeof body.skill==='string'&&Object.hasOwn(body,'rank');
+  const isField=typeof body.field==='string'&&Object.hasOwn(body,'value');
+  if(isSkill===isField)throw err(400,'Specify either a skill rank or a statistic');
+  const allowed=isSkill?['revision','skill','rank']:['revision','field','value'];
+  if(Object.keys(body).some(key=>!allowed.includes(key)))throw err(400,'Unexpected override fields');
+  const rankSkills=new Set(['Acrobatics','Animal Handling','Arcana','Athletics','Deception','History','Insight','Intimidation','Investigation','Medicine','Nature','Perception','Performance','Persuasion','Religion','Sleight of Hand','Stealth','Survival']);
+  if(isSkill&&(!rankSkills.has(body.skill)||![0,1,2].includes(body.rank)))throw err(400,'Invalid skill or proficiency rank');
+  const limits={maxHp:[1,99999],passivePerception:[0,99],speed:[0,300]};
+  if(isField&&(!Object.hasOwn(limits,body.field)||
+   !(body.field==='passivePerception'&&body.value===null) &&
+   (!Number.isInteger(body.value)||body.value<limits[body.field][0]||body.value>limits[body.field][1])))
+   throw err(400,'Invalid statistic override');
+  const row=await env.DB.prepare('SELECT * FROM characters WHERE id=?').bind(id).first();
+  if(!row)throw err(404,'Character not found');
+  if(Number(row.revision)!==body.revision)throw err(409,'Character changed elsewhere. Refresh before editing.');
+  const before=JSON.parse(row.data_json),next=structuredClone(before);
+  if(isSkill){
+   next.skills={...(next.skills||{})};
+   if(body.rank===0)delete next.skills[body.skill];
+   else next.skills[body.skill]=body.rank;
+  }else if(body.field==='maxHp'){
+   next.hp={...(next.hp||{})};
+   next.hp.max=body.value;
+   next.hp.current=Math.min(Math.max(0,Number(next.hp.current)||0),body.value);
+  }else if(body.field==='passivePerception'){
+   next.passivePerceptionOverride=body.value===null?'':body.value;
+  }else next.speed=body.value;
+  if(JSON.stringify(next)===JSON.stringify(before))return respond({ok:true,revision:row.revision,unchanged:true});
+  await atlasEnsureHistory(env);
+  const updated=JSON.stringify(next);
+  const writes=await env.DB.batch([
+   env.DB.prepare('UPDATE characters SET data_json=?,revision=revision+1,modified_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND revision=?')
+    .bind(updated,actor.id,id,body.revision),
+   env.DB.prepare('INSERT INTO character_history(actor_user_id,actor_name,action,character_id,character_name,owner_before,owner_after,before_json,after_json) SELECT ?,?,?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM characters WHERE id=? AND revision=? AND data_json=?)')
+    .bind(actor.id,actor.username,'dm-override',id,next.name||before.name||id,row.owner_user_id,row.owner_user_id,JSON.stringify(before),updated,id,body.revision+1,updated)
+  ]);
+  if(!writes[0]?.meta?.changes)throw err(409,'Character changed elsewhere. Refresh before editing.');
+  await audit(env,actor.id,'dm-override',id);
+  return respond({ok:true,revision:body.revision+1});
+ }
  // Lightweight authenticated revision check for all campaign members.
  // Returns no character contents or private story fields.
  if(pathname==='/sync/revisions'){
