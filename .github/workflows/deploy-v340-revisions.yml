@@ -1,0 +1,97 @@
+name: Validate and deploy production v3.4 revision sync (one-time)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-v340-revisions.yml'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Type DEPLOY to run the verified one-time deployment'
+        default: 'DRY_RUN'
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: dndatlas-production-worker-deploy
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Static tests
+        run: |
+          set -euo pipefail
+          node --test tests/history-drive-extension.test.cjs
+          node --check src/app.js
+          node --check workers/production/history-drive-extension.js
+      - name: SHA-locked patch from current production module
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          curl --silent --show-error --fail -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o /tmp/atlas-live.raw \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          git show 1694457816409095f83a74ed7b300447c9a9566a:workers/production/history-drive-extension.js > /tmp/atlas-old-extension.js
+          python3 workers/production/patch-v340-revisions.py \
+            /tmp/atlas-live.raw \
+            /tmp/atlas-old-extension.js \
+            workers/production/history-drive-extension.js \
+            /tmp/atlas-next.mjs
+          node --check /tmp/atlas-next.mjs
+          echo 'Verification complete; existing Worker routes and bindings preserved.'
+      - name: Deploy verified Worker code
+        if: (github.event_name == 'push') || inputs.deploy == 'DEPLOY'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail \
+            -o /tmp/atlas-deploy-result.json -X PUT \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -F 'metadata={"main_module":"index.js"};type=application/json' \
+            -F 'index.js=@/tmp/atlas-next.mjs;filename=index.js;type=application/javascript+module' \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api/content"
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/atlas-deploy-result.json'))
+          if not data.get('success'):raise SystemExit('Cloudflare did not confirm Worker deployment')
+          print('Production Worker deployment confirmed')
+          PY
+      - name: Verify published code and health
+        if: (github.event_name == 'push') || inputs.deploy == 'DEPLOY'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" -o /tmp/atlas-verified.raw \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 - <<'PY'
+          import hashlib
+          from importlib.machinery import SourceFileLoader
+          parser=SourceFileLoader('patch','workers/production/patch-v340-revisions.py').load_module()
+          live=parser.extract(open('/tmp/atlas-verified.raw','rb').read())
+          expected=open('/tmp/atlas-next.mjs','rb').read()
+          if live!=expected:raise SystemExit('Published Worker code does not match expected SHA-verified module')
+          print('Verified published SHA256:',hashlib.sha256(live).hexdigest())
+          PY
+          curl --silent --show-error --fail -o /tmp/health.json \
+            "https://dndatlas-api.pagkalosgeo.workers.dev/health"
+          python3 - <<'PY'
+          import json
+          assert json.load(open('/tmp/health.json')).get('status')=='ok'
+          print('Production health: ok')
+          PY
+      - name: Dry run report
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy != 'DEPLOY'
+        run: echo 'Dry run only; production unchanged'
