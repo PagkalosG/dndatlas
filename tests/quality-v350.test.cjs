@@ -137,7 +137,7 @@ test('2024 Builder validation rejects illegal levels, duplicate skills and self-
   base:{STR:15,DEX:14,CON:13,INT:8,WIS:10,CHA:12},method:'Standard Array',
   boostA:'STR',boostB:'CON',boostPattern:'2+1',languages:['Draconic','Elvish'],
   gamingSet:'Dice Set',subclass:'',originFeat:'feat-tough',weapons:['Greatsword','Spear','Battleaxe'],
-  skills:{fighter1:'Perception',fighter2:'Survival',human:'Medicine',bm:''},maneuvers:[],
+  skills:{fighter1:'Perception',fighter2:'Survival',human:'Medicine',bm:'',class1:'',class2:'',class3:'',class4:'',elf:''},maneuvers:[],
   dmOverride:false,dmReason:''
  };
  const context={
@@ -146,7 +146,7 @@ test('2024 Builder validation rejects illegal levels, duplicate skills and self-
    species:['Human','Elf'],
    background:['Soldier','Acolyte'],
    classes:{Fighter:{caster:'none'},Bard:{caster:'full'}},
-   skills:[['Athletics','STR'],['Intimidation','CHA'],['Perception','WIS'],['Survival','WIS'],['Medicine','WIS']]
+   skills:[['Athletics','STR'],['Intimidation','CHA'],['Perception','WIS'],['Survival','WIS'],['Medicine','WIS'],['Arcana','INT'],['Insight','WIS']]
   },
   cloud:{enabled:false,user:null},
   B_GAMES:['Dice Set'],
@@ -154,7 +154,7 @@ test('2024 Builder validation rejects illegal levels, duplicate skills and self-
   B_SKILLS:['Perception','Survival','Medicine','Athletics','Intimidation'],
   B_ORIGINS:[{id:'feat-tough'}],
   B_ARTISAN:['Smith’s Tools'],
-  ATLAS_SKILL_RULES_2024:{backgrounds:{Soldier:'Athletics,Intimidation',Acolyte:'Insight,Religion'}}
+  ATLAS_SKILL_RULES_2024:{backgrounds:{Soldier:'Athletics,Intimidation',Acolyte:'Insight,Religion'},classes:{Fighter:[2,'Perception,Survival,Athletics,Intimidation,Medicine'],Bard:[3,'*']}}
  };
  const check=vm.runInNewContext(source+';bValidate',context);
  assert.equal(check().errors.length,0,JSON.stringify(check()));
@@ -167,10 +167,15 @@ test('2024 Builder validation rejects illegal levels, duplicate skills and self-
  context.B={...base,dmOverride:true,dmReason:'Approved by myself'};
  context.cloud={enabled:true,user:{role:'player'}};
  assert.ok(check().errors.some(e=>e.includes('Players may not grant')));
- context.B={...base,class:'Bard',dmOverride:false,dmReason:''};
+ context.B={...base,class:'Bard',skills:{...base.skills,class1:'Perception',class2:'Survival',class3:'Arcana'},dmOverride:false,dmReason:''};
  const result=check();
  assert.equal(result.review,true);
  assert.ok(!result.errors.some(e=>e.includes('DM Override and a reason')));
+ assert.equal(result.errors.length,0,JSON.stringify(result.errors));
+ context.B={...base,species:'Elf',skills:{...base.skills,elf:'Insight'},dmOverride:false,dmReason:''};
+ assert.equal(check().errors.length,0,JSON.stringify(check().errors));
+ context.B={...base,species:'Elf',skills:{...base.skills,elf:''},dmOverride:false,dmReason:''};
+ assert.ok(check().errors.some(e=>e.includes('Elf Keen Senses')));
 });
 
 test('DM Player draft import asks for manual review and only resolves approval on import',()=>{
