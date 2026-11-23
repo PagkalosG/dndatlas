@@ -26,6 +26,7 @@ jobs:
           node --test tests/rules-2024.test.cjs
           node --test tests/history-drive-extension.test.cjs
           node --test tests/stability-v340.test.cjs
+          node --test tests/ui-skill-stat-controls-v343.test.cjs
           node --check workers/production/history-drive-extension.js
           node --check src/data.js
           node --check src/i18n.js
