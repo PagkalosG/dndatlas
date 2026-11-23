@@ -143,6 +143,60 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
    });
    assert.equal(wrongOrigin.status,403);
   });
+  await t.test('DM quick edits: proficiency, Expertise and HP / Perception / Speed persist securely',async()=>{
+   const path='/characters/borruk/dm-override';
+   const latest=await req(mf,'/characters/borruk',2);
+   let revision=latest.body.revision;
+   const denied=await req(mf,path,3,'PATCH',{revision,skill:'Perception',rank:1});
+   assert.equal(denied.status,403,JSON.stringify(denied.body));
+   const badSkill=await req(mf,path,2,'PATCH',{revision,skill:'Not a Skill',rank:1});
+   assert.equal(badSkill.status,400,JSON.stringify(badSkill.body));
+   const badRank=await req(mf,path,2,'PATCH',{revision,skill:'Perception',rank:5});
+   assert.equal(badRank.status,400,JSON.stringify(badRank.body));
+   const illegalField=await req(mf,path,2,'PATCH',{revision,field:'backgroundStory',value:1});
+   assert.equal(illegalField.status,400,JSON.stringify(illegalField.body));
+   const overpost=await req(mf,path,2,'PATCH',{revision,skill:'Perception',rank:1,backgroundStory:'LEAK'});
+   assert.equal(overpost.status,400,JSON.stringify(overpost.body));
+   const results=[
+    {skill:'Perception',rank:1},
+    {skill:'Perception',rank:2},
+    {field:'maxHp',value:42},
+    {field:'passivePerception',value:17},
+    {field:'speed',value:35},
+    {field:'passivePerception',value:null}
+   ];
+   for(const value of results){
+    const result=await req(mf,path,2,'PATCH',{revision,...value});
+    assert.equal(result.status,200,JSON.stringify(result.body));
+    revision=result.body.revision;
+   }
+   const stale=await req(mf,path,2,'PATCH',{revision:latest.body.revision,skill:'Perception',rank:0});
+   assert.equal(stale.status,409,JSON.stringify(stale.body));
+   const data=(await req(mf,'/characters/borruk',2)).body.data;
+   assert.equal(data.skills.Perception,2);
+   assert.equal(data.hp.max,42);
+   assert.equal(data.passivePerceptionOverride,'');
+   assert.equal(data.speed,35);
+   assert.equal(data.backgroundStory,'SECRET borruk');
+   assert.equal(data.notes,'PRIVATE borruk');
+   const creator=await req(mf,'/history',1);
+   assert.equal(creator.status,200,JSON.stringify(creator.body));
+   assert.equal(creator.body.events.some(row=>row.action==='dm-override'),true);
+   assert.ok(!JSON.stringify(creator.body).includes('SECRET borruk'));
+   assert.ok(!JSON.stringify(creator.body).includes('PRIVATE borruk'));
+  });
+  await t.test('Creator can change one skill, but Player cannot and no other field is replaced',async()=>{
+   const current=await req(mf,'/characters/luna',2);
+   const before=current.body.data;
+   const result=await req(mf,'/characters/luna/dm-override',1,'PATCH',{
+    revision:current.body.revision,skill:'Medicine',rank:1
+   });
+   assert.equal(result.status,200,JSON.stringify(result.body));
+   const next=(await req(mf,'/characters/luna',2)).body.data;
+   assert.equal(next.skills.Medicine,1);
+   assert.equal(next.backgroundStory,before.backgroundStory);
+   assert.equal(next.notes,before.notes);
+  });
   await t.test('direct Drive API remains forbidden or disabled',async()=>{
    assert.equal((await req(mf,'/sync/drive/publish',1,'POST',{})).status,410);
    assert.equal((await req(mf,'/sync/drive/import',2,'POST',{})).status,403);
