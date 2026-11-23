@@ -812,6 +812,7 @@ document.addEventListener('submit',e=>{
   case 'check-updates':checkUpdates(true);break;
   case 'cloud-save-now':cloudSaveNow();break;
   case 'cloud-drive-import':cloudImportFromDrive();break;
+  case 'cloud-secure-backup':cloudSecureBackup();break;
   case 'cloud-history':cloudHistoryOpen();break;
   case 'dm-edit-stat':atlasDmEditStat(id);break;
   case 'cloud-history-undo':cloudHistoryUndo(id);break;
@@ -1357,6 +1358,22 @@ document.addEventListener('submit',e=>{
       toast(tr('Η αποθήκευση στη D1 απέτυχε: ','D1 save failed: ')+e.message);
     }
   }
+  async function cloudSecureBackup(){
+    if(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator')
+      return toast(tr('Μόνο Creator.','Creator only.'));
+    try{
+      await Promise.all([...cloud.queues.values()]);
+      if(cloud.failedWrites.size)throw Error(tr('Υπάρχουν μη αποθηκευμένες αλλαγές.','There are unsaved character changes.'));
+      const envelope=await cloudRequest('/backup/secure');
+      const blob=new Blob([JSON.stringify(envelope,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob),link=document.createElement('a');
+      link.href=url;
+      link.download='dndatlas-secure-party-'+new Date().toISOString().slice(0,10)+'.json';
+      document.body.appendChild(link);link.click();link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      toast(tr('Το κρυπτογραφημένο backup δημιουργήθηκε. Ανέβασέ το χειροκίνητα στο Drive.','Encrypted backup generated. Upload it manually to Drive.'));
+    }catch(e){toast(tr('Αποτυχία πλήρους backup: ','Secure backup failed: ')+e.message);}
+  }
   // The Creator downloads/replaces the private Drive JSON manually.
   // Restore reads a local file; no Google API call, OAuth, or Drive write.
   function cloudImportFromDrive(){
@@ -1476,7 +1493,7 @@ document.addEventListener('submit',e=>{
   }
   function cloudAccount(){
    if(!cloud.enabled)return;
-   let u=cloud.user;const options=`<button class="btn" data-cloud-refresh>${cloudMsg('↻ Ανανέωση από D1','↻ Refresh from D1')}</button>${u.role==='creator'?`<button class="btn" data-action="cloud-drive-import">${cloudMsg('Restore από τοπικό Drive JSON','Restore from downloaded Drive JSON')}</button>`:''}${u.role==='creator'?`<button class="btn" data-action="cloud-history">${cloudMsg('Ιστορικό αλλαγών & Undo','Activity History & Undo')}</button>`:''}${u.role==='creator'?`<button class="btn primary" data-cloud-admin>${cloudMsg('Διαχείριση χρηστών','Manage users')}</button>`:''}<button class="btn warn" data-cloud-logout>${cloudMsg('Αποσύνδεση','Sign out')}</button>`;
+   let u=cloud.user;const options=`<button class="btn" data-cloud-refresh>${cloudMsg('↻ Ανανέωση από D1','↻ Refresh from D1')}</button>${u.role==='creator'?`<button class="btn" data-action="cloud-secure-backup">${cloudMsg('Κρυπτογραφημένο πλήρες Backup D1','Encrypted full D1 backup')}</button><button class="btn" data-action="cloud-drive-import">${cloudMsg('Restore από τοπικό Drive JSON','Restore from downloaded Drive JSON')}</button>`:''}${u.role==='creator'?`<button class="btn" data-action="cloud-history">${cloudMsg('Ιστορικό αλλαγών & Undo','Activity History & Undo')}</button>`:''}${u.role==='creator'?`<button class="btn primary" data-cloud-admin>${cloudMsg('Διαχείριση χρηστών','Manage users')}</button>`:''}<button class="btn warn" data-cloud-logout>${cloudMsg('Αποσύνδεση','Sign out')}</button>`;
    openModal(cloudMsg('Λογαριασμός','Account'),`<p>${cloudMsg('Συνδεδεμένος ως','Signed in as')} <strong>${esc(u.username)}</strong> (${esc(u.role)})</p><p>${cloudMsg('Τα δεδομένα της παρέας είναι κοινά στη Cloudflare D1.','Party data is shared in Cloudflare D1.')}</p><div class="cloud-account-grid">${options}</div>${u.role==='creator'?'<input id="drive-restore-file" type="file" accept="application/json,.json" hidden>':''}`, `<button class="btn" data-action="close-modal">${cloudMsg('Κλείσιμο','Close')}</button>`);
   }
   async function cloudResetPinScreen(id){
@@ -1821,6 +1838,20 @@ document.addEventListener('submit',e=>{
     if(fromDrive&&(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator'))throw Error(tr('Μόνο ο Creator μπορεί να επαναφέρει δεδομένα από το Drive JSON.','Only Creator can restore from a Drive JSON file.'));
     let doc;
     try{doc=JSON.parse(await file.text());}catch{throw Error(tr('Μη έγκυρο αρχείο JSON.','Invalid JSON file.'));}
+    if(doc?.format==='dndatlas-sealed-party-v1'){
+      if(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator')
+        throw Error(tr('Μόνο ο Creator μπορεί να επαναφέρει ένα πλήρες κρυπτογραφημένο backup.','Only the Creator can restore a full encrypted backup.'));
+      if(!confirm(tr('RESTORE: Το κρυπτογραφημένο backup θα αντικαταστήσει ΟΛΟΥΣ τους χαρακτήρες της D1, μαζί με τις ιδιωτικές ιστορίες. Συνέχεια;','RESTORE: This encrypted backup replaces ALL D1 characters, including private stories. Continue?')))return;
+      if(!confirm(tr('Τελική επιβεβαίωση: πλήρης επαναφορά D1 από το κρυπτογραφημένο αρχείο;','Final confirmation: restore the entire D1 roster from this encrypted file?')))return;
+      await Promise.all([...cloud.queues.values()]);
+      if(cloud.failedWrites.size)throw Error(tr('Υπάρχουν μη αποθηκευμένες αλλαγές.','Unsaved changes remain.'));
+      const response=await cloudRequest('/backup/secure/restore','POST',doc);
+      await cloudRefresh();closeModal();
+      toast(tr('Επαναφέρθηκαν ','Restored ')+response.count+tr(' χαρακτήρες από πλήρες backup.',' characters from the full backup.'));
+      return;
+    }
+    if(cloud.enabled&&doc?.exportScope==='visible-to-current-user')
+      throw Error(tr('Αυτό το JSON έχει κρυμμένα πεδία λόγω δικαιωμάτων. Δεν επιτρέπεται πλήρες Restore από μερικό backup. Χρησιμοποίησε κρυπτογραφημένο πλήρες Backup.','This JSON was permission-filtered. Full Restore from a partial backup is blocked. Use the encrypted full backup instead.'));
     const roster=Array.isArray(doc?.characters)?doc.characters:(doc?.character?[doc.character]:null);
     if(!roster||(!roster.length&&!cloud.enabled)||roster.length>25||roster.some(ch=>!ch||typeof ch.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(ch.id)||typeof ch.name!=='string'||!ch.name.trim()||!Array.isArray(ch.classes))||new Set(roster.map(ch=>ch.id)).size!==roster.length)throw Error(tr('Το αρχείο δεν περιέχει έγκυρο party. Έλεγξε τα IDs και τα classes.','Invalid party backup: check character IDs and classes.'));
     if(cloud.enabled){
