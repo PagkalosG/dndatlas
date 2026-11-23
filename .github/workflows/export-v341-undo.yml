@@ -1,0 +1,52 @@
+name: Export D&D Atlas v3.4.1 grouped Undo changed-files ZIP
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/export-v341-undo.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify History, permissions, privacy and D&D 2024 rules
+        run: |
+          set -euo pipefail
+          node --check src/app.js
+          node --check workers/production/history-drive-extension.js
+          node --test tests/history-drive-extension.test.cjs
+          node --test tests/stability-v340.test.cjs
+          node --test tests/rules-2024.test.cjs
+      - name: Package only changed v3.4.1 files (preserve paths)
+        run: |
+          python3 - <<'PY'
+          from zipfile import ZipFile,ZIP_DEFLATED
+          from pathlib import Path
+          paths=[
+            'src/app.js',
+            'workers/production/history-drive-extension.js',
+            'workers/production/patch-v341-history.py',
+            'tests/history-drive-extension.test.cjs',
+            'docs/STABILITY_V341.md',
+            'public/index.html',
+            'public/sw.js',
+            'public/version.json',
+            '.github/workflows/deploy-v341-history.yml',
+            '.github/workflows/export-v341-undo.yml'
+          ]
+          name='dndatlas-v3.4.1-group-undo-changes.zip'
+          with ZipFile(name,'w',ZIP_DEFLATED) as archive:
+            for path in paths:
+              if not Path(path).is_file():raise SystemExit('Missing updated file: '+path)
+              archive.write(path,path)
+          print('Created',name,'with',len(paths),'changed files')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dndatlas-v3.4.1-group-undo-changes
+          path: dndatlas-v3.4.1-group-undo-changes.zip
+          if-no-files-found: error
+          retention-days: 30
