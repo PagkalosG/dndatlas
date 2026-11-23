@@ -37,14 +37,14 @@ jobs:
             '.github/workflows/fix-production-roster.yml',
             '.github/workflows/export-production-roster-update.yml'
           ]
-          with ZipFile('dndatlas-production-roster-v3.3.4.zip','w',ZIP_DEFLATED) as z:
+          with ZipFile('dndatlas-production-roster-v3.3.5.zip','w',ZIP_DEFLATED) as z:
             for p in paths: z.write(Path(p),p)
           print('ZIP includes only the seven updated/created files.')
           PY
       - name: Publish ZIP as Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dndatlas-production-roster-v3.3.4
-          path: dndatlas-production-roster-v3.3.4.zip
+          name: dndatlas-production-roster-v3.3.5
+          path: dndatlas-production-roster-v3.3.5.zip
           if-no-files-found: error
           retention-days: 30
