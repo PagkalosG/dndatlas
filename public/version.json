@@ -1,6 +1,6 @@
 {
-  "version": "3.4.0",
+  "version": "3.4.1",
   "updated": "2026-11-23",
   "ruleset": "D&D 5e 2024",
-  "notes": "Stability: authenticated D1 revision polling, per-character failed-save protection, JSON export privacy warning and CI regression tests"
+  "notes": "Creator-only atomic group Undo for party replacement; privacy-safe Activity History fields"
 }
