@@ -59,7 +59,7 @@ const atlasFieldsChanged = (before, after) => {
 const atlasValidRoster = (roster, validCharacter) =>
  Array.isArray(roster)&&roster.length<=25&&roster.every(validCharacter)&&new Set(roster.map(ch=>ch.id)).size===roster.length;
 
-async function atlasReplaceRoster(env, actor, roster, action) {
+async function atlasReplaceRoster(env, actor, roster, action, trustedSealed=false) {
  await atlasEnsureHistory(env);
  const existing=(await env.DB.prepare('SELECT id,owner_user_id,data_json FROM characters').all()).results;
  const previous=new Map(existing.map(r=>[r.id,r]));
@@ -73,7 +73,7 @@ async function atlasReplaceRoster(env, actor, roster, action) {
   const ch=structuredClone(value);
   delete ch._ownerId;
   const old=previous.get(ch.id);
-  if(old && old.owner_user_id!==null){
+  if(!trustedSealed && old && old.owner_user_id!==null){
    const snapshot=atlasSnapshot(old);
    // Do not allow a Creator import to read or overwrite somebody else's private story.
    if(snapshot.storyPublic!==true){
@@ -96,6 +96,39 @@ async function atlasReplaceRoster(env, actor, roster, action) {
  }
  await env.DB.batch(statements);
  return {ok:true,count:roster.length,groupId:group};
+}
+
+// Backups are sealed server-side: the Creator can save and later restore the
+// opaque JSON via Google Drive manually, without receiving private stories.
+const atlasBackupReady=env=>typeof env.ATLAS_BACKUP_SECRET==='string'&&env.ATLAS_BACKUP_SECRET.length>=32;
+const atlasBackupB64=bytes=>{
+ let result='';
+ for(let i=0;i<bytes.length;i+=32768)result+=String.fromCharCode(...bytes.subarray(i,i+32768));
+ return btoa(result);
+};
+const atlasBackupUnb64=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));
+const atlasBackupKey=async env=>{
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('DNDATLAS_BACKUP_V1:'+env.ATLAS_BACKUP_SECRET));
+ return crypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,['encrypt','decrypt']);
+};
+async function atlasSealBackup(env,roster){
+ const iv=crypto.getRandomValues(new Uint8Array(12));
+ const plaintext=new TextEncoder().encode(JSON.stringify({application:'D&D Atlas',schema:1,rulesVersion:'2024',characters:roster}));
+ const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await atlasBackupKey(env),plaintext));
+ return {format:'dndatlas-sealed-party-v1',exportedAt:new Date().toISOString(),count:roster.length,iv:atlasBackupB64(iv),ciphertext:atlasBackupB64(encrypted)};
+}
+async function atlasUnsealBackup(env,envelope,err){
+ if(envelope?.format!=='dndatlas-sealed-party-v1'||typeof envelope.iv!=='string'||envelope.iv.length!==16||
+   typeof envelope.ciphertext!=='string'||envelope.ciphertext.length>12000000)
+  throw err(422,'Invalid or unsupported secure backup file');
+ try{
+  const iv=atlasBackupUnb64(envelope.iv),ciphertext=atlasBackupUnb64(envelope.ciphertext);
+  if(iv.length!==12||ciphertext.length<16)throw Error('Invalid encrypted payload');
+  const clear=await crypto.subtle.decrypt({name:'AES-GCM',iv},await atlasBackupKey(env),ciphertext);
+  const doc=JSON.parse(new TextDecoder().decode(clear));
+  if(doc.application!=='D&D Atlas'||doc.schema!==1||doc.rulesVersion!=='2024')throw Error('Backup format mismatch');
+  return doc;
+ }catch{throw err(422,'Backup authentication failed: wrong key or corrupt encrypted JSON');}
 }
 
 async function atlasExtensionRequest({request,env,actor,pathname,method,respond,err,jsonBody,validCharacter,audit}) {
@@ -157,8 +190,27 @@ async function atlasExtensionRequest({request,env,actor,pathname,method,respond,
  }
  const isHistory=pathname==='/history'||/^\/history\/\d+\/undo$/.test(pathname)||/^\/history\/group\/[0-9a-f-]{36}\/undo$/.test(pathname);
  const isDrive=pathname.startsWith('/sync/drive/');
- if(!isHistory&&!isDrive)return null;
+ const isBackup=pathname.startsWith('/backup/');
+ if(!isHistory&&!isDrive&&!isBackup)return null;
  if(actor.role!=='creator')throw err(403,'Creator only');
+ if(isBackup){
+  if(pathname==='/backup/status'&&method==='GET')return respond({configured:atlasBackupReady(env),sealed:true,manualOnly:true});
+  if(!atlasBackupReady(env))throw err(503,'Secure backup is not configured. Add ATLAS_BACKUP_SECRET (32+ characters) in Cloudflare.');
+  if(pathname==='/backup/secure'&&method==='GET'){
+   const rows=(await env.DB.prepare('SELECT data_json FROM characters ORDER BY id').all()).results||[];
+   const roster=rows.map(row=>JSON.parse(row.data_json));
+   if(!atlasValidRoster(roster,validCharacter))throw err(422,'Current D1 roster has invalid characters');
+   return respond(await atlasSealBackup(env,roster));
+  }
+  if(pathname==='/backup/secure/restore'&&method==='POST'){
+   const envelope=await jsonBody(request),doc=await atlasUnsealBackup(env,envelope,err);
+   if(!atlasValidRoster(doc.characters,validCharacter))throw err(422,'Invalid characters in authenticated backup');
+   const result=await atlasReplaceRoster(env,actor,doc.characters,'secure-backup-restore',true);
+   await audit(env,actor.id,'restore-sealed-party',result.count);
+   return respond(result);
+  }
+  throw err(405,'Method not allowed');
+ }
  if(isHistory){
   await atlasEnsureHistory(env);
   if(pathname==='/history'&&method==='GET'){
