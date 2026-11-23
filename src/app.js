@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.3.5';
+ const APP_VERSION='3.3.6';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -763,6 +763,8 @@ document.addEventListener('submit',e=>{
   case 'cloud-save-now':cloudSaveNow();break;
   case 'cloud-drive-import':cloudImportFromDrive();break;
   case 'cloud-drive-publish':cloudPublishDriveNow();break;
+  case 'cloud-history':cloudHistoryOpen();break;
+  case 'cloud-history-undo':cloudHistoryUndo(id);break;
   case 'reload-app':refreshApp(false);break;
   case 'clear-app-cache':refreshApp(true);break;
   case 'reset-local-data':resetLocalData();break;
@@ -1303,18 +1305,60 @@ document.addEventListener('submit',e=>{
       toast(tr('Η αποθήκευση στη D1 απέτυχε: ','D1 save failed: ')+e.message);
     }
   }
+  async function cloudDriveConfigured(){
+    const status=await cloudRequest('/sync/drive/status');
+    if(!status.configured)throw Error(tr('Το Drive Backup δεν έχει ακόμη ρυθμιστεί στον Cloudflare Worker. Απαιτούνται Google OAuth και κλειδί κρυπτογράφησης.','Drive Backup is not configured on the Cloudflare Worker. Google OAuth and an encryption key are required.'));
+  }
   async function cloudPublishDriveNow(){
     if(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
-    if(!confirm(tr('Να αντικατασταθεί το ιδιωτικό JSON του Drive με τα τρέχοντα δεδομένα της D1;','Replace the private Drive JSON with the current D1 roster?')))return;
     try{
+      await cloudDriveConfigured();
+      if(!confirm(tr('BACKUP: Να αποθηκευτούν οι τρέχοντες χαρακτήρες της D1 σε κρυπτογραφημένο JSON στο Google Drive; Θα διατηρηθεί αντίγραφο της προηγούμενης έκδοσης του Drive.','BACKUP: Save the current D1 characters to an encrypted JSON in Google Drive? A copy of the previous Drive version will be preserved.')))return;
       await Promise.all([...cloud.queues.values()]);
       const result=await cloudRequest('/sync/drive/publish','POST',{});
-      toast(result.notActivated?
-        tr('Το Drive JSON δεν έχει ενεργοποιηθεί.','The Drive JSON mirror is not activated.'):
-        result.queued?
-        tr('Ο συγχρονισμός Drive προγραμματίστηκε.','Drive sync has been queued.'):
-        tr('Ο συγχρονισμός D1 → Drive ολοκληρώθηκε.','D1 to Drive synchronization completed.'));
-    }catch(e){toast(tr('Αποτυχία συγχρονισμού Drive: ','Drive sync failed: ')+e.message);}
+      toast(tr('Το Drive ενημερώθηκε με ','Drive backup updated with ')+result.count+tr(' χαρακτήρες.',' characters.'));
+    }catch(e){toast(tr('Αποτυχία Drive Backup: ','Drive backup failed: ')+e.message);}
+  }
+  async function cloudImportFromDrive(){
+    if(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
+    try{
+      await cloudDriveConfigured();
+      if(!confirm(tr('RESTORE: Η D1 θα ΑΝΤΙΚΑΤΑΣΤΑΘΕΙ πλήρως με το Drive JSON. Χαρακτήρες που δεν υπάρχουν στο Drive θα διαγραφούν από τη D1. Συνέχεια;','RESTORE: The entire D1 roster will be REPLACED by the Drive JSON. Characters absent from Drive will be deleted from D1. Continue?')))return;
+      if(!confirm(tr('Τελική επιβεβαίωση: επαναφορά από Drive; Οι προηγούμενες εκδόσεις θα καταγραφούν στο Activity History.','Final confirmation: restore from Drive? Previous character versions will be recorded in Activity History.')))return;
+      await Promise.all([...cloud.queues.values()]);
+      const result=await cloudRequest('/sync/drive/import','POST',{});
+      await cloudRefresh();closeModal();
+      toast(tr('Η D1 επαναφέρθηκε από το Drive: ','D1 restored from Drive: ')+result.count+tr(' χαρακτήρες.',' characters.'));
+    }catch(e){toast(tr('Αποτυχία Drive Restore: ','Drive restore failed: ')+e.message);}
+  }
+  async function cloudHistoryOpen(){
+    if(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
+    try{
+      const result=await cloudRequest('/history?limit=80');
+      const events=result.events||[];
+      const seen=new Set();
+      const markup=events.map(event=>{
+        const recent=!seen.has(event.characterId);
+        seen.add(event.characterId);
+        const canUndo=recent&&event.characterId!=='__party__';
+        const differences=(event.changes||[]).map(change=>'<div class="tiny muted">'+esc(change.field)+': '+esc(change.before??'—')+' → '+esc(change.after??'—')+'</div>').join('');
+        const text=event.action==='drive-backup'?tr('Κρυπτογραφημένο Backup στο Drive','Encrypted backup to Drive'):event.action==='undo'?tr('Επαναφορά έκδοσης','Version restored'):event.action;
+        return '<div class="meta-box" style="margin:8px 0;padding:12px"><div class="actions-inline" style="justify-content:space-between"><strong>'+esc(event.characterName||event.characterId)+'</strong><span class="tiny muted">'+esc(event.at||'')+'</span></div><div class="tiny">'+esc(event.actor||'')+' · '+esc(text)+'</div>'+differences+(canUndo?'<div class="actions-inline" style="margin-top:8px"><button class="btn sm" data-action="cloud-history-undo:'+Number(event.id)+'">↶ '+tr('Αναίρεση αυτής της αλλαγής','Undo this change')+'</button></div>':'')+'</div>';
+      }).join('')||'<div class="detail-note">'+tr('Δεν υπάρχουν ακόμη καταγεγραμμένες αλλαγές.','No recorded changes yet.')+'</div>';
+      openModal(tr('Ιστορικό αλλαγών · Creator','Activity History · Creator'),'<div class="detail-note">'+tr('Καταγράφονται οι νέες αλλαγές μετά την ενεργοποίηση του ιστορικού. Το Undo δεν σβήνει παλιότερες εγγραφές. Οι ιδιωτικές ιστορίες δεν εμφανίζονται.','Changes are recorded after history is enabled. Undo creates a new entry. Private stories are never displayed.')+'</div>'+markup);
+    }catch(e){toast(tr('Δεν φορτώθηκε το ιστορικό: ','Could not load history: ')+e.message);}
+  }
+  async function cloudHistoryUndo(id){
+    if(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
+    if(!/^\d+$/.test(String(id)))return;
+    if(!confirm(tr('Να αναιρεθεί η συγκεκριμένη αλλαγή; Η επαναφορά θα καταγραφεί ως νέα ενέργεια.','Undo this change? The restore will be recorded as a new activity.')))return;
+    try{
+      await Promise.all([...cloud.queues.values()]);
+      await cloudRequest('/history/'+encodeURIComponent(id)+'/undo','POST',{});
+      await cloudRefresh();
+      await cloudHistoryOpen();
+      toast(tr('Η προηγούμενη έκδοση επαναφέρθηκε.','Previous version restored.'));
+    }catch(e){toast(tr('Αποτυχία Undo: ','Undo failed: ')+e.message);}
   }
   async function cloudPullLatest(){
     if(!cloud.enabled||!cloud.ready)return;
@@ -1323,15 +1367,6 @@ document.addEventListener('submit',e=>{
       await cloudRefresh();await fetchSharedData();
       toast(tr('Τα δεδομένα ανανεώθηκαν από τη D1. Δεν έγινε εισαγωγή JSON.','Campaign refreshed from D1. No JSON file was imported.'));
     }catch(e){toast(tr('Σφάλμα συγχρονισμού: ','Sync failed: ')+e.message);}
-  }
-  async function cloudImportFromDrive(){
-    if(!cloud.enabled||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
-    if(!confirm(tr('Να εισαχθούν από το Drive μόνο οι χαρακτήρες που ΔΕΝ υπάρχουν στη D1; Οι υπάρχοντες δεν θα αντικατασταθούν.','Import only characters missing from D1? Existing characters will NOT be overwritten.')))return;
-    try{
-      const result=await cloudRequest('/sync/drive/import','POST',{});
-      await cloudRefresh();closeModal();
-      toast(tr('Νέοι χαρακτήρες: ','Added: ')+result.added+', '+tr('χωρίς αλλαγή: ','unchanged: ')+result.unchanged);
-    }catch(e){toast(tr('Δεν ήταν δυνατή η ανάγνωση του Drive: ','Drive import failed: ')+e.message);}
   }
   // Check lightweight revisions every seven seconds; do not discard active edits.
   function cloudStartLive(){
@@ -1377,7 +1412,7 @@ document.addEventListener('submit',e=>{
   }
   function cloudAccount(){
    if(!cloud.enabled)return;
-   let u=cloud.user;const options=`<button class="btn" data-cloud-refresh>${cloudMsg('↻ Ανανέωση από D1','↻ Refresh from D1')}</button>${u.role==='creator'?`<button class="btn" data-action="cloud-drive-import">${cloudMsg('Χειροκίνητη εισαγωγή από Drive JSON','Manual import from Drive JSON')}</button><button class="btn" data-action="cloud-drive-publish">${cloudMsg('Αντικατάσταση Drive JSON από D1','Replace Drive JSON from D1')}</button>`:''}${u.role==='creator'?`<button class="btn primary" data-cloud-admin>${cloudMsg('Διαχείριση χρηστών','Manage users')}</button>`:''}<button class="btn warn" data-cloud-logout>${cloudMsg('Αποσύνδεση','Sign out')}</button>`;
+   let u=cloud.user;const options=`<button class="btn" data-cloud-refresh>${cloudMsg('↻ Ανανέωση από D1','↻ Refresh from D1')}</button>${u.role==='creator'?`<button class="btn" data-action="cloud-drive-import">${cloudMsg('Restore: Drive → D1','Restore: Drive → D1')}</button><button class="btn" data-action="cloud-drive-publish">${cloudMsg('Backup: D1 → Drive','Backup: D1 → Drive')}</button>`:''}${u.role==='creator'?`<button class="btn" data-action="cloud-history">${cloudMsg('Ιστορικό αλλαγών & Undo','Activity History & Undo')}</button>`:''}${u.role==='creator'?`<button class="btn primary" data-cloud-admin>${cloudMsg('Διαχείριση χρηστών','Manage users')}</button>`:''}<button class="btn warn" data-cloud-logout>${cloudMsg('Αποσύνδεση','Sign out')}</button>`;
    openModal(cloudMsg('Λογαριασμός','Account'),`<p>${cloudMsg('Συνδεδεμένος ως','Signed in as')} <strong>${esc(u.username)}</strong> (${esc(u.role)})</p><p>${cloudMsg('Τα δεδομένα της παρέας είναι κοινά στη Cloudflare D1.','Party data is shared in Cloudflare D1.')}</p><div class="cloud-account-grid">${options}</div>`, `<button class="btn" data-action="close-modal">${cloudMsg('Κλείσιμο','Close')}</button>`);
   }
   async function cloudResetPinScreen(id){
