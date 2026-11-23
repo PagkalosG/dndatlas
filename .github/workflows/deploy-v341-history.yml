@@ -1,9 +1,5 @@
 name: Deploy D&D Atlas v3.4.1 grouped History Undo (one-time)
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/deploy-v341-history.yml'
   workflow_dispatch:
     inputs:
       deploy:
@@ -50,7 +46,7 @@ jobs:
           node --check /tmp/atlas-v341.mjs
           echo 'Original module verified; additive History/Undo patch syntax valid.'
       - name: Deploy verified production module and preserve bindings
-        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
@@ -69,7 +65,7 @@ jobs:
           print('Cloudflare confirmed History Undo patch')
           PY
       - name: Verify deployed Worker bytes and production health
-        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
