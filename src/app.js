@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.3.3';
+ const APP_VERSION='3.3.4';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -632,7 +632,7 @@ document.addEventListener('submit',e=>{
    <div class="actions-inline"><button class="btn" data-action="clear-app-cache">${t('Καθαρισμός cache & cookies (χωρίς απώλεια)','Clear cache & cookies (keep data)')}</button></div>
    <div class="section-caption">${t('ΤΟΠΙΚΑ ΔΕΔΟΜΕΝΑ — ΠΡΟΣΟΧΗ','LOCAL DATA — DANGER')}</div>
    <div class="detail-description">${t('Η πλήρης επαναφορά διαγράφει τα τοπικά δεδομένα Character Atlas αυτής της συσκευής. Δημιούργησε νέο χαρακτήρα από τον Builder ή εισήγαγε αντίγραφο JSON. Πάρε πρώτα backup.','Full reset clears locally stored Character Atlas data on this device. Create a new character with the Builder or import a JSON backup. Back up first.')}</div>
-   <div class="actions-inline"><button class="btn warn" data-action="reset-local-data">${t('Διαγραφή χαρακτήρων & επαναφορά','Delete characters & reset')}</button></div>`;
+   <div class="actions-inline">${!cloud.enabled||['creator','dm'].includes(cloud.user?.role||'')?`<button class="btn warn" data-action="reset-local-data">${cloud.enabled?t('Διαγραφή όλων από D1','Delete all characters from D1'):t('Διαγραφή τοπικών δεδομένων','Delete local data')}</button>`:''}</div>`;
   openModal(t('Ρυθμίσεις & Δεδομένα','Settings & Data'),`${updateInfo}<div class="section-caption">${t('BACKUP & RESTORE','BACKUP & RESTORE')}</div><div class="actions-inline"><button class="btn primary" data-action="backup">Export all characters (.json)</button><button class="btn" data-action="import">Import backup (.json)</button><button class="btn" data-action="import-character">${t('Εισαγωγή χαρακτήρα (.json)','Import character (.json)')}</button><button class="btn" data-action="download-docx-template">${t('Λήψη προτύπου DOCX','Download DOCX template')}</button></div><div class="section-caption">${t('ΧΑΡΑΚΤΗΡΕΣ','CHARACTERS')}</div><div class="tile-list">${characters.map(x=>`<div class="tile"><span class="name">${esc(x.name)} · Level ${totalLevel(x)}</span>${(cloud.enabled&&['creator','dm'].includes(cloud.user?.role||''))?`<button class="btn sm warn" data-delete-character="${x.id}">${t('Διαγραφή','Delete')}</button>`:''}</div>`).join('')}</div><div class="section-caption">${t('ΠΕΡΙΕΧΟΜΕΝΟ ΚΑΝΟΝΩΝ','RULES SCOPE')}</div><div class="detail-note">Content: short summaries of 5e/2024 rules. Optional, legacy, and homebrew features may require manual input; confirm with the DM.</div><input id="import-file" type="file" accept="application/json,.json" style="display:none"/><input id="import-character-file" type="file" accept="application/json,.json" style="display:none"/>`,btn(t('Κλείσιμο','Close'),'close-modal'),true);
  }
 
@@ -691,6 +691,21 @@ document.addEventListener('submit',e=>{
   }catch(e){setUpdateStatus(uiText('Δεν έγινε ανανέωση: ','Could not refresh: ')+e.message);}
  }
  function resetLocalData(){
+  if(cloud.enabled){
+   if(!cloud.ready||!['creator','dm'].includes(cloud.user?.role||''))return toast(tr('Μόνο Creator ή DM.','Creator/DM only.'));
+   const ids=characters.map(ch=>ch.id);
+   if(!ids.length)return toast(tr('Δεν υπάρχουν χαρακτήρες για διαγραφή.','No characters to delete.'));
+   if(!confirm(tr('ΠΡΟΣΟΧΗ: Να διαγραφούν οριστικά και οι '+ids.length+' χαρακτήρες από την κοινή D1; Πάρε πρώτα JSON backup.','WARNING: Permanently delete all '+ids.length+' characters from the shared D1? Export a JSON backup first.')))return;
+   if(!confirm(tr('Τελική επιβεβαίωση: διαγραφή ΟΛΩΝ των χαρακτήρων της D1; Το JSON του Drive δεν θα εισαχθεί ξανά αυτόματα.','Final confirmation: delete ALL D1 characters? The Drive JSON will not be automatically imported.')))return;
+   (async()=>{
+    await Promise.all([...cloud.queues.values()]);
+    const result=await cloudRequest('/characters/bulk-delete','POST',{ids});
+    await cloudRefresh();
+    closeModal();
+    toast(tr('Διαγράφηκαν '+result.deleted+' χαρακτήρες από τη D1.','Deleted '+result.deleted+' characters from D1.'));
+   })().catch(e=>toast(tr('Η μαζική διαγραφή απέτυχε: ','Bulk deletion failed: ')+e.message));
+   return;
+  }
   if(!confirm(uiText('ΠΡΟΣΟΧΗ: Θα διαγραφούν όλοι οι αποθηκευμένοι χαρακτήρες και εικόνες σε αυτή τη συσκευή. Πάρε πρώτα JSON Backup. Συνέχεια;','WARNING: Deletes ALL saved characters and portraits on this device. Export JSON backup first. Continue?')))return;
   if(!confirm(uiText('Τελική επιβεβαίωση: διαγραφή τοπικών δεδομένων;','Final confirmation: delete local data?')))return;
   localStorage.removeItem(KEY);localStorage.removeItem(VIEWKEY);location.reload();
@@ -1668,6 +1683,22 @@ document.addEventListener('submit',e=>{
    (async()=>{
     let documentData;
     try{documentData=JSON.parse(await file.text());}catch{throw Error(tr('Μη έγκυρο JSON.','Invalid JSON file.'));}
+    if(Array.isArray(documentData?.characters)&&documentData.characters.length>1){
+      const roster=documentData.characters;
+      if(roster.length>25||roster.some(ch=>!ch||typeof ch.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(ch.id)||typeof ch.name!=='string'||!ch.name.trim()||!Array.isArray(ch.classes))||new Set(roster.map(ch=>ch.id)).size!==roster.length)throw Error(tr('Το backup περιέχει μη έγκυρο χαρακτήρα ή διπλό ID.','Backup contains an invalid character or duplicate ID.'));
+      if(cloud.enabled&&(!cloud.ready||!['creator','dm'].includes(cloud.user?.role||'')))throw Error(tr('Μόνο Creator/DM.','Creator/DM only.'));
+      if(!confirm(tr('Το JSON περιέχει '+roster.length+' χαρακτήρες. Να προστεθούν μόνο όσοι λείπουν; Οι υπάρχοντες δεν θα αλλάξουν.','This JSON contains '+roster.length+' characters. Add only missing ones? Existing characters will not be changed.')))return;
+      const missing=roster.filter(ch=>!characters.some(x=>x.id===ch.id));
+      if(cloud.enabled){
+       if(cloud.user.role==='creator')await cloudRequest('/characters/import','POST',{characters:missing});
+       else for(const ch of missing)await cloudRequest('/characters/'+encodeURIComponent(ch.id),'POST',{character:ch});
+       await cloudRefresh();
+      }else{
+       characters.push(...missing.map(ch=>structuredClone(ch)));update();
+      }
+      closeModal();toast(tr('Προστέθηκαν '+missing.length+' χαρακτήρες.','Added '+missing.length+' characters.'));
+      return;
+    }
     const ch=documentData?.character||(Array.isArray(documentData?.characters)&&documentData.characters.length===1?documentData.characters[0]:documentData);
     if(!ch||typeof ch!=='object'||Array.isArray(ch)||typeof ch.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(ch.id)||typeof ch.name!=='string'||!ch.name.trim()||!Array.isArray(ch.classes)||!ch.classes.length){
      throw Error(tr('Το JSON πρέπει να περιέχει ακριβώς έναν χαρακτήρα.','JSON must contain exactly one valid character.'));
@@ -1684,7 +1715,29 @@ document.addEventListener('submit',e=>{
    })().catch(err=>toast(tr('Αποτυχία εισαγωγής: ','Import failed: ')+(err.message||String(err))));
    return;
   }
-  if(e.target.matches('#import-file')){let file=e.target.files?.[0];if(!file)return;file.text().then(str=>{let doc;try{doc=JSON.parse(str);}catch{return toast('Invalid JSON backup.');}if(!Array.isArray(doc.characters)||!doc.characters.length||doc.characters.some(x=>!x.id||!x.name||!Array.isArray(x.classes)))return toast('Backup format not recognized.');if(!confirm(cloud.enabled?tr('Η εισαγωγή θα αντικαταστήσει τους χαρακτήρες του campaign στη D1. Μόνο ο Creator μπορεί να συνεχίσει. Εξήγαγε πρώτα backup.','This will replace campaign characters in D1. Creator only. Export a backup first.'):tr('Η εισαγωγή θα αντικαταστήσει όλους τους τοπικούς χαρακτήρες. Συνέχεια;','Import will replace all local characters. Continue?')))return;if(cloud.enabled){if(!cloud.ready||cloud.user?.role!=='creator')return toast(tr('Απαιτείται λογαριασμός Creator.','Creator account required.'));cloudRequest('/characters/replace','POST',{characters:doc.characters}).then(()=>cloudRefresh()).then(()=>{closeModal();toast(tr('Το party αντικαταστάθηκε.','Party replaced.'));}).catch(err=>toast(tr('Αποτυχία εισαγωγής: ','Import failed: ')+(err.message||String(err))));return;}if(doc.journalPreferences){sharedHidden=Array.isArray(doc.journalPreferences.hiddenSharedSessions)?doc.journalPreferences.hiddenSharedSessions:[];sharedEdits=doc.journalPreferences.sharedSessionEdits||{};saveSharedPref();}characters=doc.characters;selectedId=characters[0].id;view='overview';closeModal();update();toast('Backup imported.');}).catch(()=>toast('Could not read file.'));return;}
+  if(e.target.matches('#import-file')){
+   const input=e.target,file=input.files?.[0];input.value='';if(!file)return;
+   (async()=>{
+    let doc;
+    try{doc=JSON.parse(await file.text());}catch{throw Error(tr('Μη έγκυρο αρχείο JSON.','Invalid JSON file.'));}
+    const roster=Array.isArray(doc?.characters)?doc.characters:(doc?.character?[doc.character]:null);
+    if(!roster||!roster.length||roster.length>25||roster.some(ch=>!ch||typeof ch.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(ch.id)||typeof ch.name!=='string'||!ch.name.trim()||!Array.isArray(ch.classes))||new Set(roster.map(ch=>ch.id)).size!==roster.length)throw Error(tr('Το αρχείο δεν περιέχει έγκυρο party. Έλεγξε τα IDs και τα classes.','Invalid party backup: check character IDs and classes.'));
+    if(cloud.enabled){
+     if(!cloud.ready||cloud.user?.role!=='creator')throw Error(tr('Η πλήρης αντικατάσταση επιτρέπεται μόνο στον Creator. Για προσθήκη χαρακτήρων χρησιμοποίησε Import character.','Only Creator can replace the roster. Use Import character to add missing entries.'));
+     if(!confirm(tr('ΑΝΤΙΚΑΤΑΣΤΑΣΗ D1: Το JSON περιέχει '+roster.length+' χαρακτήρες. Θα αντικαταστήσει την τρέχουσα λίστα, ακόμη κι αν κάποιοι είχαν διαγραφεί. Πάρε πρώτα backup.','REPLACE D1: The JSON contains '+roster.length+' characters. It will replace the current roster, including previously deleted characters. Export a backup first.')))return;
+     if(!confirm(tr('Τελική επιβεβαίωση: αντικατάσταση όλων των χαρακτήρων από αυτό το αρχείο;','Final confirmation: replace every character using this file?')))return;
+     await Promise.all([...cloud.queues.values()]);
+     const response=await cloudRequest('/characters/replace','POST',{characters:roster});
+     await cloudRefresh();closeModal();
+     toast(tr('Η D1 αντικαταστάθηκε: '+response.count+' χαρακτήρες.','D1 roster replaced: '+response.count+' characters.'));
+     return;
+    }
+    if(!confirm(tr('Να αντικατασταθούν οι τοπικοί χαρακτήρες;','Replace local characters?')))return;
+    if(doc.journalPreferences){sharedHidden=Array.isArray(doc.journalPreferences.hiddenSharedSessions)?doc.journalPreferences.hiddenSharedSessions:[];sharedEdits=doc.journalPreferences.sharedSessionEdits||{};saveSharedPref();}
+    characters=roster;selectedId=roster[0].id;view='overview';closeModal();update();toast(tr('Το backup εισήχθη.','Backup imported.'));
+   })().catch(err=>toast(tr('Αποτυχία import: ','Import failed: ')+(err.message||String(err))));
+   return;
+  }
  });
  document.addEventListener('input',e=>{
   if(e.target.matches('[data-library-search]')){libraryQuery=e.target.value;let pos=e.target.selectionStart;renderApp();let q=document.querySelector('[data-library-search]');q?.focus();q?.setSelectionRange(pos,pos);return;}
