@@ -39,9 +39,9 @@ jobs:
           print('Deployed production Worker SHA256:',sha)
           if sha!='ce3b89c6754f8ecd5453d2865055a4c3e356e3f44059cf106178ed00808a49aa':
             raise SystemExit('Deployed Worker changed; review before testing')
-          Path('/tmp/atlas-production-worker.mjs').write_bytes(raw)
+          Path('.atlas-staging-worker.mjs').write_bytes(raw)
           PY
       - name: Test real Worker routes against isolated ephemeral local D1
         env:
-          ATLAS_WORKER_SOURCE: /tmp/atlas-production-worker.mjs
+          ATLAS_WORKER_SOURCE: .atlas-staging-worker.mjs
         run: node --test tests/staging-d1-integration.test.cjs
