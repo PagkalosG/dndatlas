@@ -1,12 +1,5 @@
-name: Validate manual Drive restore Worker cleanup
+name: Legacy manual Drive restore validation (retired)
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/validate-manual-drive-restore.yml'
-      - 'workers/production/patch-manual-drive-restore.py'
-      - 'workers/production/history-drive-extension.js'
-      - 'tests/history-drive-extension.test.cjs'
   workflow_dispatch:
 permissions:
   contents: read
