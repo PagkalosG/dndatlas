@@ -1,57 +1,39 @@
-# D&D Atlas production: Creator History and Google Drive backup
+# D&D Atlas — Manual Google Drive JSON restore (v3.3.8)
 
-Version: 3.3.7. Worker deployed through the SHA-locked GitHub Action.
-D1 remains the single source of truth. Google Drive backup/restore is NEVER automatic.
+## Current architecture
 
-## Creator actions
+Cloudflare D1 is the live source of truth for all characters. The Creator keeps a private JSON backup in Google Drive and manages that file **manually**. The Atlas app **does not read or write to Google Drive directly** for character backups. The separate Google Drive image integration remains unchanged.
 
-- **Activity History & Undo:** Creator-only GET /history and POST /history/:id/undo.
-  - New character creates, edits, deletes, bulk operations, JSON imports, and roster replacements create snapshots.
-  - A newer change to the same character blocks undo of an older event.
-  - Undo is itself logged.
-  - Private Background Story contents never appear in history responses.
-  - History starts tracking changes only from deployment onward.
-- **Restore: Drive to D1:** Creator-only POST /sync/drive/import.
-  - Fetches the configured Drive JSON with a Google OAuth access token.
-  - Validates the full roster (up to 25 unique character IDs).
-  - Replaces the D1 character roster atomically, with history snapshots.
-  - Uses two explicit confirmations in the client. A standard refresh never imports Drive data.
-- **Backup: D1 to Drive:** Creator-only POST /sync/drive/publish.
-  - Collects current D1 data server-side, encrypts it with AES-256-GCM and saves a JSON envelope.
-  - Makes a versioned Drive copy of the previous backup BEFORE replacing the configured file.
-  - Fails rather than overwriting when the previous version cannot be archived.
-- GET /sync/drive/status returns configuration state, never tokens or secrets.
+## Restore: Google Drive JSON → D1
 
-## Required Cloudflare Worker bindings for dndatlas-api
+1. The Creator downloads the private character JSON backup from their Google Drive to their own device.
+2. In D&D Atlas, the Creator opens **Account → Restore from downloaded Drive JSON**.
+3. The Creator selects that local JSON file using the file picker.
+4. The application parses and validates the character roster and requests **two confirmations** explaining that the entire D1 roster will be replaced.
+5. The existing authenticated **POST /characters/replace** Worker endpoint replaces the D1 roster atomically and records history snapshots.
+6. The user sees the refreshed roster. **Google Drive is not changed**.
 
-The current deployed production Worker does not have these configured yet.
-Configure Worker > Settings > Variables and Secrets:
+This restores the whole roster, not just missing characters. Any characters absent from the selected backup are deleted from the D1 roster. DM retains its previously agreed right to replace the roster from a generic local JSON file, but **only Creator gets the dedicated Drive Restore action**. Player cannot perform either operation.
 
-| Variable | Type | Purpose |
-|---|---|---|
-| GOOGLE_CLIENT_ID | Secret | Google OAuth client ID |
-| GOOGLE_CLIENT_SECRET | Secret | Google OAuth client secret |
-| GOOGLE_REFRESH_TOKEN | Secret | Refresh token for the Google account authorized to access the backup file |
-| DRIVE_JSON_FILE_ID | Secret or text | Exact Drive file ID of the backup JSON |
-| DRIVE_BACKUP_ENCRYPTION_KEY | Secret | Independent randomly generated secret, at least 32 characters |
+## Manual backup: D1 → Google Drive
 
-Never send these values in chat or commit them to GitHub.
+The Creator may use a manually prepared JSON or the app's local JSON export and then replace the backup file in Google Drive themselves. **Important:** the app's export is based on the data visible to the account. Server-side story redaction may mean it is not a complete backup of every private character field; verify the exported JSON before treating it as full recovery data.
 
-OAuth must have adequate permissions to read, copy, and update the selected Drive file. Prefer the least-privileged Drive scope where the file is owned/created or explicitly granted to that OAuth application. A read-only API key from the image Worker is NOT adequate.
+## Permissions and privacy
 
-The configured Drive JSON must already exist and be accessible to the OAuth application. For initial migration, a plaintext JSON with top-level characters is supported as the restore source. On the first backup the file becomes an encrypted JSON envelope, not a plain character list. Save the encryption key separately; losing it means losing the ability to decrypt encrypted backups.
+- **Creator:** special Drive JSON restore UI, character management, Activity History/Undo.
+- **DM:** character management and ordinary local JSON import/replacement, but not the dedicated Drive Restore UI.
+- **Player:** edits only own character; no replacement, deletion, or Drive restore.
+- **Server:** POST /characters/replace checks Creator/DM; other endpoints for Google Drive API are disabled with HTTP 410 even if manually called.
+- Private Background Story data remains subject to the existing server-side protection.
+- History/Undo continue to work as before, and no automatic Drive import occurs on login, refresh, save, or startup.
 
-The existing image Worker dndatlas-drive remains separate and unchanged.
+## Credentials and deployment
 
-## Data safety
+**No Google OAuth credentials are required.** Do not set or use GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, DRIVE_JSON_FILE_ID, or DRIVE_BACKUP_ENCRYPTION_KEY for character backup/restore.
 
-- Do not run restore to test connectivity. Use GET /sync/drive/status first.
-- All write operations check the caller's role on the server.
-- A Player can edit only their assigned character; DM can edit party characters but cannot use history/undo or Drive sync.
-- D1 snapshots are stored in a character_history table created lazily on the first history operation.
-- Previous snapshots can contain private fields. They are kept only in D1; history responses never return them.
-- This is not a substitute for a separate database-level backup or Cloudflare Time Travel.
+This change is distinct from the existing dndatlas-drive image Worker, whose public-image API-key integration remains in place.
 
-## Verification
+## Tests
 
-The GitHub Actions workflow validate-production-history-drive.yml checks the published Worker source SHA, JavaScript syntax, privacy, role access and encryption round-trip. The production deployment workflow deploy-production-history-drive.yml is manual only after the release. The GitHub Pages workflow verifies the PWA build.
+The patch is SHA-locked to the previously verified deployed JavaScript module and compares the production extension to a GitHub historical source before replacing it. CI checks syntax, Creator/DM permissions and that OAuth code is gone. The production deployment workflow is disabled from automatic re-runs after the release.
