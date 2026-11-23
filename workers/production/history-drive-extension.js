@@ -24,6 +24,10 @@ const atlasFieldsChanged = (before, after) => {
     if(a!==b)changes.push({field:'Skill: '+skill,before:String(a),after:String(b)});
    }
   }else if(key==='hp'){
+   if(typeof old.hp==='number'||typeof now.hp==='number'){
+    changes.push({field:'hp',before:description(old.hp),after:description(now.hp)});
+    continue;
+   }
    for(const stat of ['max','current']){
     const a=description(old.hp?.[stat]),b=description(now.hp?.[stat]);
     if(a!==b)changes.push({field:'HP '+stat,before:a,after:b});
