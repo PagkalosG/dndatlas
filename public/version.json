@@ -1,6 +1,6 @@
 {
-  "version": "3.4.2",
+  "version": "3.4.3",
   "updated": "2026-11-23",
   "ruleset": "D&D 5e 2024",
-  "notes": "Creator/DM direct skill proficiency and Expertise, Max HP, Passive Perception, Speed; History and permission checks"
+  "notes": "Restore original skill proficiency dots; minimal stat edit pencils and compact themed popups"
 }
