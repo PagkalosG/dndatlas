@@ -1984,11 +1984,20 @@ document.addEventListener('submit',e=>{
     }
     if(cloud.enabled&&(!cloud.ready||!['creator','dm'].includes(cloud.user?.role||'')))throw Error(tr('Μόνο Creator ή DM μπορούν να εισάγουν χαρακτήρα στην D1.','Only Creator or DM can import a character into D1.'));
     if(characters.some(x=>x.id===ch.id))throw Error(tr('Υπάρχει ήδη χαρακτήρας με αυτό το ID.','A character with this ID already exists.'));
-    if(!confirm(tr('Να προστεθεί ο χαρακτήρας '+ch.name+' χωρίς αντικατάσταση άλλων χαρακτήρων;','Add '+ch.name+' without replacing other characters?')))return;
+    const playerDraft=documentData?.exportScope==='player-draft-for-dm-review';
+    const reviewed=structuredClone(ch);
+    if(playerDraft){
+      const pending=(reviewed.pendingChoices2024||[]).filter(entry=>entry.status!=='resolved');
+      const names=pending.map(entry=>'• '+(entry.label||entry.key)).slice(0,12).join('\n');
+      if(!confirm(tr('Έλεγχος DM: ο χαρακτήρας '+reviewed.name+' υποβλήθηκε ως draft. Έλεγξε τους κανόνες 2024 και τις εκκρεμότητες πριν την αποδοχή:\n','DM review: '+reviewed.name+' was submitted as a draft. Check 2024 rules and pending choices before approving:\n')+names))return;
+      const approval=(reviewed.pendingChoices2024||[]).find(entry=>entry.key==='dm-character-approval');
+      if(approval){approval.status='resolved';approval.value=tr('Εγκρίθηκε κατά την εισαγωγή από DM/Creator','Approved during DM/Creator import');approval.resolvedAt=new Date().toISOString();}
+    }
+    if(!confirm(tr('Να προστεθεί ο χαρακτήρας '+reviewed.name+' χωρίς αντικατάσταση άλλων χαρακτήρων;','Add '+reviewed.name+' without replacing other characters?')))return;
     const button=document.querySelector('[data-action="import-character"]');if(button)button.disabled=true;
     try{
-      if(cloud.enabled){await cloudRequest('/characters/'+encodeURIComponent(ch.id),'POST',{character:ch});await cloudRefresh();}
-      else{characters.push(structuredClone(ch));selectedId=ch.id;update();}
+      if(cloud.enabled){await cloudRequest('/characters/'+encodeURIComponent(reviewed.id),'POST',{character:reviewed});await cloudRefresh();}
+      else{characters.push(reviewed);selectedId=reviewed.id;update();}
       closeModal();toast(tr('Ο χαρακτήρας προστέθηκε.','Character added.'));
     }finally{if(button?.isConnected)button.disabled=false;}
    })().catch(err=>toast(tr('Αποτυχία εισαγωγής: ','Import failed: ')+(err.message||String(err))));
