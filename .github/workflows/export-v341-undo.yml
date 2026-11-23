@@ -1,4 +1,5 @@
 name: Export D&D Atlas v3.4.1 grouped Undo changed-files ZIP
+# Final build includes partial-group Undo guard and corresponding regression test.
 on:
   push:
     branches: [main]
