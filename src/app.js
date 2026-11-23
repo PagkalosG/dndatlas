@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.4.0';
+ const APP_VERSION='3.4.1';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -768,6 +768,7 @@ document.addEventListener('submit',e=>{
   case 'cloud-drive-import':cloudImportFromDrive();break;
   case 'cloud-history':cloudHistoryOpen();break;
   case 'cloud-history-undo':cloudHistoryUndo(id);break;
+  case 'cloud-history-undo-group':cloudHistoryUndoGroup(id);break;
   case 'reload-app':refreshApp(false);break;
   case 'clear-app-cache':refreshApp(true);break;
   case 'reset-local-data':resetLocalData();break;
@@ -1324,16 +1325,40 @@ document.addEventListener('submit',e=>{
       const result=await cloudRequest('/history?limit=80');
       const events=result.events||[];
       const seen=new Set();
+      const groups=new Map();
+      for(const item of events)if(item.groupId){
+        const items=groups.get(item.groupId)||[];
+        items.push(item);groups.set(item.groupId,items);
+      }
+      const groupButtonsShown=new Set();
       const markup=events.map(event=>{
         const recent=!seen.has(event.characterId);
         seen.add(event.characterId);
-        const canUndo=recent&&event.characterId!=='__party__';
+        const grouped=event.groupId&&(groups.get(event.groupId)?.length||0)>1;
+        const groupEntries=grouped?groups.get(event.groupId):[];
+        const groupRecent=grouped&&groupEntries.every(item=>events.find(e=>e.characterId===item.characterId)?.id===item.id);
+        const canUndo=recent&&!grouped&&event.characterId!=='__party__';
+        const canUndoGroup=groupRecent&&!groupButtonsShown.has(event.groupId);
+        if(canUndoGroup)groupButtonsShown.add(event.groupId);
         const differences=(event.changes||[]).map(change=>'<div class="tiny muted">'+esc(change.field)+': '+esc(change.before??'—')+' → '+esc(change.after??'—')+'</div>').join('');
-        const text=event.action==='drive-backup'?tr('Κρυπτογραφημένο Backup στο Drive','Encrypted backup to Drive'):event.action==='undo'?tr('Επαναφορά έκδοσης','Version restored'):event.action;
-        return '<div class="meta-box" style="margin:8px 0;padding:12px"><div class="actions-inline" style="justify-content:space-between"><strong>'+esc(event.characterName||event.characterId)+'</strong><span class="tiny muted">'+esc(event.at||'')+'</span></div><div class="tiny">'+esc(event.actor||'')+' · '+esc(text)+'</div>'+differences+(canUndo?'<div class="actions-inline" style="margin-top:8px"><button class="btn sm" data-action="cloud-history-undo:'+Number(event.id)+'">↶ '+tr('Αναίρεση αυτής της αλλαγής','Undo this change')+'</button></div>':'')+'</div>';
+        const text=event.action==='drive-backup'?tr('Backup στο Drive','Drive backup'):event.action==='undo'||event.action==='undo-group'?tr('Επαναφορά έκδοσης','Version restored'):event.action;
+        const groupButton=canUndoGroup?'<div class="actions-inline" style="margin-top:8px"><button class="btn sm" data-action="cloud-history-undo-group:'+esc(event.groupId)+'">↶ '+tr('Αναίρεση όλων των '+groupEntries.length+' αλλαγών','Undo all '+groupEntries.length+' changes')+'</button></div>':'';
+        return '<div class="meta-box" style="margin:8px 0;padding:12px"><div class="actions-inline" style="justify-content:space-between"><strong>'+esc(event.characterName||event.characterId)+'</strong><span class="tiny muted">'+esc(event.at||'')+'</span></div><div class="tiny">'+esc(event.actor||'')+' · '+esc(text)+'</div>'+differences+(canUndo?'<div class="actions-inline" style="margin-top:8px"><button class="btn sm" data-action="cloud-history-undo:'+Number(event.id)+'">↶ '+tr('Αναίρεση αυτής της αλλαγής','Undo this change')+'</button></div>':'')+groupButton+'</div>';
       }).join('')||'<div class="detail-note">'+tr('Δεν υπάρχουν ακόμη καταγεγραμμένες αλλαγές.','No recorded changes yet.')+'</div>';
       openModal(tr('Ιστορικό αλλαγών · Creator','Activity History · Creator'),'<div class="detail-note">'+tr('Καταγράφονται οι νέες αλλαγές μετά την ενεργοποίηση του ιστορικού. Το Undo δεν σβήνει παλιότερες εγγραφές. Οι ιδιωτικές ιστορίες δεν εμφανίζονται.','Changes are recorded after history is enabled. Undo creates a new entry. Private stories are never displayed.')+'</div>'+markup);
     }catch(e){toast(tr('Δεν φορτώθηκε το ιστορικό: ','Could not load history: ')+e.message);}
+  }
+  async function cloudHistoryUndoGroup(groupId){
+    if(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
+    if(!/^[0-9a-f-]{36}$/.test(String(groupId)))return;
+    if(!confirm(tr('Αναίρεση ολόκληρης της μαζικής ενέργειας; Θα επανέλθουν ή θα αφαιρεθούν ΟΛΟΙ οι χαρακτήρες αυτής της ομάδας.','Undo this entire party operation? ALL affected characters will be restored or removed.')))return;
+    if(!confirm(tr('Τελική επιβεβαίωση: επαναφορά όλων των χαρακτήρων αυτής της ενέργειας;','Final confirmation: restore every character affected by this operation?')))return;
+    try{
+      await Promise.all([...cloud.queues.values()]);
+      await cloudRequest('/history/group/'+encodeURIComponent(groupId)+'/undo','POST',{});
+      await cloudRefresh();await cloudHistoryOpen();
+      toast(tr('Ολόκληρη η ενέργεια αναιρέθηκε.','The entire operation was undone.'));
+    }catch(e){toast(tr('Αποτυχία ομαδικού Undo: ','Group undo failed: ')+e.message);}
   }
   async function cloudHistoryUndo(id){
     if(!cloud.enabled||!cloud.ready||cloud.user?.role!=='creator')return toast(tr('Μόνο Creator.','Creator only.'));
