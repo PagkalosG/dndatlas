@@ -1,0 +1,47 @@
+name: Staging D1 integration tests (isolated, read-only production source)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/staging-d1-integration.yml'
+      - 'tests/staging-d1-integration.test.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Miniflare local Cloudflare Workers and D1 test runtime
+        run: npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund miniflare@4.20260730.0
+      - name: Fetch deployed Worker source (READ ONLY; production database not accessed)
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          curl --silent --show-error --fail -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o /tmp/atlas-production-worker.raw \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          from importlib.machinery import SourceFileLoader
+          parser=SourceFileLoader('patcher','workers/production/patch-v341-history.py').load_module()
+          raw=parser.extract(Path('/tmp/atlas-production-worker.raw').read_bytes())
+          sha=hashlib.sha256(raw).hexdigest()
+          print('Deployed production Worker SHA256:',sha)
+          if sha!='ce3b89c6754f8ecd5453d2865055a4c3e356e3f44059cf106178ed00808a49aa':
+            raise SystemExit('Deployed Worker changed; review before testing')
+          Path('/tmp/atlas-production-worker.mjs').write_bytes(raw)
+          PY
+      - name: Test real Worker routes against isolated ephemeral local D1
+        env:
+          ATLAS_WORKER_SOURCE: /tmp/atlas-production-worker.mjs
+        run: node --test tests/staging-d1-integration.test.cjs
