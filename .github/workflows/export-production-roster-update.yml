@@ -1,0 +1,50 @@
+name: Export D&D Atlas production roster fix ZIP
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/export-production-roster-update.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify changed files
+        run: |
+          set -euo pipefail
+          test -f src/app.js
+          test -f public/index.html
+          test -f public/sw.js
+          test -f public/version.json
+          test -f workers/patch-production-roster.py
+          test -f .github/workflows/fix-production-roster.yml
+      - name: Create changed-files archive with original folder structure
+        run: |
+          python3 - <<'PY'
+          from zipfile import ZipFile,ZIP_DEFLATED
+          from pathlib import Path
+          paths = [
+            'src/app.js',
+            'public/index.html',
+            'public/sw.js',
+            'public/version.json',
+            'workers/patch-production-roster.py',
+            '.github/workflows/fix-production-roster.yml',
+            '.github/workflows/export-production-roster-update.yml'
+          ]
+          with ZipFile('dndatlas-production-roster-v3.3.4.zip','w',ZIP_DEFLATED) as z:
+            for p in paths: z.write(Path(p),p)
+          print('ZIP includes only the seven updated/created files.')
+          PY
+      - name: Publish ZIP as Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dndatlas-production-roster-v3.3.4
+          path: dndatlas-production-roster-v3.3.4.zip
+          if-no-files-found: error
+          retention-days: 30
