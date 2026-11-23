@@ -1,6 +1,6 @@
 {
-  "version": "3.3.5",
+  "version": "3.3.6",
   "updated": "2026-11-23",
   "ruleset": "D&D 5e 2024",
-  "notes": "D1 bulk delete, multi-character JSON import and empty-roster recovery"
+  "notes": "Creator Activity History & Undo, encrypted manual Drive backup and restore"
 }
