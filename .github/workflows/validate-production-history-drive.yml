@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/validate-production-history-drive.yml'
       - 'workers/production/**'
+      - 'tests/history-drive-extension.test.cjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,6 +15,8 @@ jobs:
     timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
+      - name: Test access controls, privacy and encrypted backups
+        run: node --test tests/history-drive-extension.test.cjs
       - name: Read production Worker and build patch (no deployment)
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
