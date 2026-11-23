@@ -1,0 +1,51 @@
+name: Export D&D Atlas manual Drive restore v3.3.8 changed-files ZIP
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/export-manual-drive-restore.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate frontend and Worker extension
+        run: |
+          node --check src/app.js
+          node --test tests/history-drive-extension.test.cjs
+      - name: Package only files changed for v3.3.8
+        run: |
+          python3 - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from pathlib import Path
+          paths=[
+            'src/app.js',
+            'public/index.html',
+            'public/sw.js',
+            'public/version.json',
+            'workers/production/history-drive-extension.js',
+            'workers/production/patch-manual-drive-restore.py',
+            'tests/history-drive-extension.test.cjs',
+            'docs/CREATOR_HISTORY_DRIVE_SYNC.md',
+            '.github/workflows/validate-manual-drive-restore.yml',
+            '.github/workflows/deploy-manual-drive-restore.yml',
+            '.github/workflows/validate-production-history-drive.yml',
+            '.github/workflows/export-manual-drive-restore.yml'
+          ]
+          target='dndatlas-manual-drive-restore-v3.3.8.zip'
+          with ZipFile(target,'w',ZIP_DEFLATED) as package:
+            for name in paths:
+              if not Path(name).is_file():raise SystemExit('Missing updated file: '+name)
+              package.write(name,name)
+          print('Created',target,'with',len(paths),'changed files')
+          PY
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dndatlas-manual-drive-restore-v3.3.8
+          path: dndatlas-manual-drive-restore-v3.3.8.zip
+          if-no-files-found: error
+          retention-days: 30
