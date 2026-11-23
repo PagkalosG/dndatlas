@@ -16,7 +16,7 @@ def patch(source: bytes) -> bytes:
     if digest != BASELINE_SHA256:
         raise ValueError(f'Production source hash mismatch: {digest}. Aborting without deployment.')
     text = source.decode('utf-8-sig')
-    if 'export default' not in text or "pathname.match(/^\\/characters\\/" not in text:
+    if 'export default' not in text or 'const characterRoute=pathname.match(' not in text:
         raise ValueError('Expected module Worker or character route not found; refusing to deploy.')
 
     cors_pattern = re.compile(r"(['\"]Access-Control-Allow-Methods['\"]\s*:\s*['\"])([^'\"]+)(['\"])")
@@ -37,7 +37,7 @@ def patch(source: bytes) -> bytes:
     prefix, section, suffix = text[:section_start], text[section_start:section_end], text[section_end:]
     if "if(method==='DELETE')" in section:
         raise ValueError('Character DELETE route already exists. Refusing to duplicate it.')
-    pattern = re.compile(r"(?m)^(?P<indent>[ \t]*)if\(method==='PUT'\)\s*\{")
+    pattern = re.compile(r"(?m)^(?P<indent>[^\S\r\n]*)if\(method==='PUT'\)\s*\{")
     found = list(pattern.finditer(section))
     if len(found) != 1:
         raise ValueError(f'Expected exactly one character PUT branch, found {len(found)}.')
