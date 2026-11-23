@@ -1,0 +1,96 @@
+name: Deploy D&D Atlas v3.4.1 grouped History Undo (one-time)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-v341-history.yml'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Type DEPLOY to apply the SHA-verified Worker patch'
+        required: true
+        default: 'DRY_RUN'
+permissions:
+  contents: read
+concurrency:
+  group: dndatlas-production-worker-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Test History permissions, privacy and atomic group Undo
+        run: |
+          set -euo pipefail
+          node --check src/app.js
+          node --check workers/production/history-drive-extension.js
+          node --test tests/history-drive-extension.test.cjs
+          node --test tests/stability-v340.test.cjs
+          node --test tests/rules-2024.test.cjs
+      - name: Fetch live Cloudflare module and construct SHA-locked patch
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          curl --silent --show-error --fail -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o /tmp/atlas-before.raw \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          git show 0c721d41eec8571e653cb002af694307e5a0bbde:workers/production/history-drive-extension.js > /tmp/atlas-old-extension.js
+          python3 workers/production/patch-v341-history.py \
+            /tmp/atlas-before.raw \
+            /tmp/atlas-old-extension.js \
+            workers/production/history-drive-extension.js \
+            /tmp/atlas-v341.mjs
+          node --check /tmp/atlas-v341.mjs
+          echo 'Original module verified; additive History/Undo patch syntax valid.'
+      - name: Deploy verified production module and preserve bindings
+        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail \
+            -o /tmp/deployment.json -X PUT \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -F 'metadata={"main_module":"index.js"};type=application/json' \
+            -F 'index.js=@/tmp/atlas-v341.mjs;filename=index.js;type=application/javascript+module' \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api/content"
+          python3 - <<'PY'
+          import json
+          response=json.load(open('/tmp/deployment.json'))
+          if not response.get('success'):raise SystemExit('Cloudflare deployment failed')
+          print('Cloudflare confirmed History Undo patch')
+          PY
+      - name: Verify deployed Worker bytes and production health
+        if: github.event_name == 'push' || inputs.deploy == 'DEPLOY'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" -o /tmp/atlas-after.raw \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 - <<'PY'
+          import hashlib
+          from importlib.machinery import SourceFileLoader
+          mod=SourceFileLoader('patch','workers/production/patch-v341-history.py').load_module()
+          actual=mod.extract(open('/tmp/atlas-after.raw','rb').read())
+          expected=open('/tmp/atlas-v341.mjs','rb').read()
+          if actual!=expected:raise SystemExit('Deployed Worker mismatch')
+          print('Verified production SHA256:',hashlib.sha256(actual).hexdigest())
+          PY
+          curl --silent --show-error --fail -o /tmp/health.json \
+            "https://dndatlas-api.pagkalosgeo.workers.dev/health"
+          python3 - <<'PY'
+          import json
+          assert json.load(open('/tmp/health.json')).get('status')=='ok'
+          print('Production API health OK')
+          PY
