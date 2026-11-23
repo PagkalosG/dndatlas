@@ -1,6 +1,6 @@
 {
-  "version": "3.3.2",
+  "version": "3.3.3",
   "updated": "2026-11-23",
   "ruleset": "D&D 5e 2024",
-  "notes": "DM save to shared D1; Creator-only Drive mirror publishing"
+  "notes": "No synthetic character on empty D1; Drive import/publish must be manual"
 }
