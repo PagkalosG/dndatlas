@@ -1,0 +1,104 @@
+name: Fix production character deletion (one-time)
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Type DEPLOY to update ONLY the production Worker script; otherwise dry-run'
+        required: true
+        default: 'DRY_RUN'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-production-character-delete.yml'
+      - 'workers/patch-production-character-delete.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dndatlas-production-worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  patch-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout patch code
+        uses: actions/checkout@v4
+      - name: Download currently deployed Worker (do not use stale repo sources)
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$CF_ACCOUNT_ID" || -z "$CF_API_TOKEN" ]]; then
+            echo 'Production Cloudflare secrets are missing' >&2
+            exit 1
+          fi
+          umask 077
+          code=$(curl --silent --show-error --fail-with-body \
+            --output /tmp/dndatlas-production-original.js \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api")
+          test "$code" = 200
+          test -s /tmp/dndatlas-production-original.js
+      - name: Apply small scoped change and validate syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 workers/patch-production-character-delete.py \
+            /tmp/dndatlas-production-original.js \
+            /tmp/dndatlas-production-patched.mjs
+          node --check /tmp/dndatlas-production-patched.mjs
+          echo 'Patch and syntax validation passed.'
+      - name: Replace Worker content only (existing D1 bindings and settings are preserved)
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
+        shell: bash
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail-with-body \
+            --output /tmp/dndatlas-deploy-response.json \
+            -X PUT \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -F 'metadata={"main_module":"index.js"};type=application/json' \
+            -F 'index.js=@/tmp/dndatlas-production-patched.mjs;filename=index.js;type=application/javascript+module' \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api/content"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('/tmp/dndatlas-deploy-response.json').read_text())
+          if not d.get('success',False):
+              raise SystemExit('Cloudflare did not confirm successful Worker content update.')
+          print('Cloudflare confirmed production Worker content update.')
+          PY
+      - name: Verify live source after deployment
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy == 'DEPLOY'
+        shell: bash
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o /tmp/dndatlas-production-verified.js \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          deployed=Path('/tmp/dndatlas-production-verified.js').read_bytes()
+          expected=Path('/tmp/dndatlas-production-patched.mjs').read_bytes()
+          if hashlib.sha256(deployed).digest()!=hashlib.sha256(expected).digest():
+              raise SystemExit('Post-deployment source mismatch; check Cloudflare dashboard.')
+          print('Verified exact production Worker content matches scoped patch.')
+          PY
+      - name: Report dry-run status
+        if: github.event_name == 'push' || inputs.deploy != 'DEPLOY'
+        run: echo 'DRY RUN ONLY. To deploy, run this workflow manually with input DEPLOY.'
