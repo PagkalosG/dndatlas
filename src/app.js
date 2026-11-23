@@ -179,7 +179,7 @@
  function makeRogueDemo(){const c=defaultChar('Kestrel','Rogue');c.classes=[{name:'Rogue',level:3,subclass:'Thief'}];c.abilities={STR:10,DEX:17,CON:12,INT:12,WIS:13,CHA:14};c.species='Halfling';c.background='Criminal';c.hp={max:24,current:24,temp:0};c.hitDice={max:3,used:0};c.loadouts=[{id:uid(),name:'Leather Armor',ac:14}];c.skills={Stealth:2,'Sleight of Hand':2,Acrobatics:1,Deception:1,Perception:1};c.attacks=[{id:uid(),name:'Shortsword',ability:'DEX',damage:'1d6',type:'Piercing',mastery:'Vex',proficient:true,magicBonus:0,damageBonus:0,bonusOverride:'',notes:'Finesse, Light'}, {id:uid(),name:'Shortbow',ability:'DEX',damage:'1d6',type:'Piercing',mastery:'Vex',proficient:true,magicBonus:0,damageBonus:0,bonusOverride:'',notes:'Ranged'}];c.features=[{id:uid(),name:'Sneak Attack',detail:'Προσθέτεις damage μία φορά ανά turn σε κατάλληλο hit εφόσον ικανοποιούνται οι προϋποθέσεις (Finesse ή ranged, Advantage ή κατάλληλος σύμμαχος). Για Rogue level 3: 2d6.',action:'Once per turn',source:'Rogue',level:1}];c.notes='Demo character to illustrate skill Expertise and noncaster classes.';return c;}
  let characters,selectedId,view='overview',libraryCategory='all',libraryQuery='',libraryLevel='all',spellQuery='',spellLevel='all';
  let lastFocus=null,modalOpen=false;
- const cloud={enabled:false,ready:false,url:'',token:'',user:null,revisions:{},queues:new Map(),imageTags:{},pendingWrites:0,syncBlocked:false,lastSyncVersion:0,polling:false,liveTimer:null};
+ const cloud={enabled:false,ready:false,url:'',token:'',user:null,revisions:{},queues:new Map(),imageTags:{},pendingWrites:0,syncBlocked:false,failedWrites:new Set(),lastSyncVersion:0,polling:false,liveTimer:null};
  try{const s=JSON.parse(localStorage.getItem(KEY));characters=Array.isArray(s?.characters)&&s.characters.length?s.characters:null;selectedId=s?.selectedId;}catch{}
  if(!characters){characters=[defaultChar('New Adventurer')];selectedId=characters[0].id;}
  try{const u=JSON.parse(localStorage.getItem(VIEWKEY));if(navigation.some(x=>x[0]===u.view))view=u.view;}catch{}
@@ -1291,7 +1291,7 @@ document.addEventListener('submit',e=>{
    cloud.revisions=Object.fromEntries((result.characters||[]).map(row=>[row.id,row.revision]));
    cloud.user=result.me||cloud.user;
    selectedId=characters.find(x=>x.id===prev)?.id||characters[0]?.id||null;
-   cloud.ready=true;cloud.syncBlocked=false;renderApp();
+   cloud.ready=true;cloud.failedWrites.clear();cloud.syncBlocked=false;renderApp();
   }
 
   // Multi-device synchronization: Cloudflare D1 is canonical; the Google Drive
@@ -1303,7 +1303,7 @@ document.addEventListener('submit',e=>{
     try{
       cloudPush(character);
       await Promise.all([...cloud.queues.values()]);
-      cloud.syncBlocked=false;
+      cloud.syncBlocked=cloud.failedWrites.size>0;
       toast(tr('Αποθηκεύτηκε στη D1. Το JSON του Drive δεν άλλαξε.','Saved to D1. The Drive JSON was not modified.'));
     }catch(e){
       toast(tr('Η αποθήκευση στη D1 απέτυχε: ','D1 save failed: ')+e.message);
@@ -1368,7 +1368,8 @@ document.addEventListener('submit',e=>{
         if(!resp.ok)return;
         const data=await resp.json();if(!data.revisions)return;
         const normalize=o=>JSON.stringify(Object.entries(o||{}).sort(([a],[b])=>a.localeCompare(b)));
-        if(normalize(data.revisions)!==normalize(cloud.revisions))await cloudRefresh();
+        if(normalize(data.revisions)!==normalize(cloud.revisions)&&!cloud.pendingWrites&&!cloud.syncBlocked&&
+           !modalOpen&&!document.activeElement?.matches?.('input,textarea,select,[contenteditable]'))await cloudRefresh();
         const version=Number(data.syncVersion)||0;
         if(version>cloud.lastSyncVersion&&view==='journal')await fetchSharedData();
         cloud.lastSyncVersion=Math.max(cloud.lastSyncVersion,version);
@@ -1395,7 +1396,8 @@ document.addEventListener('submit',e=>{
    });
    cloud.queues.set(id,next);
    next.finally(()=>{cloud.pendingWrites=Math.max(0,cloud.pendingWrites-1);}).catch(()=>{});
-   next.then(()=>{cloud.syncBlocked=false;},e=>{
+   next.then(()=>{cloud.failedWrites.delete(id);cloud.syncBlocked=cloud.failedWrites.size>0;},e=>{
+    cloud.failedWrites.add(id);
     cloud.syncBlocked=true;
     toast((e.status===409?cloudMsg('Σύγκρουση αλλαγών: οι αλλαγές σου παραμένουν στην οθόνη. Έλεγξε τες πριν ανανεώσεις από τη D1.','Save conflict: your changes remain on screen. Review before refreshing from D1.'):cloudMsg('Αποτυχία αποθήκευσης: οι αλλαγές σου παραμένουν στην οθόνη. ','Save failed; changes remain on screen. '))+e.message);
    });
