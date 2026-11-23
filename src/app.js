@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.3.4';
+ const APP_VERSION='3.3.5';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -198,7 +198,7 @@
   if(!ch){
    // An empty D1 roster is a valid state; never manufacture or re-import a character.
    document.title='D&D Atlas · Empty party';
-   document.getElementById('app').innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="logo">A</div><div><strong>CHARACTER ATLAS</strong><small>D&D 2024 · Shared party</small></div></div><div class="top-actions"><button class="btn sm" data-atlas-session>☁ ${tr('Λογαριασμός','Account')}</button>${cloud.user&&['creator','dm'].includes(cloud.user.role)?`<button class="btn sm primary" data-action="new-character">+ ${tr('Νέος χαρακτήρας','New character')}</button>`:''}</div></header><main class="main"><div class="content"><section class="panel"><div class="panel-content"><h2>${tr('Δεν υπάρχουν χαρακτήρες','No characters in the campaign')}</h2><p>${tr('Η βάση D1 είναι κενή. Δεν γίνεται αυτόματη εισαγωγή από JSON.','The D1 roster is empty. No JSON file is imported automatically.')}</p><div class="actions-inline"><button class="btn" data-cloud-refresh>↻ ${tr('Ανανέωση από D1','Refresh from D1')}</button>${cloud.user?.role==='creator'?`<button class="btn" data-action="cloud-drive-import">${tr('Χειροκίνητη εισαγωγή JSON','Manually import Drive JSON')}</button>`:''}</div></div></section></div></main></div>`;
+   document.getElementById('app').innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="logo">A</div><div><strong>CHARACTER ATLAS</strong><small>D&D 2024 · Shared party</small></div></div><div class="top-actions"><button class="btn sm" data-atlas-session>☁ ${tr('Λογαριασμός','Account')}</button>${cloud.user&&['creator','dm'].includes(cloud.user.role)?`<button class="btn sm primary" data-action="new-character">+ ${tr('Νέος χαρακτήρας','New character')}</button>`:''}</div></header><main class="main"><div class="content"><section class="panel"><div class="panel-content"><h2>${tr('Δεν υπάρχουν χαρακτήρες','No characters in the campaign')}</h2><p>${tr('Η βάση D1 είναι κενή. Δεν γίνεται αυτόματη εισαγωγή από JSON.','The D1 roster is empty. No JSON file is imported automatically.')}</p><div class="actions-inline"><button class="btn" data-cloud-refresh>↻ ${tr('Ανανέωση από D1','Refresh from D1')}</button>${cloud.user?.role==='creator'?`<button class="btn primary" data-action="import">${tr('Αντικατάσταση από JSON backup','Replace from JSON backup')}</button><button class="btn" data-action="cloud-drive-import">${tr('Χειροκίνητη εισαγωγή Drive JSON','Manual Drive JSON import')}</button>`:''}${cloud.user&&['creator','dm'].includes(cloud.user.role)?`<button class="btn" data-action="import-character">${tr('Προσθήκη από JSON','Add characters from JSON')}</button>`:''}</div></div></section></div></main><input id="import-file" type="file" accept="application/json,.json" hidden><input id="import-character-file" type="file" accept="application/json,.json" hidden></div>`;
    L.translateRoot(document.getElementById('app'));
    return;
   }
