@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.3.8';
+ const APP_VERSION='3.4.0';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -179,7 +179,7 @@
  function makeRogueDemo(){const c=defaultChar('Kestrel','Rogue');c.classes=[{name:'Rogue',level:3,subclass:'Thief'}];c.abilities={STR:10,DEX:17,CON:12,INT:12,WIS:13,CHA:14};c.species='Halfling';c.background='Criminal';c.hp={max:24,current:24,temp:0};c.hitDice={max:3,used:0};c.loadouts=[{id:uid(),name:'Leather Armor',ac:14}];c.skills={Stealth:2,'Sleight of Hand':2,Acrobatics:1,Deception:1,Perception:1};c.attacks=[{id:uid(),name:'Shortsword',ability:'DEX',damage:'1d6',type:'Piercing',mastery:'Vex',proficient:true,magicBonus:0,damageBonus:0,bonusOverride:'',notes:'Finesse, Light'}, {id:uid(),name:'Shortbow',ability:'DEX',damage:'1d6',type:'Piercing',mastery:'Vex',proficient:true,magicBonus:0,damageBonus:0,bonusOverride:'',notes:'Ranged'}];c.features=[{id:uid(),name:'Sneak Attack',detail:'Προσθέτεις damage μία φορά ανά turn σε κατάλληλο hit εφόσον ικανοποιούνται οι προϋποθέσεις (Finesse ή ranged, Advantage ή κατάλληλος σύμμαχος). Για Rogue level 3: 2d6.',action:'Once per turn',source:'Rogue',level:1}];c.notes='Demo character to illustrate skill Expertise and noncaster classes.';return c;}
  let characters,selectedId,view='overview',libraryCategory='all',libraryQuery='',libraryLevel='all',spellQuery='',spellLevel='all';
  let lastFocus=null,modalOpen=false;
- const cloud={enabled:false,ready:false,url:'',token:'',user:null,revisions:{},queues:new Map(),imageTags:{},pendingWrites:0,lastSyncVersion:0,polling:false,liveTimer:null};
+ const cloud={enabled:false,ready:false,url:'',token:'',user:null,revisions:{},queues:new Map(),imageTags:{},pendingWrites:0,syncBlocked:false,lastSyncVersion:0,polling:false,liveTimer:null};
  try{const s=JSON.parse(localStorage.getItem(KEY));characters=Array.isArray(s?.characters)&&s.characters.length?s.characters:null;selectedId=s?.selectedId;}catch{}
  if(!characters){characters=[defaultChar('New Adventurer')];selectedId=characters[0].id;}
  try{const u=JSON.parse(localStorage.getItem(VIEWKEY));if(navigation.some(x=>x[0]===u.view))view=u.view;}catch{}
@@ -1287,7 +1287,7 @@ document.addEventListener('submit',e=>{
    cloud.revisions=Object.fromEntries((result.characters||[]).map(row=>[row.id,row.revision]));
    cloud.user=result.me||cloud.user;
    selectedId=characters.find(x=>x.id===prev)?.id||characters[0]?.id||null;
-   cloud.ready=true;renderApp();
+   cloud.ready=true;cloud.syncBlocked=false;renderApp();
   }
 
   // Multi-device synchronization: Cloudflare D1 is canonical; the Google Drive
@@ -1299,6 +1299,7 @@ document.addEventListener('submit',e=>{
     try{
       cloudPush(character);
       await Promise.all([...cloud.queues.values()]);
+      cloud.syncBlocked=false;
       toast(tr('Αποθηκεύτηκε στη D1. Το JSON του Drive δεν άλλαξε.','Saved to D1. The Drive JSON was not modified.'));
     }catch(e){
       toast(tr('Η αποθήκευση στη D1 απέτυχε: ','D1 save failed: ')+e.message);
@@ -1354,7 +1355,7 @@ document.addEventListener('submit',e=>{
   function cloudStartLive(){
     if(cloud.liveTimer)return;
     cloud.liveTimer=setInterval(async()=>{
-      if(!cloud.enabled||!cloud.ready||!cloud.token||cloud.polling||cloud.pendingWrites||
+      if(!cloud.enabled||!cloud.ready||!cloud.token||cloud.polling||cloud.pendingWrites||cloud.syncBlocked||
          modalOpen||document.visibilityState==='hidden'||document.body.classList.contains('building')||
          document.activeElement?.matches?.('input,textarea,select,[contenteditable]'))return;
       cloud.polling=true;
@@ -1369,7 +1370,7 @@ document.addEventListener('submit',e=>{
         cloud.lastSyncVersion=Math.max(cloud.lastSyncVersion,version);
       }catch(error){console.warn('Campaign live sync:',error.message);}
       finally{cloud.polling=false;}
-    },7000);
+    },30000);
   }
 
   function cloudPush(character){
@@ -1390,7 +1391,10 @@ document.addEventListener('submit',e=>{
    });
    cloud.queues.set(id,next);
    next.finally(()=>{cloud.pendingWrites=Math.max(0,cloud.pendingWrites-1);}).catch(()=>{});
-   next.catch(e=>{toast((e.status===409?cloudMsg('Σύγκρουση αλλαγών. Ανανέωσε τα δεδομένα.','Conflicting changes. Refresh before editing.'):'Save failed: ')+e.message);});
+   next.then(()=>{cloud.syncBlocked=false;},e=>{
+    cloud.syncBlocked=true;
+    toast((e.status===409?cloudMsg('Σύγκρουση αλλαγών: οι αλλαγές σου παραμένουν στην οθόνη. Έλεγξε τες πριν ανανεώσεις από τη D1.','Save conflict: your changes remain on screen. Review before refreshing from D1.'):cloudMsg('Αποτυχία αποθήκευσης: οι αλλαγές σου παραμένουν στην οθόνη. ','Save failed; changes remain on screen. '))+e.message);
+   });
   }
   function cloudAccount(){
    if(!cloud.enabled)return;
