@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/staging-d1-integration.yml'
       - 'tests/staging-d1-integration.test.cjs'
+      - 'workers/production/history-drive-extension.js'
   workflow_dispatch:
 permissions:
   contents: read
@@ -37,7 +38,7 @@ jobs:
           raw=parser.extract(Path('/tmp/atlas-production-worker.raw').read_bytes())
           sha=hashlib.sha256(raw).hexdigest()
           print('Deployed production Worker SHA256:',sha)
-          if sha!='ce3b89c6754f8ecd5453d2865055a4c3e356e3f44059cf106178ed00808a49aa':
+          if sha!='546753c94bad98bca9f0998053b6439cbab1ad4ce11252994d45b5f366830980':
             raise SystemExit('Deployed Worker changed; review before testing')
           Path('.atlas-staging-worker.mjs').write_bytes(raw)
           PY
