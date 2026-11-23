@@ -9,7 +9,7 @@ import hashlib
 import re
 from pathlib import Path
 
-BASELINE_SHA256 = '36ff8add509937fbf3946aec15ebc2c4edce928d194c0d7e03d6c2660fcaf5b7'
+BASELINE_SHA256 = '0481b83bf1c53ca53120c30529e8088d049476645eb4d51f7b4e5af866845010'
 
 def extract_module_bytes(download: bytes) -> bytes:
     """Cloudflare module downloads are multipart, with random boundary per GET."""
