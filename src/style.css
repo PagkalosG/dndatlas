@@ -202,7 +202,7 @@ button.atlas-prof-dot-toggle:focus-visible{outline:2px solid var(--accent);outli
 .atlas-stat-edit svg{display:block;width:15px;height:15px}
 .atlas-stat-edit:hover{background:#263c50;color:#f0d19a}
 .atlas-stat-edit:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.atlas-stat-edit-inline{position:static;flex:0 0 26px;margin-left:auto}
+.atlas-stat-edit-inline{position:static;flex:0 0 26px;margin-left:2px}
 
 /* Compact editing popup using the existing Atlas modal frame. */
 .modal.atlas-stat-modal{width:min(100%,420px)}
