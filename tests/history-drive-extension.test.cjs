@@ -21,15 +21,28 @@ test('validates roster uniqueness and size',()=>{
   assert.equal(h.valid([c('one'),{}],validCharacter),false);
   assert.equal(h.valid(Array.from({length:26},(_,i)=>c('id'+i)),validCharacter),false);
 });
-test('history diffs exclude private stories and portraits',()=>{
-  const changes=h.changed(
-    {hp:30,backgroundStory:'SECRET',story:'SECRET',portrait:'rawImage'},
-    {hp:12,backgroundStory:'DIFFERENT',story:'DIFFERENT',portrait:'rawImage2'}
-  );
-  assert.equal(changes.length,1);
-  assert.equal(changes[0].field,'hp');
-  assert.equal(changes[0].before,'30');
-  assert.equal(changes[0].after,'12');
+test('history never echoes free-text private values, unknown fields or portrait content',()=>{
+ const changes=h.changed(
+  {hp:30,backgroundStory:'SECRET',notes:'SECRET notes',portrait:'SECRET image'},
+  {hp:12,backgroundStory:'DIFFERENT',notes:'private now',portrait:'image updated'}
+ );
+ const hp=changes.find(x=>x.field==='hp');
+ assert.equal(hp.before,'30');
+ assert.equal(hp.after,'12');
+ const serialized=JSON.stringify(changes);
+ assert.ok(!serialized.includes('SECRET'));
+ assert.ok(!serialized.includes('private now'));
+ assert.ok(!serialized.includes('portrait'));
+ assert.equal(changes.filter(x=>x.field==='[redacted]').length,3);
+});
+test('history grouped restore route is Creator-only and validates group state before writes',async()=>{
+ const err=(code,message)=>Object.assign(Error(message),{code});
+ const base={request:new Request('https://example.test/history/group/01234567-89ab-cdef-0123-456789abcdef/undo',{method:'POST'}),pathname:'/history/group/01234567-89ab-cdef-0123-456789abcdef/undo',method:'POST',actor:{id:1,role:'creator',username:'creator'},respond:x=>x,err,audit:async()=>{}};
+ await assert.rejects(()=>h.handler({...base,actor:{id:2,role:'dm'}}),e=>e.code===403);
+ let writes=0;
+ const env={DB:{prepare(sql){return {bind(){return this},run:async()=>{writes++},all:async()=>({results:[]})}}}};
+ await assert.rejects(()=>h.handler({...base,env}),e=>e.code===409);
+ assert.equal(writes,1); // CREATE TABLE IF NOT EXISTS for history; no character mutations
 });
 test('Google OAuth and Drive writes are completely absent',()=>{
   assert.equal(extension.includes('GOOGLE_CLIENT_ID'),false);
