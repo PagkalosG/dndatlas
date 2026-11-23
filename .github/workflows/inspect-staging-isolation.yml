@@ -1,9 +1,5 @@
 name: Inspect Atlas staging isolation (read only)
 on:
-  push:
-    branches: [feature/v342-stability-skill-proficiency]
-    paths:
-      - '.github/workflows/inspect-staging-isolation.yml'
   workflow_dispatch:
 permissions:
   contents: read
