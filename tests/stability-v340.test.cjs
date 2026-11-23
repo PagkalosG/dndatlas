@@ -18,7 +18,7 @@ test('live refresh does not overwrite unsaved drafts and avoids aggressive D1 po
 });
 test('client JSON backup warns about privacy redaction and marks scope',()=>{
  assert.match(frontend,/exportScope:cloud\.enabled\?'visible-to-current-user':'local'/);
- assert.match(frontend,/not necessarily a complete D1 backup/);
+ assert.match(frontend,/not necessarily a complete D1 backup/i);
 });
 test('Creator-only history and manual Drive restore remain available',()=>{
  assert.match(worker,/if\(actor\.role!=='creator'\)throw err\(403,'Creator only'\)/);
