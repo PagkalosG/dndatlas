@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.3.1';
+ const APP_VERSION='3.3.2';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
