@@ -1381,7 +1381,7 @@ document.addEventListener('submit',e=>{
       const markup=events.map(event=>{
         const recent=!seen.has(event.characterId);
         seen.add(event.characterId);
-        const grouped=event.groupId&&(groups.get(event.groupId)?.length||0)>1;
+        const grouped=event.groupId&&(groups.get(event.groupId)?.length||0)>0;
         const groupEntries=grouped?groups.get(event.groupId):[];
         const groupRecent=grouped&&groupEntries.every(item=>events.find(e=>e.characterId===item.characterId)?.id===item.id);
         const canUndo=recent&&!event.groupId&&event.characterId!=='__party__';
