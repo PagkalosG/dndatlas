@@ -1,0 +1,37 @@
+name: Export D&D Atlas staging D1 integration tests changed-only ZIP
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/export-staging-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package only new test assets
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile,ZIP_DEFLATED
+          files=[
+            'tests/staging-d1-integration.test.cjs',
+            '.github/workflows/staging-d1-integration.yml',
+            '.github/workflows/export-staging-integration.yml',
+            'docs/STAGING_D1_INTEGRATION.md'
+          ]
+          with ZipFile('dndatlas-v3.4.1-staging-d1-tests.zip','w',ZIP_DEFLATED) as archive:
+            for name in files:
+              if not Path(name).is_file():raise SystemExit('Missing new file: '+name)
+              archive.write(name,name)
+          print('Packaged',len(files),'new integration-test files')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dndatlas-v3.4.1-staging-d1-tests
+          path: dndatlas-v3.4.1-staging-d1-tests.zip
+          if-no-files-found: error
+          retention-days: 30
