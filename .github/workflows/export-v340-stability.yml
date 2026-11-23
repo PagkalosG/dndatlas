@@ -36,6 +36,7 @@ jobs:
             'public/version.json',
             '.github/workflows/deploy.yml',
             '.github/workflows/deploy-v340-revisions.yml',
+            '.github/workflows/validate-manual-drive-restore.yml',
             '.github/workflows/export-v340-stability.yml'
           ]
           archive='dndatlas-v3.4.0-stability-changes.zip'
