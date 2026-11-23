@@ -1,6 +1,6 @@
 {
-  "version": "3.3.1",
-  "updated": "2026-10-29",
+  "version": "3.3.2",
+  "updated": "2026-11-23",
   "ruleset": "D&D 5e 2024",
-  "notes": "Private Drive JSON mirror, creator seed import, Save button and live D1 revision polling"
+  "notes": "DM save to shared D1; Creator-only Drive mirror publishing"
 }
