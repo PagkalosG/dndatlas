@@ -264,3 +264,7 @@ button.atlas-prof-dot-toggle:focus-visible{outline:2px solid var(--accent);outli
 .atlas-builder .b-bottom{position:sticky;bottom:0;z-index:5;background:#0e1b2d;padding:14px 10px;margin:18px -10px -50px;box-shadow:0 -8px 24px #08111dbb}
 @media(max-width:850px){.atlas-quickbar{top:65px;padding:8px 9px}.atlas-quick-stats{gap:12px}.atlas-quick-stat strong{font-size:15px}}
 @media(max-width:590px){.atlas-sync-notice{align-items:stretch;flex-direction:column}.atlas-quickbar{gap:8px}.atlas-quick-pending{font-size:9px;max-width:98px;white-space:normal}.atlas-builder .b-bottom{margin-left:-10px;margin-right:-10px}}
+
+/* Chronological Journal entries; keep existing photo/Drive gallery behavior. */
+.atlas-session-timeline-entry{position:relative;border-left:3px solid #8d7051!important;margin-left:9px}
+.atlas-session-timeline-entry:before{content:"";position:absolute;left:-9px;top:19px;width:12px;height:12px;border:2px solid #d3b47e;border-radius:50%;background:#182b3d}
