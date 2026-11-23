@@ -1,0 +1,52 @@
+name: Inspect Atlas production Drive integrations (read only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Read bindings and endpoint capabilities (no secret values)
+        shell: bash
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          for name in dndatlas-api dndatlas-drive; do
+            echo "=== ${name} ==="
+            status=$(curl --silent --show-error -o "/tmp/${name}-settings.json" -w '%{http_code}' -H "Authorization: Bearer ${CF_API_TOKEN}" "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${name}/settings")
+            echo "Settings HTTP: ${status}"
+            if [[ "${status}" = 200 ]]; then
+              WORKER_NAME="${name}" python3 - <<'PY'
+          import os,json
+          p='/tmp/'+os.environ['WORKER_NAME']+'-settings.json'
+          result=json.load(open(p)).get('result') or {}
+          print('Binding names/types:',[(x.get('name'),x.get('type')) for x in result.get('bindings',[])])
+          print('Has migrations:',bool(result.get('migrations')))
+          PY
+            fi
+            status=$(curl --silent --show-error -o "/tmp/${name}-source" -w '%{http_code}' -H "Authorization: Bearer ${CF_API_TOKEN}" "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${name}")
+            echo "Source HTTP: ${status}"
+            if [[ "${status}" = 200 ]]; then
+              WORKER_NAME="${name}" python3 - <<'PY'
+          import os,re,hashlib
+          from email.parser import BytesParser
+          from email import policy
+          name=os.environ['WORKER_NAME']
+          data=open('/tmp/'+name+'-source','rb').read()
+          if data.startswith(b'--'):
+            boundary=data.splitlines()[0][2:].strip()
+            msg=BytesParser(policy=policy.default).parsebytes(b'MIME-Version: 1.0\r\nContent-Type: multipart/form-data; boundary="'+boundary+b'"\r\n\r\n'+data)
+            parts=[p.get_payload(decode=True) or b'' for p in msg.iter_parts()]
+            code=b'\n'.join(p for p in parts if b'export default' in p or b'fetch(' in p)
+          else:code=data
+          print('Source bytes:',len(code),'SHA256:',hashlib.sha256(code).hexdigest())
+          phrases=['/sync/drive/import','/sync/drive/publish','/images','/folders','/files','GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET','GOOGLE_REFRESH_TOKEN','DRIVE_FOLDER_ID','DRIVE_JSON_FILE_ID','DRIVE_BACKUP_FILE_ID','Authorization','token','googleapis.com','www.googleapis.com','/characters/replace','audit_log','create table','CREATE TABLE','request.method','pathname']
+          print('Capability markers:',[(m,m.encode() in code) for m in phrases])
+          PY
+            fi
+          done
