@@ -11,8 +11,31 @@ from pathlib import Path
 
 BASELINE_SHA256 = '36ff8add509937fbf3946aec15ebc2c4edce928d194c0d7e03d6c2660fcaf5b7'
 
+def extract_module_bytes(download: bytes) -> bytes:
+    """Cloudflare module downloads are multipart, with random boundary per GET."""
+    if not download.startswith(b'--'):
+        return download
+    from email import policy
+    from email.parser import BytesParser
+    boundary = download.splitlines()[0][2:].strip()
+    if not boundary or len(boundary) > 200:
+        raise ValueError('Invalid multipart response boundary')
+    header = b'MIME-Version: 1.0\r\nContent-Type: multipart/form-data; boundary="' + boundary + b'"\r\n\r\n'
+    msg = BytesParser(policy=policy.default).parsebytes(header + download)
+    candidates = []
+    for part in msg.iter_parts():
+        content = part.get_payload(decode=True) or b''
+        if b'export default' in content and b'const characterRoute=pathname.match(' in content:
+            candidates.append(content)
+    if len(candidates) != 1:
+        raise ValueError(f'Expected exactly one main Worker module, found {len(candidates)}')
+    return candidates[0]
+
 def patch(source: bytes) -> bytes:
+    source = extract_module_bytes(source)
     digest = hashlib.sha256(source).hexdigest()
+    print('Main JavaScript module SHA256:', digest)
+    print('Main JavaScript module bytes:', len(source))
     if digest != BASELINE_SHA256:
         raise ValueError(f'Production source hash mismatch: {digest}. Aborting without deployment.')
     text = source.decode('utf-8-sig')
