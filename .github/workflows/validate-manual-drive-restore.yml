@@ -1,0 +1,43 @@
+name: Validate manual Drive restore Worker cleanup
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-manual-drive-restore.yml'
+      - 'workers/production/patch-manual-drive-restore.py'
+      - 'workers/production/history-drive-extension.js'
+      - 'tests/history-drive-extension.test.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run history and Drive-disabled access tests
+        run: |
+          node --test tests/history-drive-extension.test.cjs
+          node --check src/app.js
+      - name: Validate production Worker patch against live source (read-only)
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_PRODUCTION_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          curl --silent --show-error --fail \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o /tmp/atlas-live.raw \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          git show 513735fe2f769838734b890ccca0c8cefc06651f:workers/production/history-drive-extension.js > /tmp/atlas-previous-extension.js
+          python3 workers/production/patch-manual-drive-restore.py \
+            /tmp/atlas-live.raw \
+            /tmp/atlas-previous-extension.js \
+            workers/production/history-drive-extension.js \
+            /tmp/atlas-manual-restore.mjs
+          node --check /tmp/atlas-manual-restore.mjs
+          echo 'VALIDATED: Worker changed only in the history/Drive extension. Nothing deployed.'
