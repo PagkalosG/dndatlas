@@ -1,6 +1,6 @@
 {
-  "version": "3.3.3",
+  "version": "3.3.4",
   "updated": "2026-11-23",
   "ruleset": "D&D 5e 2024",
-  "notes": "No synthetic character on empty D1; Drive import/publish must be manual"
+  "notes": "D1 bulk delete and manual multi-character JSON import/replace"
 }
