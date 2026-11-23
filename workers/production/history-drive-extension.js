@@ -137,7 +137,7 @@ async function atlasExtensionRequest({request,env,actor,pathname,method,respond,
   if(groupRoute&&method==='POST'){
    const groupId=groupRoute[1];
    const entries=(await env.DB.prepare('SELECT * FROM character_history WHERE group_id=? ORDER BY id ASC').bind(groupId).all()).results||[];
-   if(entries.length<2||entries.length>25||new Set(entries.map(e=>e.character_id)).size!==entries.length)
+   if(entries.length<1||entries.length>25||new Set(entries.map(e=>e.character_id)).size!==entries.length)
     throw err(409,'History group is not a valid multi-character operation.');
    const ids=entries.map(e=>e.character_id);
    const slots=ids.map(()=>'?').join(',');
