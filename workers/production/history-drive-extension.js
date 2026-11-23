@@ -12,15 +12,30 @@ const atlasHistoryWrite = (env, actor, action, id, before, after, ownerBefore = 
 // Arbitrary free-text, nested objects, inventory and private stories are never echoed.
 const atlasHistorySafeNumbers = new Set(['hp','maxHp','tempHp','temporaryHp','ac','armorClass','speed','initiative','exhaustion','level','experience','xp','proficiencyBonus']);
 const atlasFieldsChanged = (before, after) => {
- const old = before || {}, now = after || {};
+ const old = before || {}, now = after || {},changes=[];
  const keys = new Set([...Object.keys(old),...Object.keys(now)]);
  const description = value => typeof value==='number'&&Number.isFinite(value)?String(value):null;
- return [...keys].filter(key=>!key.startsWith('_')&&JSON.stringify(old[key])!==JSON.stringify(now[key]))
-  .slice(0,40).map(key=>({
-    field:atlasHistorySafeNumbers.has(key)?key:'[redacted]',
-    before:atlasHistorySafeNumbers.has(key)?description(old[key]):null,
-    after:atlasHistorySafeNumbers.has(key)?description(now[key]):null
-  }));
+ const safeSkills = ['Acrobatics','Animal Handling','Arcana','Athletics','Deception','History','Insight','Intimidation','Investigation','Medicine','Nature','Perception','Performance','Persuasion','Religion','Sleight of Hand','Stealth','Survival'];
+ for(const key of keys){
+  if(key.startsWith('_')||JSON.stringify(old[key])===JSON.stringify(now[key]))continue;
+  if(key==='skills'){
+   for(const skill of safeSkills){
+    const a=Number(old.skills?.[skill]||0),b=Number(now.skills?.[skill]||0);
+    if(a!==b)changes.push({field:'Skill: '+skill,before:String(a),after:String(b)});
+   }
+  }else if(key==='hp'){
+   for(const stat of ['max','current']){
+    const a=description(old.hp?.[stat]),b=description(now.hp?.[stat]);
+    if(a!==b)changes.push({field:'HP '+stat,before:a,after:b});
+   }
+  }else if(key==='passivePerceptionOverride'){
+   changes.push({field:'Passive Perception',before:description(old[key])??'Auto',after:description(now[key])??'Auto'});
+  }else if(atlasHistorySafeNumbers.has(key)){
+   changes.push({field:key,before:description(old[key]),after:description(now[key])});
+  }else changes.push({field:'[redacted]',before:null,after:null});
+  if(changes.length>=40)break;
+ }
+ return changes.slice(0,40);
 };
 
 const atlasValidRoster = (roster, validCharacter) =>
