@@ -131,3 +131,9 @@ test('group undo refuses when a grouped character received a newer change',async
  }),e=>e.code===409);
  assert.equal(batchCalls,0);
 });
+
+test('partial grouped history never offers individual Undo in UI',()=>{
+ const frontend=fs.readFileSync('src/app.js','utf8');
+ assert.match(frontend,/const canUndo=recent&&!event\.groupId&&event\.characterId/);
+ assert.match(frontend,/cloud-history-undo-group/);
+});
