@@ -1,6 +1,6 @@
 {
-  "version": "3.3.7",
+  "version": "3.3.8",
   "updated": "2026-11-23",
   "ruleset": "D&D 5e 2024",
-  "notes": "Creator Activity History/Undo and encrypted Drive backups; DM local JSON replacement"
+  "notes": "Creator-only manual Drive JSON restore with no OAuth or remote Drive writes; Activity History retained"
 }
