@@ -119,6 +119,30 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
    const attempt=await req(mf,'/sync/revisions',3,'POST',{});
    assert.equal(attempt.status,405);
   });
+  await t.test('group Undo rejects newer player edits and leaves the whole roster unchanged',async()=>{
+   const before=await req(mf,'/characters',2);
+   const roster=before.body.characters.map(row=>({...row.data,hp:row.data.id==='borruk'?15:10}));
+   const replacement=await req(mf,'/characters/replace',2,'POST',{characters:roster});
+   assert.equal(replacement.status,200,JSON.stringify(replacement.body));
+   const current=await req(mf,'/characters/borruk',3);
+   const playerUpdate=await req(mf,'/characters/borruk',3,'PUT',{
+    character:{...current.body.data,hp:9},revision:current.body.revision
+   });
+   assert.equal(playerUpdate.status,200,JSON.stringify(playerUpdate.body));
+   const refused=await req(mf,'/history/group/'+replacement.body.groupId+'/undo',1,'POST',{});
+   assert.equal(refused.status,409,JSON.stringify(refused.body));
+   const after=await req(mf,'/characters',2);
+   assert.equal(after.body.characters.find(x=>x.id==='borruk').data.hp,9);
+   assert.equal(after.body.characters.find(x=>x.id==='luna').data.hp,10);
+  });
+  await t.test('anonymous access and invalid cross-origin are denied',async()=>{
+   const anonymous=await mf.dispatchFetch('https://atlas-integration.invalid/characters',{headers:{Origin:origin}});
+   assert.equal(anonymous.status,401);
+   const wrongOrigin=await mf.dispatchFetch('https://atlas-integration.invalid/characters',{
+    headers:{Origin:'https://attacker.invalid',Authorization:'Bearer '+userToken(3)}
+   });
+   assert.equal(wrongOrigin.status,403);
+  });
   await t.test('direct Drive API remains forbidden or disabled',async()=>{
    assert.equal((await req(mf,'/sync/drive/publish',1,'POST',{})).status,410);
    assert.equal((await req(mf,'/sync/drive/import',2,'POST',{})).status,403);
