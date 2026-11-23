@@ -137,3 +137,18 @@ test('partial grouped history never offers individual Undo in UI',()=>{
  assert.match(frontend,/const canUndo=recent&&!event\.groupId&&event\.characterId/);
  assert.match(frontend,/cloud-history-undo-group/);
 });
+
+test('History shows only safe 2024 skill and DM stat differences',()=>{
+ const changes=h.changed(
+  {hp:{max:31,current:25},skills:{Perception:1,Stealth:0},passivePerceptionOverride:'',speed:30,notes:'SECRET old'},
+  {hp:{max:38,current:25},skills:{Perception:2,Stealth:1},passivePerceptionOverride:16,speed:35,notes:'SECRET new'}
+ );
+ const printable=JSON.stringify(changes);
+ assert.ok(printable.includes('Skill: Perception'));
+ assert.ok(printable.includes('Skill: Stealth'));
+ assert.ok(printable.includes('HP max'));
+ assert.ok(printable.includes('Passive Perception'));
+ assert.ok(printable.includes('speed'));
+ assert.ok(!printable.includes('SECRET old'));
+ assert.ok(!printable.includes('SECRET new'));
+});
