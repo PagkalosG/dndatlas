@@ -1,6 +1,6 @@
 {
-  "version": "3.4.1",
+  "version": "3.4.2",
   "updated": "2026-11-23",
   "ruleset": "D&D 5e 2024",
-  "notes": "Creator-only atomic group Undo for party replacement; privacy-safe Activity History fields"
+  "notes": "Creator/DM direct skill proficiency and Expertise, Max HP, Passive Perception, Speed; History and permission checks"
 }
