@@ -31,7 +31,7 @@ test('compact D&D Beyond-style quickbar includes live combat stats and pending c
   view:'journal',tr:t,esc:String,attr:String,AC:()=>17,initMod:()=>0,signed:String,skillMod:()=>0
  });
  assert.equal(none({}), '');
- assert.match(css,/\.atlas-quickbar\s*\{\s*position:sticky/);
+ assert.match(css,/\.atlas-quickbar\s*\{\s*position:static/);
 });
 
 test('combat spell list uses owned prepared spells and cantrips for any class',()=>{
@@ -121,7 +121,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.5\.0'/);
+ assert.match(app,/APP_VERSION='3\.5\.1'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -194,4 +194,49 @@ test('Journal keeps and sorts session numbers without changing image gallery beh
  assert.match(app,/data-atlas-journal-open/);
  assert.match(app,/mediaCards\(j\.images\|\|\[\]\)/);
  assert.match(css,/\.atlas-session-timeline-entry/);
+});
+
+
+test('mobile navigation is fixed, with compact accessible header and safe-area spacing',()=>{
+ const index=fs.readFileSync('public/index.html','utf8');
+ const sw=fs.readFileSync('public/sw.js','utf8');
+ const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
+ assert.equal(version.version,'3.5.1');
+ for(const asset of ['style.css','app.js']){
+  assert.ok(index.includes(asset+'?v=3.5.1'));
+  assert.ok(sw.includes(asset+'?v=3.5.1'));
+ }
+ assert.match(sw,/dndatlas-shell-v3\.5\.1/);
+ assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
+ assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
+ assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
+ assert.match(css,/\.atlas-header-toggle\[aria-expanded="true"\]\+\.atlas-header-panel\{display:flex\}/);
+ assert.match(app,/data-action="settings" aria-label="\$\{attr\(tr/);
+ const source=extract('function atlasHeaderMenu(controls){','function atlasSetHeaderMenu(');
+ const menu=vm.runInNewContext(source+';atlasHeaderMenu',{tr:t,attr:String});
+ const html=menu('<button data-action="new-character">New</button>');
+ assert.match(html,/aria-expanded="false" aria-controls="atlas-header-panel"/);
+ assert.match(html,/aria-label="Menu"/);
+ assert.match(html,/id="atlas-header-panel"/);
+ assert.match(html,/data-action="new-character"/);
+ const greek=vm.runInNewContext(source+';atlasHeaderMenu',{tr:(el,en)=>el,attr:String});
+ assert.match(greek(''),/aria-label="Μενού"/);
+ assert.match(app,/atlasHeaderMenu\(`/);
+});
+
+test('header menu preserves controls and closes on selection, outside click and Escape',()=>{
+ let expanded='false',focused=0;const handlers={};
+ const button={getAttribute:()=>expanded,setAttribute:(name,value)=>{assert.equal(name,'aria-expanded');expanded=value;},focus:()=>focused++};
+ const document={querySelector:s=>s.includes('="true"')?(expanded==='true'?button:null):button,addEventListener:(name,fn)=>handlers[name]=fn};
+ const source=extract('function atlasSetHeaderMenu(','function renderApp(){');
+ vm.runInNewContext(source,{document});
+ const click=(matches)=>handlers.click({target:{closest:s=>matches.includes(s)?button:null}});
+ click(['[data-atlas-header-toggle]']);assert.equal(expanded,'true');
+ click(['#atlas-header-panel']);assert.equal(expanded,'true');
+ handlers.change({target:{matches:s=>s==='#atlas-header-panel select'}});assert.equal(expanded,'false');
+ click(['[data-atlas-header-toggle]']);click([]);assert.equal(expanded,'false');
+ click(['[data-atlas-header-toggle]']);click(['#atlas-header-panel','#atlas-header-panel button']);assert.equal(expanded,'false');
+ click(['[data-atlas-header-toggle]']);
+ let prevented=false;handlers.keydown({key:'Escape',preventDefault:()=>prevented=true,stopImmediatePropagation:()=>{}});
+ assert.equal(expanded,'false');assert.equal(prevented,true);assert.ok(focused>=3);
 });
