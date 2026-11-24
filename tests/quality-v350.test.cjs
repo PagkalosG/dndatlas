@@ -379,3 +379,12 @@ test('draft snapshot excludes private narrative and privileged fields',()=>{
  const doc=snap(b);assert.equal(doc.schema,1);assert.equal(doc.state.name,'Hero');assert.equal(doc.state.purchases.Spear,1);assert.doesNotMatch(JSON.stringify(doc),/private|dmOverride|passiveOverride/);
  assert.match(app,/data-bgo="save"/);assert.match(app,/b-live-preview-slot/);assert.match(css,/\.atlas-builder \.b-workspace/);
 });
+
+test('standard array exchanges scores without introducing duplicates',()=>{
+ const src=extract('function bStandardArrayAssign(base,key,value){','function bAbilityInput(b,k){');
+ const api=vm.runInNewContext(src+';({bStandardArrayAssign,bPointBuyCost})',{});
+ const base={STR:15,DEX:14,CON:13,INT:8,WIS:10,CHA:12};
+ assert.equal(api.bStandardArrayAssign(base,'STR',14),true);assert.equal(base.STR,14);assert.equal(base.DEX,15);assert.equal(new Set(Object.values(base)).size,6);
+ assert.equal(api.bStandardArrayAssign(base,'STR',20),false);assert.equal(api.bPointBuyCost({STR:15,DEX:15,CON:15,INT:8,WIS:8,CHA:8}),27);
+ assert.match(app,/builder-art\//);assert.match(fs.readFileSync('public/sw.js','utf8'),/builder-art\//);
+});
