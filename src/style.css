@@ -422,3 +422,10 @@ html{scroll-padding-top:calc(var(--atlas-header-height) + 10px)}
 @media(max-width:480px){.b-live-name{flex-basis:100%}.b-live-stats{width:100%;justify-content:space-between}.b-preview-note{display:none}.b-header .actions-inline{gap:4px}.b-header .btn{padding:6px;font-size:11px}.atlas-builder .b-bottom>span{font-size:10px}}
 
 .b-choice-art{display:block;width:64px;height:54px;object-fit:cover;flex:0 0 64px;border-radius:7px;background:#233c53}.b-ability select{width:100%;min-width:0;padding:6px 2px;text-align:center}.b-choice-card{min-height:76px}
+
+/* v3.9.1 – categorized proficiency selectors */
+.atlas-prof-section{display:grid;gap:7px;padding:10px 0;border-bottom:1px solid var(--stroke)}
+.atlas-prof-section:first-child{padding-top:0}.atlas-prof-section>strong{color:var(--gold);font-size:12px}.atlas-prof-section>button{justify-self:start}
+.atlas-prof-chips{display:flex;flex-wrap:wrap;gap:5px}.atlas-prof-chip{display:inline-flex;flex-direction:column;gap:3px;max-width:100%;padding:6px 9px;border:1px solid var(--stroke);border-radius:8px;background:var(--panel2);font-size:12px;overflow-wrap:anywhere}.atlas-prof-chip.fixed{border-color:#75664b}.atlas-prof-chip small{font-size:10px;color:var(--muted)}
+.atlas-prof-picker{margin:8px 0;border:1px solid var(--stroke);border-radius:10px;background:var(--panel2);padding:10px}.atlas-prof-picker summary{cursor:pointer;font-weight:700;min-height:28px}.atlas-prof-count{float:right;color:var(--gold)}.atlas-prof-picker input[type=search]{margin:6px 0;width:100%}.atlas-prof-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;max-height:245px;overflow:auto;overscroll-behavior:contain}.atlas-prof-option{display:flex;align-items:center;gap:8px;padding:6px;min-height:40px;border-radius:6px}.atlas-prof-option[hidden]{display:none!important}.atlas-prof-option input{width:17px;flex:0 0 17px;accent-color:#c6a26c}.atlas-prof-option span{min-width:0;overflow-wrap:anywhere}.atlas-prof-option small{display:block;color:var(--muted);font-size:10px}.atlas-prof-option:has(input:checked){background:#273b4d}
+@media(max-width:520px){.atlas-prof-options{grid-template-columns:1fr}}

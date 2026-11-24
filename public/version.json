@@ -1,6 +1,6 @@
 {
-  "version": "3.9.0",
+  "version": "3.9.1",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Character Builder visual choices, saved local drafts, live preview, verified starting gold and equipment shop"
+  "notes": "Categorized proficiency selectors, automatic class grants and legacy-safe editing"
 }
