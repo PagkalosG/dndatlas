@@ -370,3 +370,14 @@ html{scroll-padding-top:calc(var(--atlas-header-height) + 10px)}
 .atlas-favorite{min-width:44px;min-height:44px;font-size:21px;color:var(--muted)}.atlas-favorite.active{color:var(--gold);border-color:var(--gold)}
 .atlas-rest-preview{padding:12px;margin-top:12px;background:var(--panel2);border:1px solid var(--stroke);border-radius:10px}.atlas-rest-preview ul{padding-left:20px}.atlas-rest-check{display:flex;align-items:flex-start;gap:8px}.atlas-rest-check input{width:18px;flex:0 0 18px}
 @media(max-width:590px){.atlas-ux-guide{align-items:stretch;flex-direction:column}.atlas-ux-guide .actions-inline{flex-wrap:wrap}.atlas-ux-guide.compact{align-items:flex-end}}
+
+/* v3.6.1 / v3.7 — compact header and combat tools */
+.atlas-header-calculator{display:inline-flex;align-items:center;justify-content:center;width:42px;min-height:42px;padding:0;flex-shrink:0;border-color:#435b72;background:#203246;border-radius:10px}
+.atlas-header-calculator svg{width:21px;height:21px}
+.atlas-play-tip{margin:0 0 9px;color:var(--muted);font-size:12px}.atlas-play-tip summary{cursor:pointer;width:max-content}.atlas-play-tip p{margin:5px 0}
+.atlas-turn-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.atlas-turn-controls .btn{white-space:normal;text-align:center;min-height:44px}
+.atlas-turn-controls .atlas-turn-used{border-color:var(--gold);color:var(--gold);background:#283443}
+.atlas-spell-options{margin-top:12px}.atlas-spell-options .btn{min-height:40px}
+@media(max-width:1050px),(hover:none) and (pointer:coarse){.atlas-header-calculator{width:40px;min-height:44px;flex:0 0 40px}.top-actions{gap:4px}}
+@media(max-width:360px){.atlas-header-calculator,.atlas-header-toggle,.top-actions .atlas-header-settings{width:36px;flex-basis:36px}.atlas-language-flag{width:30px;min-width:30px}.brand strong{font-size:10px}}

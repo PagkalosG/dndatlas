@@ -11,29 +11,15 @@ function extract(start,end) {
 }
 const t=(greek,english)=>english;
 
-test('compact D&D Beyond-style quickbar includes live combat stats and pending choices',()=>{
- const source=extract('function atlasQuickBar(ch){','function renderPage(ch){');
- const fun=vm.runInNewContext(source+';atlasQuickBar',{
-  view:'overview',tr:t,esc:String,attr:String,
-  AC:()=>17,initMod:()=>3,signed:n=>n>=0?'+'+n:String(n),
-  skillMod:()=>4
- });
- const html=fun({hp:{current:25,max:31},speed:30,pendingChoices2024:[{status:'pending'},{status:'resolved'}]});
- assert.match(html,/atlas-quickbar/);
- assert.match(html,/25 \/ 31/);
- assert.match(html,/\+3/);
- assert.match(html,/14/);
- assert.match(html,/30 ft/);
- assert.match(html,/pending choices/);
- assert.match(html,/data-action="pending-choices"/);
- assert.doesNotMatch(html,/data-roll/);
- const none=vm.runInNewContext(source+';atlasQuickBar',{
-  view:'journal',tr:t,esc:String,attr:String,AC:()=>17,initMod:()=>0,signed:String,skillMod:()=>0
- });
- assert.equal(none({}), '');
- assert.match(css,/\.atlas-quickbar\s*\{\s*position:static/);
+test('quickbar is removed and calculation inspector is in header only',()=>{
+ assert.doesNotMatch(app,/function atlasQuickBar\(/);
+ assert.doesNotMatch(app,/\$\{atlasQuickBar\(ch\)\}/);
+ assert.match(app,/class="btn sm atlas-header-calculator" data-action="atlas-calculations"/);
+ const guide=extract('function atlasUxGuide(ch){','function atlasValidationIssues(ch){');
+ assert.doesNotMatch(guide,/data-action="atlas-mode"|data-action="atlas-calculations"/);
+ assert.match(guide,/mode!==\x27beginner\x27/);
 });
-
+ 
 test('combat spell list uses owned prepared spells and cantrips for any class',()=>{
  const source=extract('function renderCombatSpells(ch){','function renderCombat(ch){');
  const refs={
@@ -121,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.6\.0'/);
+ assert.match(app,/APP_VERSION='3\.7\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -201,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.6.0');
+ assert.equal(version.version,'3.7.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.6.0'));
-  assert.ok(sw.includes(asset+'?v=3.6.0'));
+  assert.ok(index.includes(asset+'?v=3.7.0'));
+  assert.ok(sw.includes(asset+'?v=3.7.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.6\.0/);
+ assert.match(sw,/dndatlas-shell-v3\.7\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -301,4 +287,26 @@ test('calculation inspector reuses current engine and labels stored/overridden v
  assert.ok(rows.some(x=>x.name==='Athletics'&&x.value==='+7'&&x.formula.includes('2 × 2')));
  assert.ok(rows.some(x=>x.name==='Sword · Attack'&&x.value==='+5'));
  assert.ok(rows.some(x=>x.name==='Armor Class'&&x.formula.includes('Stored')));
+});
+
+test('partial validation reports counters, pending choices and overrides without mutation',()=>{
+ const src=extract('function atlasValidationIssues(ch){','function atlasValidationOpen(){');
+ const check=vm.runInNewContext(src+';atlasValidationIssues',{tr:t,D:{abilities:{STR:'Strength'},skills:[['Athletics','STR']]},twoHandedShieldConflict:()=>true});
+ const ch={classes:[{level:3}],abilities:{STR:16},hp:{max:31,current:35},skills:{Athletics:2},attacks:[{name:'Greatsword'}],resources:[{name:'Wind',max:2,current:3}],spellbook:[{name:'Light',freeResourceId:'missing'}],pendingChoices2024:[{label:'Feat'}],passivePerceptionOverride:10};
+ const before=JSON.stringify(ch),rows=check(ch);assert.equal(JSON.stringify(ch),before);assert.ok(rows.some(x=>x.title==='HP'&&x.kind==='error'));assert.ok(rows.some(x=>x.title==='Greatsword'&&x.kind==='warning'));assert.ok(rows.some(x=>x.title==='Passive Perception'&&x.kind==='override'));assert.ok(rows.some(x=>x.title==='Light'));
+});
+test('spell casting options respect level, preparation, explicit source and free resource',()=>{
+ const src=extract('function atlasSpellInfo(ch,s,ref){','function atlasSpellMeta(');
+ const info=vm.runInNewContext(src+';atlasSpellInfo',{});
+ const ch={classes:[{name:'Wizard'}],slots:{1:{max:2,used:0},2:{max:1,used:0}},pact:{max:1,used:0,level:1},resources:[{id:'gift',current:1,max:1}]};
+ let x=info(ch,{prepared:true,freeResourceId:'gift'},{level:2,cast:'Bonus Action'});assert.equal(x.kind,'bonus');assert.equal(x.slots.join(','),'2');assert.equal(x.pact,false);assert.equal(x.canFree,true);
+ x=info(ch,{prepared:false,spellSource:'Wizard'},{level:1,cast:'Action',ritual:true});assert.equal(x.slots.length,0);assert.equal(x.canRitual,true);
+ x=info(ch,{prepared:false},{level:1,ritual:true});assert.equal(x.canRitual,false);assert.equal(x.canFree,false);
+ x=info(ch,{prepared:false},{level:0,cast:'Reaction'});assert.equal(x.prepared,true);assert.equal(x.kind,'reaction');
+});
+test('turn tracker resets reaction only at own turn and clears slot marker for other turn',()=>{
+ const src=extract('const atlasTurnStates=new Map();','function atlasTurnPanel(');
+ const ch={id:'a'},ctx={atlasUxKey:()=> 'account',c:()=>ch,canEditCharacter:()=>true,renderApp:()=>{}};
+ const a=vm.runInNewContext(src+';({atlasTurnState,atlasTurnAction})',ctx);
+ a.atlasTurnAction('start');a.atlasTurnAction('reaction');a.atlasTurnAction('slot');a.atlasTurnAction('other');assert.equal(a.atlasTurnState(ch).reaction,true);assert.equal(a.atlasTurnState(ch).slot,false);a.atlasTurnAction('start');assert.equal(a.atlasTurnState(ch).reaction,false);assert.equal(a.atlasTurnState(ch).turn,2);
 });
