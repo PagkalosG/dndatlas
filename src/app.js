@@ -1286,7 +1286,7 @@
    return 'unsupported';
  }
  function atlasPendingSpecies(ch){return /\belf\b/i.test(ch.species||'')?'Elf':ch.species;}
- function atlasPendingWoodElf(ch){return [ch.species,ch.lineage,ch.elfLineage,ch.subspecies,ch.subrace,ch.speciesLineage,ch.speciesChoice,...(ch.features||[]).map(x=>x.name)].some(v=>/\bwood[\s-]+elf\b/i.test(String(v||'')));}
+ function atlasPendingWoodElf(ch){return [ch.species,ch.lineage,ch.elfLineage,ch.subspecies,ch.subrace,ch.speciesLineage,ch.speciesChoice,...(ch.features||[]).map(x=>x.name)].some(v=>/\bwood[\s-]+elf\b|\belf\s*\(wood\)/i.test(String(v||'')))||atlasPendingSpecies(ch)==='Elf'&&[ch.lineage,ch.elfLineage,ch.subspecies,ch.subrace,ch.speciesLineage,ch.speciesChoice].some(v=>String(v||'').trim().toLowerCase()==='wood');}
  function atlasPendingSkillPlan(ch){
    const p=atlasSkillPlan({...ch,species:atlasPendingSpecies(ch)}),sources=p.sources.filter(s=>s.key!=='feat');
    for(const q of (ch.classes||[]).slice(1)){const rule=ATLAS_SKILL_RULES_2024.classes[q.name];if(rule&&['Bard','Ranger','Rogue'].includes(q.name))sources.push({key:'multi:'+q.name,title:q.name+' · '+tr('Πολυκλασικότητα','Multiclass'),count:1,options:rule[1]==='*'?p.all:rule[1].split(',')});}
@@ -1317,17 +1317,17 @@
    if(kind==='deft'){const langs=ch.deftExplorer2024?.languages||[],known=atlasPendingLanguages(ch);return langs.length===2&&new Set(langs).size===2&&langs.every(x=>atlasPendingLanguageOptions(ch).includes(x)&&known.includes(x))&&!((ch.expertiseChoices2024||[]).includes(a[0]));}
    return !a.includes(ch.deftExplorer2024?.skill);
  }
- function atlasPendingHasDruidic(ch){return atlasPendingLevel(ch,'Ranger')>=2&&([ch.fightingStyle,...(ch.features||[]).map(x=>x.name)].some(x=>/druidic warrior/i.test(String(x||'')))||(ch.pendingChoices2024||[]).some(p=>atlasPendingKind(p,ch)==='druidic'));}
+ function atlasPendingHasDruidic(ch){const style=String(ch.fightingStyle||'').trim();return atlasPendingLevel(ch,'Ranger')>=2&&(style?/druidic warrior/i.test(style):(ch.features||[]).some(x=>/druidic warrior/i.test(String(x.name||'')))||(ch.pendingChoices2024||[]).some(p=>atlasPendingKind(p,ch)==='druidic'));}
  function atlasPendingSpellName(s){return findReference(s.ref)?.name||s.name||'';}
  function atlasPendingSpellDef(name){const key=atlasPendingNorm(name);return D.spells.find(x=>atlasPendingNorm(x.name)===key);}
- function atlasPendingSpellSource(s){return String(s.spellSource||'').trim().toLowerCase();}
+ function atlasPendingSpellSource(s){const raw=String(s.spellSource||'').trim().toLowerCase();return /^(ranger|ranger spellcasting|ranger spells)$/.test(raw)?'ranger':raw;}
  function atlasPendingSpellAlways(ch,s){
    const n=atlasPendingNorm(atlasPendingSpellName(s)),src=atlasPendingSpellSource(s);
    return s.alwaysPrepared===true||/favored enemy|lineage|species|wood elf|magic initiate|subclass|gloom stalker|fey wanderer|swarmkeeper|hunter magic/.test(src)||n==='huntersmark'&&atlasPendingLevel(ch,'Ranger')>0||atlasPendingWoodElf(ch)&&['druidcraft','longstrider','passwithouttrace'].includes(n);
  }
  function atlasPendingRangerPlan(ch){
    const level=atlasPendingLevel(ch,'Ranger'),slots=ATLAS_PENDING_RANGER_SLOTS[level]||[],limit=ATLAS_PENDING_RANGER_LIMITS[level]||0;
-   const fixed=new Set(['huntersmark']);if(atlasPendingWoodElf(ch)){fixed.add('longstrider');if(totalLevel(ch)>=5)fixed.add('passwithouttrace');}
+   const fixed=new Set(['huntersmark']);if(atlasPendingWoodElf(ch)){if(totalLevel(ch)>=3)fixed.add('longstrider');if(totalLevel(ch)>=5)fixed.add('passwithouttrace');}
    for(const s of ch.spellbook||[])if(atlasPendingSpellAlways(ch,s))fixed.add(atlasPendingNorm(atlasPendingSpellName(s)));
    const options=ATLAS_PENDING_RANGER_SPELLS.slice(1,slots.length+1).flat().map(atlasPendingSpellDef).filter(x=>x&&!fixed.has(atlasPendingNorm(x.name)));
    return {level,slots,limit,options};
@@ -1348,7 +1348,7 @@
    if(!Array.isArray(ids)||ids.length!==p.limit||new Set(ids).size!==ids.length||ids.some(id=>!p.options.some(d=>d.id===id)))return false;
    const src=kind==='druidic'?'druidic warrior':'ranger',selected=(ch.spellbook||[]).filter(s=>atlasPendingSpellSource(s)===src&&s.prepared!==false&&!atlasPendingSpellAlways(ch,s)&&(kind==='druidic'||Number(findReference(s.ref)?.level??s.level)>0));
    if(selected.length!==ids.length||!ids.every(id=>selected.some(s=>atlasPendingSpellDef(atlasPendingSpellName(s))?.id===id)))return false;
-   if(kind==='ranger-spells'){const hm=(ch.spellbook||[]).find(s=>atlasPendingNorm(atlasPendingSpellName(s))==='huntersmark'&&s.alwaysPrepared===true&&s.prepared!==false);if(!hm||!(ch.resources||[]).some(r=>r.id===hm.freeResourceId&&Number(r.max)>0))return false;}
+   if(kind==='ranger-spells'){const hm=(ch.spellbook||[]).find(s=>atlasPendingNorm(atlasPendingSpellName(s))==='huntersmark'&&s.alwaysPrepared===true&&s.prepared!==false),max=p.level>=17?6:p.level>=13?5:p.level>=9?4:p.level>=5?3:2;if(!hm||!(ch.resources||[]).some(r=>r.id===hm.freeResourceId&&Number(r.max)===max))return false;if((ch.classes||[]).length===1&&p.slots.some((n,i)=>Number(ch.slots?.[i+1]?.max)!==n))return false;if(atlasPendingWoodElf(ch)){for(const name of ['Druidcraft',...(totalLevel(ch)>=3?['Longstrider']:[]),...(totalLevel(ch)>=5?['Pass without Trace']:[])])if(!(ch.spellbook||[]).some(s=>atlasPendingNorm(atlasPendingSpellName(s))===atlasPendingNorm(name)&&s.alwaysPrepared===true&&s.prepared!==false))return false;}}
    return true;
  }
  function atlasPendingArrayScores(base,boosts,bg){
@@ -1366,14 +1366,14 @@
    if(kind==='primal')return atlasPrimalLevel(ch)>=3;
    if(kind==='ranger-spells'){const r=(ch.classes||[]).find(x=>x.name==='Ranger');return !!r&&['','Beast Master','Hunter'].includes(String(r.subclass||''))&&(ch.classes||[]).length===1;}
    if(kind==='array')return !!ATLAS_PENDING_ABILITIES[ch.background]&&totalLevel(ch)<=3;
-   if(kind==='student')return isBM(ch);
+   if(kind==='student')return isBattleMaster(ch);
    return false;
  }
  function atlasPendingResolved(ch,p,kind=atlasPendingKind(p,ch)){
    if(kind==='skills')return atlasPendingSkillsValid(ch);
    if(kind==='deft'||kind==='expertise')return atlasPendingExpertiseValid(ch,kind);
    if(kind==='mastery')return masteryCapacity(ch)>0&&selectedMasteries(ch).length===masteryCapacity(ch);
-   if(kind==='primal')return !!atlasPrimalStats(ch);
+   if(kind==='primal')return atlasPrimalLevel(ch)<3||!!atlasPrimalStats(ch);
    if(kind==='druidic'||kind==='ranger-spells')return atlasPendingSpellValid(ch,kind);
    if(kind==='array')return atlasPendingArrayValid(ch);
    if(kind==='student'){const q=studentSelection(ch);return !!q.tool&&!!q.skill;}
@@ -1382,6 +1382,7 @@
  function atlasPendingEntries(ch){
    const entries=(ch.pendingChoices2024||[]).map((p,i)=>({...p,choiceKey:String(p.key||'legacy-'+i),kind:atlasPendingKind(p,ch)})),existing=new Set(entries.map(p=>p.kind));
    const add=(kind,el,en)=>{if(!existing.has(kind)&&atlasPendingSupported(ch,kind)){const p={key:'dynamic-'+kind,choiceKey:'dynamic-'+kind,kind,label:tr(el,en)};if(!atlasPendingResolved(ch,p,kind))entries.push(p);}};
+   add('skills','Επιλογές επάρκειας δεξιοτήτων (Skills)','Skill proficiency choices');
    add('mastery','Εξειδικεύσεις όπλων (Weapon Mastery)','Weapon Mastery choices');
    add('deft','Ειδίκευση και γλώσσες (Deft Explorer)','Deft Explorer expertise and languages');
    add('expertise','Επιλογές ειδίκευσης (Expertise)','Expertise choices');
@@ -1443,7 +1444,7 @@
    if(kind==='skills'){
      need();const p=atlasPendingSkillPlan(ch),taken=new Set(p.fixed),old=ch.skillChoiceSources2024||{},next={...old};
      for(const src of p.sources){const a=Array.from({length:src.count},(_,i)=>one('skill:'+src.key+':'+i));if(!unique(a,src.count)||a.some(x=>!src.options.includes(x)||taken.has(x)))bad();a.forEach(x=>taken.add(x));next[src.key]=a;}
-     const keep=[...(Array.isArray(old.feat)?old.feat:[]),ch.studentOfWarSkill,...(ch.pendingOtherSkills2024||[])].filter(x=>p.all.includes(x)&&Number(ch.skills?.[x])>=1);
+     const keep=[...(Array.isArray(old.feat)?old.feat:[]),ch.studentOfWarSkill,...(!dm?ch.pendingOtherSkills2024||[]:[])].filter(x=>p.all.includes(x)&&Number(ch.skills?.[x])>=1);
      const other=dm?list('retain'):ch.pendingOtherSkills2024||[];if(other.some(x=>!p.all.includes(x)||!(Number(ch.skills?.[x])>=1)))bad();
      const selected=new Set([...taken,...keep,...other]),ranks={};for(const x of selected)ranks[x]=Number(ch.skills?.[x])===2?2:1;
      ch.skills=ranks;ch.skillChoiceSources2024=next;if(dm)ch.pendingOtherSkills2024=other;return;
@@ -1495,7 +1496,7 @@
  function editPendingChoice(index){
    const ch=c(),p=ch&&atlasPendingEntries(ch)[index];if(!p||!canEditCharacter(ch)||atlasManualSaving)return;
    if(p.kind==='primal'&&atlasPendingSupported(ch,p.kind))return atlasPrimalForm(ch,'summon');
-   if(p.kind==='student'&&atlasPendingSupported(ch,p.kind))return eventAction('student-of-war');
+   if(p.kind==='student'&&atlasPendingSupported(ch,p.kind))return editStudentOfWar();
    const supported=atlasPendingSupported(ch,p.kind),review=p.kind==='review'&&atlasCanDmOverride();
    const fields=supported?atlasPendingFields(ch,p):review?'<p>'+tr('Ο DM πρέπει να ελέγξει τα πραγματικά στοιχεία του φύλλου. Η επιβεβαίωση αυτή δεν χορηγεί κανένα trait.','The DM must verify the actual sheet. This confirmation grants no trait.')+'</p><label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω τον έλεγχο DM.','Confirm DM review.')+'</label>':'<p class="notice">'+tr('Δεν υπάρχει ακόμη πλήρης εξειδικευμένος selector για αυτή την απαίτηση. Δεν μπορεί να ολοκληρωθεί γράφοντας μια σημείωση. Χρειάζεται έλεγχος των αντίστοιχων κανόνων από τον DM.','A complete typed selector is not yet available for this requirement. A note cannot complete it. The DM must review the relevant rules.')+'</p>';
    openModal(p.label||p.key,'<form id="atlas-pending-choice-form" data-character="'+attr(ch.id)+'" data-choice-key="'+attr(p.choiceKey)+'">'+fields+'<div class="actions-inline">'+(supported||review?'<button class="btn primary" type="submit">'+tr('Εφαρμογή επιλογής','Apply choice')+'</button>':'')+btn(tr('Πίσω','Back'),'pending-choices')+'</div></form>','',true);
@@ -1956,7 +1957,7 @@ document.addEventListener('submit',e=>{
  function atlasSpellInfo(ch,s,ref){
    const level=Number(ref?.level??s.level??0),cast=String(ref?.cast||s.cast||''),kind=/bonus action/i.test(cast)?'bonus':/reaction/i.test(cast)?'reaction':/^(?:1\s*)?action$/i.test(cast.trim())?'action':'other';
    const source=String(s.spellSource||'').trim(),resource=(ch.resources||[]).find(r=>r.id===s.freeResourceId);
-   const prepared=level===0||s.prepared!==false,ritual=ref?!!ref.ritual:!!s.ritual,wizardRitual=ritual&&source.toLowerCase()==='wizard'&&(ch.classes||[]).some(x=>x.name==='Wizard');
+   const prepared=level===0||s.alwaysPrepared===true||s.prepared!==false,ritual=ref?!!ref.ritual:!!s.ritual,wizardRitual=ritual&&source.toLowerCase()==='wizard'&&(ch.classes||[]).some(x=>x.name==='Wizard');
    const slots=level>0&&prepared?Object.entries(ch.slots||{}).filter(([k,r])=>Number(k)>=level&&r.max>r.used).map(([k])=>Number(k)):[];
    const pact=level>0&&prepared&&Number(ch.pact?.level)>=level&&ch.pact.max>ch.pact.used;
    return {level,cast,kind,source,resource,prepared,ritual,wizardRitual,slots,pact,canFree:level>0&&!!resource&&Number(resource.current)>0,canRitual:ritual&&(prepared||wizardRitual)};
@@ -3654,7 +3655,7 @@ document.addEventListener('submit',e=>{
   if(el.dataset.slot){let [type,lvl,dir]=el.dataset.slot.split(':'),x=type==='pact'?c().pact:c().slots?.[lvl];if(x){x.used=clamp(x.used+(dir==='spend'?1:-1),0,x.max);update();}return;}
   if(el.dataset.death){let [k,i]=el.dataset.death.split(':'),d=c().death;d[k]=Number(i)<d[k]?Number(i):Number(i)+1;update();return;}
   if(el.dataset.ownedSpell){ownedSpell(el.dataset.ownedSpell);return;}
-  if(el.dataset.togglePrepared){let x=c().spellbook.find(z=>z.id===el.dataset.togglePrepared);if(x){x.prepared=x.prepared===false;update();}return;}
+  if(el.dataset.togglePrepared){let x=c().spellbook.find(z=>z.id===el.dataset.togglePrepared);if(x){if(x.alwaysPrepared===true)return toast(tr('Αυτό το ξόρκι είναι πάντα προετοιμασμένο.','This spell is always prepared.'));x.prepared=x.prepared===false;update();}return;}
   if(el.dataset.editOwnedSpell){editOwnedSpell(el.dataset.editOwnedSpell);return;}
   if(el.dataset.featureDetail){featureDetail(el.dataset.featureDetail);return;}
   if(el.dataset.customFeatDetail){customFeatDetail(el.dataset.customFeatDetail);return;}
