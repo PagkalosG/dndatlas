@@ -9,7 +9,7 @@ function atlasEncounterCompanionFields(q,err,roster=false){
  if(roster){
    if(!id(q.id)||typeof q.name!=='string'||!q.name.trim()||q.name.length>160||!int(q.maxHp,1,99999)||!int(q.hp,0,q.maxHp)||!int(q.ac,0,99)||q.sourceId!==undefined&&(typeof q.sourceId!=='string'||!q.sourceId||q.sourceId.length>80))bad();
  }else{
-   if(q.rosterId!==undefined&&(!id(q.rosterId)||kind==='summon')||kind!=='summon'&&!q.rosterId||q.expiresRound!==undefined&&(kind!=='summon'||!int(q.expiresRound,1,99999)))bad();
+   if(q.dismissed!==undefined&&(kind!=='summon'||q.dismissed!==true||q.out!==true||q.expiresRound!==undefined)||q.rosterId!==undefined&&(!id(q.rosterId)||kind==='summon')||kind!=='summon'&&!q.rosterId||q.expiresRound!==undefined&&(kind!=='summon'||!int(q.expiresRound,1,99999)))bad();
  }
 }
 function atlasEncounterCompanions(roster,err){
@@ -41,14 +41,14 @@ function atlasEncounterValidate(input,err){
  if(!keys(input,['name','phase','round','activeId','participants','events','archiveId','fightId','turnKey','reviews','effects'])||!str(input.name,120)||!['setup','active','paused','ended'].includes(input.phase)||!int(input.round,1,99999)||!Array.isArray(input.participants)||input.participants.length>60)bad();
  const ids=new Set(),players=new Set(),companionIds=new Set();
  for(const p of input.participants){
-  if(!keys(p,['id','type','characterId','name','initiative','hp','maxHp','ac','out','rosterId','ownerId','companionKind','speed','actions','expiresRound'])||!str(p.id,80)||!/^[\w-]+$/.test(p.id)||ids.has(p.id)||!['player','enemy','ally'].includes(p.type)||!str(p.name,160)||typeof p.out!=='boolean'||!(p.initiative===null||int(p.initiative,-100,200)))bad();
+  if(!keys(p,['id','type','characterId','name','initiative','hp','maxHp','ac','out','rosterId','ownerId','companionKind','speed','actions','expiresRound','dismissed'])||!str(p.id,80)||!/^[\w-]+$/.test(p.id)||ids.has(p.id)||!['player','enemy','ally'].includes(p.type)||!str(p.name,160)||typeof p.out!=='boolean'||!(p.initiative===null||int(p.initiative,-100,200)))bad();
   ids.add(p.id);
-  const companionFields=['rosterId','ownerId','companionKind','speed','actions','expiresRound'];
+  const companionFields=['rosterId','ownerId','companionKind','speed','actions','expiresRound','dismissed'];
   if(companionFields.some(k=>p[k]!==undefined)){if(p.type!=='ally')bad();atlasEncounterCompanionFields(p,err);if(p.rosterId){if(companionIds.has(p.rosterId))bad();companionIds.add(p.rosterId);}}
   if(p.type==='player'){if(!str(p.characterId,80)||!/^[\w-]+$/.test(p.characterId)||players.has(p.characterId)||p.hp!==undefined||p.maxHp!==undefined||p.ac!==undefined)bad();players.add(p.characterId);}
   else if(p.characterId!==undefined||!int(p.maxHp,1,99999)||!int(p.hp,0,p.maxHp)||!int(p.ac,0,99))bad();
  }
- if(input.activeId!==null&&!ids.has(input.activeId))bad();
+ if(input.activeId!==null&&(!ids.has(input.activeId)||input.participants.some(p=>p.id===input.activeId&&p.dismissed)))bad();
  if(input.phase==='setup'&&input.activeId!==null)bad();
  if(['active','paused'].includes(input.phase)&&(!input.activeId||input.participants.some(p=>p.initiative===null)))bad();
  if(input.archiveId!==undefined&&!str(input.archiveId,80))bad();
