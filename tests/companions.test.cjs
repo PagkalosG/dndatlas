@@ -32,7 +32,7 @@ test('legacy snapshots and public encounter projection do not expose private ros
  const pub=api.atlasEncounterPublic(state);
  assert.equal(Object.hasOwn(pub,'companions'),false);assert.equal(Object.hasOwn(pub,'participants'),false);
  assert.equal(JSON.stringify(pub).includes(q.name),false);
- assert.match(worker,/encounter:null,history,companions:envelope\.companions/);
+ assert.match(worker,/encounter:null,history,companions:envelope\.companions,monsterPlan:envelope\.monsterPlan/);
 });
 test('companion UI drafts use only central Save; roster participates in dirty tracking',()=>{
  const src=app.slice(app.indexOf(' // Persistent party roster'),app.indexOf(' function atlasBattleNew'));
