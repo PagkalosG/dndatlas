@@ -230,6 +230,20 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
    const after=await db.prepare('SELECT COUNT(*) AS n FROM characters').first();
    assert.equal(after.n,before.n);
   });
+  await t.test('private encounter persistence, role enforcement and stale revision conflicts',async()=>{
+   const p={id:'a',type:'player',characterId:'borruk',name:'Borruk',initiative:15,out:false},enemy={id:'b',type:'enemy',name:'Secret enemy',initiative:10,hp:7,maxHp:7,ac:15,out:false};
+   const state={name:'Secret encounter',phase:'active',round:1,activeId:'a',participants:[p,enemy]};
+   assert.equal((await req(mf,'/encounter',3)).status,403);
+   assert.equal((await req(mf,'/encounter',3,'PUT',{revision:0,encounter:state})).status,403);
+   assert.equal((await req(mf,'/encounter',2)).body.revision,0);
+   const created=await req(mf,'/encounter',2,'PUT',{revision:0,encounter:state});assert.equal(created.status,200,JSON.stringify(created.body));assert.equal(created.body.revision,1);
+   assert.equal((await req(mf,'/encounter',1)).body.encounter.name,state.name);
+   const updated=await req(mf,'/encounter',1,'PUT',{revision:1,encounter:{...state,activeId:'b'}});assert.equal(updated.status,200);
+   assert.equal((await req(mf,'/encounter',2,'PUT',{revision:1,encounter:state})).status,409);
+   assert.equal((await req(mf,'/encounter',2,'PUT',{revision:2,encounter:{...state,participants:[{...p,characterId:'missing'},enemy]}})).status,400);
+   assert.equal((await req(mf,'/encounter',2)).body.encounter.activeId,'b');
+   const denied=await req(mf,'/encounter',4);assert.equal(denied.status,403);assert.ok(!JSON.stringify(denied.body).includes('Secret'));
+  });
   await t.test('direct Drive API remains forbidden or disabled',async()=>{
    assert.equal((await req(mf,'/sync/drive/publish',1,'POST',{})).status,410);
    assert.equal((await req(mf,'/sync/drive/import',2,'POST',{})).status,403);

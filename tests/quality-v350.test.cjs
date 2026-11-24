@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.9\.3'/);
+ assert.match(app,/APP_VERSION='3\.10\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.9.3');
+ assert.equal(version.version,'3.10.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.9.3'));
-  assert.ok(sw.includes(asset+'?v=3.9.3'));
+  assert.ok(index.includes(asset+'?v=3.10.0'));
+  assert.ok(sw.includes(asset+'?v=3.10.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.9\.3/);
+ assert.match(sw,/dndatlas-shell-v3\.10\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -471,4 +471,26 @@ test('DM card controls do not stay disabled after transient revision polling',()
  const render=vm.runInNewContext(src+';atlasDmActions',{cloud,atlasDmSaving:false,tr:t,attr:String});
  assert.doesNotMatch(render({id:'a'}),/\bdisabled\b/);
  cloud.syncBlocked=true;assert.match(render({id:'a'}),/\bdisabled\b/);
+});
+
+test('battle turn navigation preserves fixed order, round boundaries and explicit out status',()=>{
+ const src=extract('function atlasBattleStep(state,direction){','function atlasBattleParticipant(ch){');
+ const step=vm.runInNewContext(src+';atlasBattleStep',{});
+ const b={phase:'active',round:1,activeId:'a',participants:[{id:'a',out:false},{id:'b',out:true},{id:'c',out:false}]};
+ assert.equal(step(b,1).activeId,'c');assert.equal(step(b,-1).activeId,'a');assert.equal(step(b,1).round,1);
+ const n=step(step(b,1),1);assert.equal(n.activeId,'a');assert.equal(n.round,2);assert.equal(step(n,-1).activeId,'c');assert.equal(step(n,-1).round,1);assert.equal(b.activeId,'a');assert.equal(step({...b,phase:'paused'},1).activeId,'a');
+});
+test('encounter API validates allowlisted state and rejects duplicate players or injected HP',()=>{
+ const src=fs.readFileSync('workers/production/encounter-extension.js','utf8');
+ const validate=vm.runInNewContext(src+';atlasEncounterValidate',{});
+ const err=(code,msg)=>Object.assign(Error(msg),{code});
+ const p={id:'a',type:'player',characterId:'borruk',name:'Borruk',initiative:15,out:false};
+ const state={name:'Battle',phase:'active',round:1,activeId:'a',participants:[p]};
+ assert.equal(validate(state,err),state);
+ assert.throws(()=>validate({...state,participants:[p,{...p,id:'b'}]},err));
+ assert.throws(()=>validate({...state,participants:[{...p,hp:10}]},err));
+ assert.throws(()=>validate({...state,activeId:'missing'},err));
+ assert.throws(()=>validate({...state,participants:[{...p,initiative:null}]},err));
+ assert.match(src,/if\(!\['creator','dm'\]\.includes\(actor.role\)\)throw err\(403/);
+ assert.match(src,/WHERE id=1 AND revision=\?/);
 });

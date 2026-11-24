@@ -50,19 +50,31 @@ jobs:
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
             -o /tmp/atlas-published-worker.raw \
             "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 workers/production/patch-v3100-encounter.py /tmp/atlas-published-worker.raw workers/production/encounter-extension.js .atlas-staging-worker.mjs
+          node --check .atlas-staging-worker.mjs
+          node --test tests/staging-d1-integration.test.cjs
           python3 - <<'PY'
           from pathlib import Path
-          from hashlib import sha256
           from importlib.machinery import SourceFileLoader
           parser=SourceFileLoader('phase1','workers/production/patch-v342-phase1.py').load_module()
-          data=parser.extract(Path('/tmp/atlas-published-worker.raw').read_bytes())
-          actual=sha256(data).hexdigest()
-          required='546753c94bad98bca9f0998053b6439cbab1ad4ce11252994d45b5f366830980'
-          if actual!=required:raise SystemExit('Published Worker source changed. Review backend/API before updating Pages.')
-          Path('.atlas-staging-worker.mjs').write_bytes(data)
-          print('Production backend verified:',actual)
+          original=parser.extract(Path('/tmp/atlas-published-worker.raw').read_bytes())
+          Path('/tmp/atlas-needs-deploy').write_text('yes' if original!=Path('.atlas-staging-worker.mjs').read_bytes() else 'no')
           PY
-          node --test tests/staging-d1-integration.test.cjs
+          if [ "$(cat /tmp/atlas-needs-deploy)" = yes ]; then
+            curl --silent --show-error --fail -o /tmp/atlas-encounter-deploy.json -X PUT \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              -F 'metadata={"main_module":"index.js"};type=application/json' \
+              -F 'index.js=@.atlas-staging-worker.mjs;filename=index.js;type=application/javascript+module' \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api/content"
+            python3 -c 'import json; assert json.load(open("/tmp/atlas-encounter-deploy.json"))["success"]'
+          fi
+          curl --silent --show-error --fail -H "Authorization: Bearer ${CF_API_TOKEN}" -o /tmp/atlas-worker-after.raw "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
+          python3 - <<'PY'
+          from pathlib import Path
+          from importlib.machinery import SourceFileLoader
+          parser=SourceFileLoader('phase1','workers/production/patch-v342-phase1.py').load_module()
+          assert parser.extract(Path('/tmp/atlas-worker-after.raw').read_bytes())==Path('.atlas-staging-worker.mjs').read_bytes()
+          PY
       - name: Assemble static site
         shell: bash
         run: |
