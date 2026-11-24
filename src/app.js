@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.10.0';
+ const APP_VERSION='3.10.1';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -433,10 +433,10 @@
    catch(e){if(atlasBattleOwner()===account){atlasBattleLoaded=false;atlasBattleError=e.message;}}
    finally{if(atlasBattleOwner()===account){atlasBattleBusy=false;if(view==='dm-multiview')renderApp();}}
  }
- async function atlasBattleSave(next){
+ async function atlasBattleSave(next,method='PUT'){
    if(!atlasDmAllowed()||atlasBattleBusy||!atlasBattleLoaded||atlasBattleOwner()!==atlasBattleAccount)return;
    const account=atlasBattleOwner(),revision=atlasBattleRevision;atlasBattleBusy=true;atlasBattleError='';renderApp();
-   try{const data=await cloudRequest('/encounter','PUT',{revision,encounter:next});if(atlasBattleOwner()!==account)return;atlasBattle=data.encounter;atlasBattleRevision=data.revision;closeModal();}
+   try{const data=await cloudRequest('/encounter',method,method==='DELETE'?{revision}:{revision,encounter:next});if(atlasBattleOwner()!==account)return;atlasBattle=data.encounter;atlasBattleRevision=data.revision;closeModal();}
    catch(e){if(atlasBattleOwner()===account){atlasBattleError=e.message;if(e.status===409)atlasBattleLoaded=false;toast(tr('Η μάχη δεν αποθηκεύτηκε: ','Encounter save failed: ')+e.message);}}
    finally{if(atlasBattleOwner()===account){atlasBattleBusy=false;if(view==='dm-multiview')renderApp();}}
  }
@@ -476,6 +476,7 @@
    if(action==='reload'){atlasBattleLoad();return;}
    if(!atlasBattleLoaded||atlasBattleBusy)return;
    if(action==='new'){atlasBattleNew();return;}
+   if(action==='delete'){if(atlasBattle&&confirm(tr('Οριστική διαγραφή της μάχης; Τα φύλλα χαρακτήρων και οι αλλαγές HP δεν επηρεάζονται.','Permanently delete this encounter? Character sheets and HP changes are unaffected.')))atlasBattleSave(null,'DELETE');return;}
    if(!atlasBattle||atlasBattle.phase==='ended')return;
    if(['add','initiative','damage','heal'].includes(action)){atlasBattleEdit(action,id);return;}
    const next=JSON.parse(JSON.stringify(atlasBattle)),ps=next.participants,i=ps.findIndex(p=>p.id===id),p=ps[i];
@@ -488,7 +489,7 @@
    else if(action==='jump'&&p&&!p.out&&['active','paused'].includes(next.phase)){if(!confirm(tr('Μετάβαση στο συγκεκριμένο turn;','Jump to this turn?')))return;next.activeId=p.id;}
    else if(action==='pause'&&next.phase==='active')next.phase='paused';
    else if(action==='resume'&&next.phase==='paused')next.phase='active';
-   else if(action==='end'&&confirm(tr('Ολοκλήρωση μάχης; Η τελευταία κατάσταση διατηρείται μέχρι τη νέα μάχη.','End encounter? The last state stays until a new encounter is created.'))){next.phase='ended';}
+   else if(action==='end'&&confirm(tr('Ολοκλήρωση μάχης; Τα Initiative και οι προσωρινοί συμμετέχοντες θα καθαριστούν. Τα HP των χαρακτήρων παραμένουν.','End encounter? Initiative and temporary combatants will be cleared. Character HP stays unchanged.'))){next.phase='ended';}
    else return;
    atlasBattleSave(next);
  }
@@ -514,7 +515,7 @@
    const button=(label,action,id='',disabled=false)=>'<button class="btn sm" data-action="atlas-battle-'+action+(id?':'+attr(id):'')+'" '+(disabled||atlasBattleBusy?'disabled':'')+'>'+label+'</button>';
    const error=atlasBattleError?'<p class="notice">'+esc(atlasBattleError)+'</p>':'';
    if(!atlasBattleLoaded)return '<section class="atlas-dm-page"><h2>'+tr('Παρακολούθηση μάχης','Battle View')+'</h2>'+error+(atlasBattleBusy?'<p role="status">'+tr('Φόρτωση μάχης…','Loading encounter…')+'</p>':button(tr('Φόρτωση / επανάληψη','Load / retry'),'reload'))+'</section>';
-   if(!atlasBattle)return '<section class="atlas-dm-page"><h2>'+tr('Παρακολούθηση μάχης','Battle View')+'</h2>'+button(tr('+ Νέα μάχη','+ New Encounter'),'new')+'</section>';
+   if(!atlasBattle)return '<section class="atlas-dm-page"><h2>'+tr('Παρακολούθηση μάχης','Battle View')+'</h2>'+error+button(tr('+ Νέα μάχη','+ New Encounter'),'new')+'</section>';
    const b=atlasBattle,ended=b.phase==='ended',setup=b.phase==='setup',active=b.participants.find(p=>p.id===b.activeId);
    const phaseLabel={setup:tr('Προετοιμασία','Setup'),active:tr('Σε εξέλιξη','In progress'),paused:tr('Σε παύση','Paused'),ended:tr('Ολοκληρώθηκε','Ended')}[b.phase];
    const rows=b.participants.map((p,i)=>{
@@ -522,7 +523,7 @@
      const hpActions=ended||missing?'':ch?'<button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="damage">− HP</button><button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="heal">+ HP</button>':button('− HP','damage',p.id)+button('+ HP','heal',p.id);
      return '<article class="atlas-battle-row '+(p.id===b.activeId?'active ':'')+(p.out?'out':'')+'"><div class="atlas-battle-init"><strong>'+esc(p.initiative??'—')+'</strong>'+(!ended?button(tr('Αλλαγή','Edit'),'initiative',p.id):'')+'</div><div class="atlas-battle-name"><strong>'+esc(name)+'</strong><small>'+esc(missing?tr('Λείπει το φύλλο','Missing sheet'):p.type==='player'?tr('Παίκτης','Player'):p.type==='enemy'?tr('Εχθρός','Enemy'):tr('Σύμμαχος','Ally'))+(p.id===b.activeId?' · '+tr('Ενεργό turn','Current turn'):'')+(p.out?' · '+tr('Εκτός μάχης','Out'):'')+'</small>'+(!missing?'<span>HP '+esc(hp.current??'—')+'/'+esc(hp.max??'—')+' · AC '+esc(ac??'—')+(hp.temp?' · Temp '+esc(hp.temp):'')+'</span>':'')+(ch?atlasDmStatus(ch,atlasDmStats(ch)):'')+'</div><div class="atlas-battle-controls">'+hpActions+(!ended?button('↑','up',p.id,i===0)+button('↓','down',p.id,i===b.participants.length-1)+button(p.out?tr('Επαναφορά','Restore'):tr('Εκτός','Out'),'out',p.id,p.id===b.activeId)+(setup?button(tr('Αφαίρεση','Remove'),'remove',p.id):button(tr('Μετάβαση','Jump'),'jump',p.id,p.out)):'')+'</div></article>';
    }).join('');
-   return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+' · '+tr('Γύρος','Round')+' '+b.round+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'</div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div><div class="atlas-battle-order">'+rows+'</div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
+   return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+(ended?'':' · '+tr('Γύρος','Round')+' '+b.round)+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'<button class="btn sm warn" data-action="atlas-battle-delete" '+(atlasBattleBusy?'disabled':'')+'>'+tr('Διαγραφή μάχης','Delete Encounter')+'</button></div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div><div class="atlas-battle-order">'+rows+'</div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
  }
 
  function renderDmMultiview(){

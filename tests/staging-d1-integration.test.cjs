@@ -243,6 +243,18 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
    assert.equal((await req(mf,'/encounter',2,'PUT',{revision:2,encounter:{...state,participants:[{...p,characterId:'missing'},enemy]}})).status,400);
    assert.equal((await req(mf,'/encounter',2)).body.encounter.activeId,'b');
    const denied=await req(mf,'/encounter',4);assert.equal(denied.status,403);assert.ok(!JSON.stringify(denied.body).includes('Secret'));
+   const sheetBefore=(await req(mf,'/characters/borruk',2)).body;
+   const ended=await req(mf,'/encounter',2,'PUT',{revision:2,encounter:{...state,phase:'ended',round:4,activeId:'b',participants:[{...p,out:true},enemy,{...enemy,id:'ally',type:'ally'}]}});
+   assert.equal(ended.status,200,JSON.stringify(ended.body));assert.equal(ended.body.encounter.activeId,null);assert.equal(ended.body.encounter.round,1);assert.equal(ended.body.encounter.participants.length,1);assert.equal(ended.body.encounter.participants[0].initiative,null);assert.equal(ended.body.encounter.participants[0].out,false);
+   assert.equal((await req(mf,'/encounter',2)).body.encounter.participants.length,1);
+   assert.equal((await req(mf,'/encounter',3,'DELETE',{revision:3})).status,403);
+   assert.equal((await req(mf,'/encounter',2,'DELETE',{revision:2})).status,409);
+   const removed=await req(mf,'/encounter',2,'DELETE',{revision:3});assert.equal(removed.status,200,JSON.stringify(removed.body));assert.equal(removed.body.revision,4);assert.equal(removed.body.encounter,null);
+   assert.equal((await req(mf,'/encounter',1)).body.encounter,null);
+   assert.equal((await req(mf,'/encounter',2,'PUT',{revision:3,encounter:state})).status,409);
+   assert.equal((await req(mf,'/encounter',2,'PUT',{revision:4,encounter:state})).status,200);
+   assert.equal((await req(mf,'/encounter',1,'DELETE',{revision:5})).status,200);
+   assert.deepEqual((await req(mf,'/characters/borruk',2)).body,sheetBefore);
   });
   await t.test('direct Drive API remains forbidden or disabled',async()=>{
    assert.equal((await req(mf,'/sync/drive/publish',1,'POST',{})).status,410);

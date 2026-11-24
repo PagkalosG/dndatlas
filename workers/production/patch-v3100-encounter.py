@@ -18,10 +18,14 @@ def patch(raw,extension):
     if source.count(ANCHOR)!=1:raise ValueError('Missing unique extension anchor')
     if hashlib.sha256(original).hexdigest()==BASE:
         return source.replace(ANCHOR,extra+ANCHOR+HOOK).encode('utf-8')
-    if source.count(extra)!=1 or source.count(ANCHOR+HOOK)!=1:raise ValueError('Unknown production module')
-    restored=source.replace(extra,'',1).replace(ANCHOR+HOOK,ANCHOR,1).encode('utf-8')
-    if hashlib.sha256(restored).hexdigest()!=BASE:raise ValueError('Production base differs from reviewed hash')
-    return original
+    legacy=Path(__file__).with_name('encounter-extension-v3100.js').read_text().rstrip()+'\n\n'
+    if source.count(ANCHOR+HOOK)!=1:raise ValueError('Unknown production module')
+    for known in (extra,legacy):
+        if source.count(known)!=1:continue
+        restored=source.replace(known,'',1).replace(ANCHOR+HOOK,ANCHOR,1).encode('utf-8')
+        if hashlib.sha256(restored).hexdigest()!=BASE:raise ValueError('Production base differs from reviewed hash')
+        return source.replace(known,extra,1).encode('utf-8')
+    raise ValueError('Unknown production extension')
 if __name__=='__main__':
     raw,extension,out=map(Path,sys.argv[1:])
     out.write_bytes(patch(raw.read_bytes(),extension.read_text()))
