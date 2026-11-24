@@ -279,6 +279,18 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
    assert.equal((await req(mf,inbox,3)).body.items[0].status,'approved');
    assert.equal((await req(mf,'/encounter',3)).status,403);
   });
+  await t.test('Primal Companion persists in the owner sheet and uses existing ownership and revision guards',async()=>{
+   const route='/characters/borruk',latest=await req(mf,route,3);
+   const companion={form:'land',name:'Wolf',appearance:'Wolf',damageType:'Piercing',damage:2,status:'active',replaceReady:false};
+   const sheet={...latest.body.data,classes:[{name:'Ranger',level:3,subclass:'Beast Master'}],primalCompanion:companion};
+   assert.equal((await req(mf,route,4,'PUT',{character:sheet,revision:latest.body.revision})).status,403);
+   const saved=await req(mf,route,3,'PUT',{character:sheet,revision:latest.body.revision});assert.equal(saved.status,200,JSON.stringify(saved.body));
+   const dm=await req(mf,route,2);assert.deepEqual(dm.body.data.primalCompanion,companion);
+   const damaged={...dm.body.data,primalCompanion:{...companion,damage:5}};
+   assert.equal((await req(mf,route,2,'PUT',{character:damaged,revision:dm.body.revision})).status,200);
+   assert.equal((await req(mf,route,3)).body.data.primalCompanion.damage,5);
+   assert.equal((await req(mf,route,3,'PUT',{character:sheet,revision:latest.body.revision})).status,409);
+  });
   await t.test('direct Drive API remains forbidden or disabled',async()=>{
    assert.equal((await req(mf,'/sync/drive/publish',1,'POST',{})).status,410);
    assert.equal((await req(mf,'/sync/drive/import',2,'POST',{})).status,403);
