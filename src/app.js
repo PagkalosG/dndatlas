@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.8.0';
+ const APP_VERSION='3.8.1';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -1448,6 +1448,12 @@ document.addEventListener('submit',e=>{
   };
 
   let combatSpellMode='combat';
+  const atlasCombatTabs=new Map();
+  function atlasCombatTab(ch){return atlasCombatTabs.get(atlasUxKey()+':'+ch.id)||( !(ch.attacks||[]).length && (hasSpells(ch)||hasSlots(ch))?'spells':'attacks');}
+  function atlasSetCombatTab(ch,tab){if(!ch||!['attacks','spells'].includes(tab))return;atlasCombatTabs.set(atlasUxKey()+':'+ch.id,tab);renderApp();document.querySelector('[data-atlas-combat-tab="'+tab+'"]')?.focus({preventScroll:true});}
+  function atlasCombatTabBar(active){return '<div class="atlas-combat-tabs" role="tablist" aria-label="'+attr(tr('Επιλογές μάχης','Combat views'))+'">'+[['attacks','combat',tr('Επιθέσεις & όπλα','Attacks & weapons')],['spells','spells',tr('Ξόρκια','Spells')]].map(([tab,icon,label])=>'<button type="button" role="tab" id="atlas-combat-tab-'+tab+'" aria-controls="atlas-combat-panel-'+tab+'" aria-selected="'+(active===tab)+'" tabindex="'+(active===tab?'0':'-1')+'" class="atlas-combat-tab '+(active===tab?'active':'')+'" data-atlas-combat-tab="'+tab+'">'+svg(icon)+'<span>'+label+'</span></button>').join('')+'</div>';}
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-atlas-combat-tab]');if(b){e.preventDefault();atlasSetCombatTab(c(),b.dataset.atlasCombatTab);}});
+  document.addEventListener('keydown',e=>{const b=e.target.closest('[data-atlas-combat-tab]');if(!b||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();atlasSetCombatTab(c(),e.key==='Home'?'attacks':e.key==='End'?'spells':b.dataset.atlasCombatTab==='attacks'?'spells':'attacks');});
   const combatSpellNames=new Set(['Fire Bolt','Ray of Frost','Sorcerous Burst','Sorcerer\'s Burst','Mind Sliver','True Strike','Magic Missile','Chromatic Orb','Shield','Scorching Ray','Ice Knife','Ray of Sickness','Arms of Hadar','Dissonant Whispers','Dragon\'s Breath','Dragons Breath','Burning Hands','Thunderwave','Witch Bolt','Sleep','Web','Hold Person','Misty Step','Healing Word','Cure Wounds','Aid','Counterspell','Fireball','Spirit Guardians','Shatter','Command','Mind Spike','Blade Ward','Armor of Agathys']);
   function combatSpell(ch,x){const r=x.ref?findReference(x.ref):null,n=x.name||r?.name||'',lev=Number(x.level??r?.level??0),damage=x.damage||r?.damage||'',desc=r?.summary||x.summary||'';return combatSpellNames.has(n)||!!damage||/damage|attack|heal|hit points|saving throw|resistance|defense|armor class/i.test(desc);}
   function combatSpellList(ch){const all=ch.spellbook||[];let list=combatSpellMode==='all'?all:all.filter(s=>{const x=atlasSpellInfo(ch,s,findReference(s.ref));return x.kind!=='other'&&(x.prepared||x.canFree);});list=[...list].sort((a,b)=>{const order={action:0,bonus:1,reaction:2,other:3};return order[atlasSpellInfo(ch,a,findReference(a.ref)).kind]-order[atlasSpellInfo(ch,b,findReference(b.ref)).kind]||a.name.localeCompare(b.name);});
@@ -1458,22 +1464,32 @@ document.addEventListener('submit',e=>{
   function combatResources(ch){const resources=ch.resources||[];let parts=[];
     if(resources.length)parts.push(resources.map(r=>`<div class="rowline"><div><button class="linklike" data-resource-detail="${attr(r.id)}">${esc(r.name)}</button><small>${esc(r.recharge||'')}</small></div><div class="counter"><button class="btn sm" data-resource-step="${attr(r.id)}:-1" ${r.current<=0?'disabled':''}>−</button><b>${Number(r.current)||0}/${Number(r.max)||0}</b><button class="btn sm" data-resource-step="${attr(r.id)}:1" ${r.current>=r.max?'disabled':''}>+</button></div></div>`).join(''));
     if(isBM(ch)&&!resources.some(r=>/superiority/i.test(r.name)))parts.push(`<div class="notice">${tr('Battle Master: 4 ζάρια ανωτερότητας (d8) στο επίπεδο 3. Χρειάζεται καταχώριση πόρων για καταμέτρηση.','Battle Master: 4 Superiority Dice (d8) at level 3. Add the resource to track expenditures.')}</div>`);
-    if(hasSlots(ch))parts.push(renderSlots(ch));
     return parts.join('<div class="subtle-divider"></div>');
   }
   function combatFeatures(ch){const entries=(ch.features||[]).filter(f=>/action|reaction|attack|combat|wind|surge|metamagic|innate|maneuver|breath|protection|spell|rage|shroud|hands|revelation|tactical/i.test([f.action,f.name,f.detail].join(' '))).slice(0,30);
     const auto=atlasAutoFeatures(ch).filter(f=>['Second Wind','Action Surge','Tactical Mind'].includes(f.name));const feats=[...auto,...entries.filter(f=>!auto.some(a=>a.name===f.name)&&!(/fighting style/i.test(f.name)&&f.name!=='Fighting Style'))];
     return feats.length?`<div class="tile-list combat-feature-list">${feats.map(f=>`<button class="tile" data-feature-detail="${attr(f.id)}"><span><b>${esc(pairedTerm(f.name))}</b><small class="combat-feature-summary">${esc(String(f.detail||f.action||f.source||'').slice(0,155))}</small></span><span class="right">${svg('chevron')}</span></button>`).join('')}</div>`:'';
   }
-  renderCombat=function(ch){const pp=ch.passivePerceptionOverride!==''&&ch.passivePerceptionOverride!=null?Number(ch.passivePerceptionOverride):10+skillMod(ch,'Perception'); const spellFeature=hasSpells(ch), bm=isBM(ch)||!!ch.maneuvers?.length;const classFeatures=combatFeatures(ch);const res=combatResources(ch);
+  renderCombat=function(ch){const active=atlasCombatTab(ch), spellFeature=hasSpells(ch)||hasSlots(ch), bm=isBM(ch)||!!ch.maneuvers?.length;const classFeatures=combatFeatures(ch);const res=combatResources(ch);
     const saves=Object.entries(D.abilities).map(([k,name])=>`<div class="combat-save"><span>${esc(k)}${L.getLanguage()==='el'?' · '+tr(({STR:'Δύναμη',DEX:'Επιδεξιότητα',CON:'Αντοχή',INT:'Νοημοσύνη',WIS:'Σοφία',CHA:'Χάρισμα'})[k],name):''}</span><b>${signed(saveMod(ch,k))}</b>${(ch.saves||[]).includes(k)?'<i>●</i>':''}</div>`).join('');
     const loadoutUI=(ch.loadouts||[]).length>1?section('Ενεργός οπλισμός','Active loadout',`<div class="combat-loadouts">${ch.loadouts.map((x,i)=>`<button class="btn ${i===(ch.activeLoadout||0)?'primary':''}" data-set-loadout="${i}">${esc(x.name)} · AC ${x.ac}</button>`).join('')}</div><p class="muted small">${tr('Η εφαρμογή ενημερώνει την Άμυνα. Η αλλαγή ασπίδας στο παιχνίδι ακολουθεί το κόστος ενέργειας των κανόνων 2024.','The app updates AC. Equipping or removing a shield in play still follows the 2024 action rules.')}</p>`):'';
     return `<div class="page-title"><div><h2>${tr('Μάχη','Combat')}</h2><p>${tr('Οι πραγματικές δυνατότητές σου και ο τρόπος χρήσης τους με ζάρια.','Your available abilities and how to use physical dice.')}</p></div></div>
       <div class="combat-status"><div><small>${tr('Ζωή','HP')}</small><b>${ch.hp?.current||0}/${ch.hp?.max||1}</b></div><div><small>${tr('Άμυνα','AC')}</small><b>${AC(ch)}</b></div><div><small>${tr('Πρωτοβουλία','Initiative')}</small><b>${signed(initMod(ch))}</b></div><div><small>${tr('Ταχύτητα','Speed')}</small><b>${ch.speed||30} ft</b></div>${ch.hp?.temp?`<div><small>${tr('Προσωρινή ζωή','Temp HP')}</small><b>${ch.hp.temp}</b></div>`:''}</div>
-      ${spellFeature?section('Ξόρκια μάχης','Combat spells',combatSpellList(ch),'<button class="btn sm" data-tab="spells">'+tr('Όλα μου τα ξόρκια','All My Spells')+'</button>'):'<div class="actions-inline"><button class="btn sm" data-tab="spells">'+tr('Όλα μου τα ξόρκια','All My Spells')+'</button></div>'}${atlasTurnPanel(ch)}${loadoutUI}<div class="combat-columns"><div class="grid">${section('Όπλα και επιθέσεις','Weapons & Attacks',combatAttackRows(ch),`<button class="btn sm" data-action="add-attack">${tr('+ Όπλο','+ Weapon')}</button>`)}
-      ${spellFeature?'<div class="notice">'+tr('Μαγική επίθεση','Spell Attack')+': <b>'+signed(spellAttack(ch))+'</b> · '+tr('Δυσκολία σωτηρίας','Spell Save DC')+': <b>'+spellDC(ch)+'</b></div>':''}
+      ${atlasCombatTabBar(active)}${atlasTurnPanel(ch)}
+      <div class="combat-columns atlas-combat-tab-layout">
+      <div class="grid atlas-combat-primary">
+      <div class="grid" role="tabpanel" id="atlas-combat-panel-attacks" aria-labelledby="atlas-combat-tab-attacks" ${active==='attacks'?'':'hidden'}>
+      ${loadoutUI}
+      ${section('Όπλα και επιθέσεις','Weapons & Attacks',combatAttackRows(ch),`<button class="btn sm" data-action="add-attack">${tr('+ Όπλο','+ Weapon')}</button>`)}
       ${bm?section('Πολεμικοί ελιγμοί','Maneuvers',renderOwnedManeuvers(ch),`<button class="btn sm" data-action="pick-maneuvers">${tr('Επιλογή','Choose')}</button>`):''}
-      ${classFeatures?section('Ικανότητες μάχης','Combat abilities',classFeatures):''}</div><div class="grid">
+      </div>
+      <div class="grid" role="tabpanel" id="atlas-combat-panel-spells" aria-labelledby="atlas-combat-tab-spells" ${active==='spells'?'':'hidden'}>
+      ${spellFeature?section('Μαγική επίθεση & δυσκολία','Spellcasting stats','<div class="statgrid"><div class="meta-box"><small>'+tr('Μαγική επίθεση','Spell Attack')+'</small><strong>'+signed(spellAttack(ch))+'</strong></div><div class="meta-box"><small>'+tr('Δυσκολία σωτηρίας','Spell Save DC')+'</small><strong>'+spellDC(ch)+'</strong></div></div>'):''}
+      ${hasSlots(ch)?section('Θέσεις ξορκιών','Spell Slots',renderSlots(ch)):''}
+      ${section('Ξόρκια','Spells',combatSpellList(ch),'<button class="btn sm" data-tab="spells">'+tr('Βιβλίο ξορκιών','Spellbook')+'</button>')}
+      </div>
+      ${classFeatures?section('Ικανότητες μάχης','Combat abilities',classFeatures):''}
+      </div><div class="grid atlas-combat-shared">
       ${res?section('Διαθέσιμοι πόροι','Available resources',res):''}
       ${section('Ζαριές σωτηρίας','Saving Throws',`<div class="combat-saves">${saves}</div><p class="muted small">${tr('● Επάρκεια: προστίθεται το μπόνους επάρκειας.','● Proficient: add Proficiency Bonus.')}</p>`)}
       ${section('Ενεργές καταστάσεις','Active Conditions',conditionPills(ch),`<button class="btn sm" data-action="conditions">${tr('Διαχείριση','Manage')}</button>`)}

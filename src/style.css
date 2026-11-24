@@ -396,3 +396,10 @@ html{scroll-padding-top:calc(var(--atlas-header-height) + 10px)}
 @media(max-width:1050px),(hover:none) and (pointer:coarse){.top-actions .atlas-header-calculator,.top-actions .atlas-header-toggle,.top-actions .atlas-header-settings{width:40px;min-width:40px;height:44px;min-height:44px;max-height:44px;flex:0 0 40px;padding:0}}
 @media(max-width:360px){.top-actions .atlas-header-calculator,.top-actions .atlas-header-toggle,.top-actions .atlas-header-settings{width:36px;min-width:36px;flex-basis:36px}}
 @media(prefers-reduced-motion:reduce){.atlas-update-spinner{animation:none;border-color:#e7c38a}}
+
+/* v3.8.1 — combat views, shared state remains visible in both */
+.atlas-combat-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:5px;margin:0 0 14px;border:1px solid var(--stroke);border-radius:12px;background:var(--panel)}
+.atlas-combat-tab{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-weight:700;cursor:pointer;white-space:normal}
+.atlas-combat-tab svg{width:20px;height:20px;flex-shrink:0}.atlas-combat-tab.active{background:var(--panel2);border-color:var(--gold);color:var(--gold)}.atlas-combat-tab:hover{color:var(--text)}.atlas-combat-tab:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.atlas-combat-tab-layout{margin-top:14px;align-items:start}.atlas-combat-tab-layout .grid{min-width:0;align-content:start}.atlas-combat-tab-layout [hidden]{display:none!important}
+@media(max-width:600px){.atlas-combat-tabs{gap:4px}.atlas-combat-tab{font-size:12px;gap:6px}.atlas-combat-tab svg{width:18px;height:18px}}

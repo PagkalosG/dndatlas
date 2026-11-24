@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.8\.0'/);
+ assert.match(app,/APP_VERSION='3\.8\.1'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.8.0');
+ assert.equal(version.version,'3.8.1');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.8.0'));
-  assert.ok(sw.includes(asset+'?v=3.8.0'));
+  assert.ok(index.includes(asset+'?v=3.8.1'));
+  assert.ok(sw.includes(asset+'?v=3.8.1'));
  }
- assert.match(sw,/dndatlas-shell-v3\.8\.0/);
+ assert.match(sw,/dndatlas-shell-v3\.8\.1/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -342,4 +342,23 @@ test('build preview does not mutate character and respects ASI cap',()=>{
  assert.equal(scenario(ch,'STR','',false).abilities.STR,20);assert.equal(ch.abilities.STR,18);
  assert.equal(scenario(ch,'STR','DEX',true).abilities.DEX,15);assert.throws(()=>scenario(ch,'STR','STR',true));
  assert.throws(()=>scenario({abilities:{STR:19}},'STR','',false));
+});
+
+test('combat tabs keep selection per character and account and support noncasters',()=>{
+ const src=extract('const atlasCombatTabs=new Map();','  document.addEventListener(\'click\',e=>{const b=e.target.closest(\'[data-atlas-combat-tab]\')');
+ let account='a',renders=0;
+ const api=vm.runInNewContext(src+';({atlasCombatTab,atlasSetCombatTab,atlasCombatTabBar})',{atlasUxKey:()=>account,hasSpells:ch=>!!ch.spellbook?.length,hasSlots:ch=>!!ch.slots,tr:t,attr:String,svg:()=>'<svg></svg>',renderApp:()=>renders++,document:{querySelector:()=>null}});
+ const fighter={id:'f',attacks:[{}]},wizard={id:'w',spellbook:[{}]};
+ assert.equal(api.atlasCombatTab(fighter),'attacks');assert.equal(api.atlasCombatTab(wizard),'spells');
+ api.atlasSetCombatTab(fighter,'spells');assert.equal(api.atlasCombatTab(fighter),'spells');assert.equal(renders,1);
+ account='b';assert.equal(api.atlasCombatTab(fighter),'attacks');api.atlasSetCombatTab(fighter,'bad');assert.equal(renders,1);
+ assert.match(api.atlasCombatTabBar('spells'),/aria-selected="true" tabindex="0"[^>]*data-atlas-combat-tab="spells"/);
+});
+test('active combat renderer separates spell slots from weapons and retains shared resources',()=>{
+ const src=extract('renderCombat=function(ch){','  attackDetail=function(id)');
+ assert.match(src,/id="atlas-combat-panel-attacks"[\s\S]*combatAttackRows\(ch\)[\s\S]*id="atlas-combat-panel-spells"[\s\S]*renderSlots\(ch\)[\s\S]*combatSpellList\(ch\)/);
+ assert.match(src,/atlasCombatTabBar\(active\).*atlasTurnPanel\(ch\)/);
+ assert.match(src,/atlas-combat-shared[\s\S]*Available resources[\s\S]*Saving Throws[\s\S]*Active Conditions[\s\S]*Concentration/);
+ assert.doesNotMatch(extract('function combatResources(ch){','function combatFeatures(ch){'),/renderSlots\(ch\)/);
+ assert.match(css,/\.atlas-combat-tab-layout \[hidden\]\{display:none!important\}/);
 });
