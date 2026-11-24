@@ -272,7 +272,7 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
    assert.equal((await req(mf,inbox,3,'POST',{items:[{...proposal,turnKey:'stale'}]})).status,409);
    const sent=await req(mf,inbox,3,'POST',{items:[proposal]});assert.equal(sent.status,200,JSON.stringify(sent.body));
    assert.equal((await req(mf,inbox,3,'POST',{items:[proposal]})).status,200);
-   assert.equal((await req(mf,inbox,4)).body.items.length,0);
+   assert.equal((await req(mf,inbox,4)).body.items.length,0);const visible=await req(mf,'/encounter?public=1',3);assert.equal(visible.body.items.length,1);assert.equal(visible.body.items[0].turnActorId,undefined);assert.equal((await req(mf,'/encounter?public=1',4)).body.items.length,0);
    assert.equal((await req(mf,inbox,2)).body.items.length,1);
    assert.equal((await req(mf,'/encounter',2)).body.revision,9);
    const reviewed=await req(mf,'/encounter',2,'PUT',{revision:9,encounter:{...fight,reviews:[{id:proposal.id,status:'approved'}]},history:[archive]});assert.equal(reviewed.status,200,JSON.stringify(reviewed.body));

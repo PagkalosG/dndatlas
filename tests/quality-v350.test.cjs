@@ -524,7 +524,7 @@ test('player proposals are staged locally and approval does not apply unverified
  const stage=extract('function atlasPlayerStage(ch,fields){'," document.addEventListener('submit',e=>{");
  assert.doesNotMatch(stage,/cloudRequest|fetch\(/);
  const review=extract('function atlasReviewProposal(id,action){','function atlasInboxMarkup(){');
- assert.match(review,/hpMode:'none'/);assert.match(review,/next\.turnKey!==x\.turnKey/);assert.doesNotMatch(review,/cloudRequest|cloudPush/);
+ assert.match(review,/atlasBattleLogOpen\(x\)/);assert.match(app,/\['none',tr\('Μόνο καταγραφή','Record only'\)\]/);assert.match(review,/next\.turnKey!==x\.turnKey/);assert.doesNotMatch(review,/cloudRequest|cloudPush/);
  const save=extract('async function cloudSaveNow(){','async function cloudSecureBackup(){');
  assert.match(save,/cloudRequest\('\/encounter\?inbox=1','POST'/);
 });

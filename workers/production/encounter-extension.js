@@ -55,15 +55,18 @@ function atlasEncounterFinish(state){
 }
 
 // One independent inbox; player submissions never mutate sheets or the encounter revision.
+async function atlasEncounterInboxRead(env,actor,state){
+ if(!state?.fightId||!['active','paused'].includes(state.phase))return [];
+ const privileged=['creator','dm'].includes(actor.role);
+ let rows;try{rows=await (privileged?env.DB.prepare('SELECT data_json FROM atlas_encounter_inbox WHERE fight_id=? ORDER BY created_at,id').bind(state.fightId):env.DB.prepare('SELECT data_json FROM atlas_encounter_inbox WHERE fight_id=? AND user_id=? ORDER BY created_at,id').bind(state.fightId,actor.id)).all();}catch(e){if(/no such table.*atlas_encounter_inbox/i.test(String(e.message)))return [];throw e;}
+ const reviews=new Map((state.reviews||[]).map(r=>[r.id,r.status]));
+ return rows.results.map(r=>JSON.parse(r.data_json)).map(r=>{if(!privileged)delete r.turnActorId;return {...r,status:reviews.get(r.id)||'pending'};});
+}
 async function atlasEncounterInbox({request,env,actor,method,respond,err,jsonBody,state,revision}){
  const privileged=['creator','dm'].includes(actor.role);
  const active=state&&['active','paused'].includes(state.phase)&&state.fightId&&state.turnKey;
  if(!active){if(method==='GET')return respond({items:[]});throw err(409,'No active encounter accepting submissions');}
- if(method==='GET'){
-   let rows;try{rows=await (privileged?env.DB.prepare('SELECT data_json FROM atlas_encounter_inbox WHERE fight_id=? ORDER BY created_at,id').bind(state.fightId):env.DB.prepare('SELECT data_json FROM atlas_encounter_inbox WHERE fight_id=? AND user_id=? ORDER BY created_at,id').bind(state.fightId,actor.id)).all();}catch(e){if(/no such table.*atlas_encounter_inbox/i.test(String(e.message)))return respond({items:[]});throw e;}
-   const reviews=new Map((state.reviews||[]).map(r=>[r.id,r.status]));
-   return respond({items:rows.results.map(r=>JSON.parse(r.data_json)).map(r=>({...r,status:reviews.get(r.id)||'pending'}))});
- }
+ if(method==='GET')return respond({items:await atlasEncounterInboxRead(env,actor,state)});
  if(method!=='POST'||actor.role!=='player')throw err(403,'Player submissions only');
  const body=await jsonBody(request),items=body?.items;
  if(!body||Object.keys(body).some(k=>k!=='items')||!Array.isArray(items)||!items.length||items.length>20)throw err(400,'Expected 1–20 submissions');
@@ -75,7 +78,7 @@ async function atlasEncounterInbox({request,env,actor,method,respond,err,jsonBod
    if(!['attack','spell','ability','reaction','other','end-turn'].includes(x.kind)||typeof x.label!=='string'||!x.label.trim()||x.label.length>160||typeof x.target!=='string'||x.target.length>160||typeof x.note!=='string'||x.note.length>500||!['','hit','miss','critical','success','failure'].includes(x.outcome)||!Number.isInteger(x.amount)||x.amount<0||x.amount>99999)throw err(400,'Invalid action');
    const p=state.participants.find(p=>p.type==='player'&&p.characterId===x.characterId&&!p.out);
    if(!p)throw err(403,'Character is not participating');
-   ids.add(x.id);records.push({...x,actorId:p.id,actorName:p.name,at:new Date().toISOString()});
+   ids.add(x.id);records.push({...x,actorId:p.id,actorName:p.name,turnActorId:state.activeId,at:new Date().toISOString()});
  }
  await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_encounter_inbox (id TEXT PRIMARY KEY, fight_id TEXT NOT NULL,user_id INTEGER NOT NULL,data_json TEXT NOT NULL,created_at TEXT DEFAULT CURRENT_TIMESTAMP)').run();
  const fresh=[];
@@ -90,8 +93,8 @@ async function atlasEncounterInbox({request,env,actor,method,respond,err,jsonBod
    // A batch is one transaction. A changed encounter revision makes every SELECT insert zero rows.
    const count=await env.DB.prepare('SELECT COUNT(*) AS n FROM atlas_encounter_inbox WHERE fight_id=?').bind(state.fightId).first();
    if(Number(count.n)+fresh.length>200)throw err(400,'Encounter inbox is full');
-   const results=await env.DB.batch(fresh.map(x=>env.DB.prepare('INSERT OR IGNORE INTO atlas_encounter_inbox(id,fight_id,user_id,data_json) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM atlas_encounter WHERE id=1 AND revision=?)').bind(x.id,state.fightId,actor.id,JSON.stringify(x),revision)));
-   if(results.some(r=>!r.meta.changes))throw err(409,'Encounter or submissions changed; retry Save');
+   const result=await env.DB.prepare('INSERT OR IGNORE INTO atlas_encounter_inbox(id,fight_id,user_id,data_json) SELECT id,fight_id,user_id,data_json FROM ('+fresh.map(()=> 'SELECT ? AS id,? AS fight_id,? AS user_id,? AS data_json').join(' UNION ALL ')+') WHERE EXISTS(SELECT 1 FROM atlas_encounter WHERE id=1 AND revision=?) AND (SELECT COUNT(*) FROM atlas_encounter_inbox WHERE fight_id=?) + ? <= 200').bind(...fresh.flatMap(x=>[x.id,state.fightId,actor.id,JSON.stringify(x)]),revision,state.fightId,fresh.length).run();
+   if(Number(result.meta.changes)!==fresh.length)throw err(409,'Encounter or submissions changed; retry Save');
  }
  return respond({accepted:records.map(x=>x.id)});
 }
@@ -106,7 +109,7 @@ async function atlasEncounterRequest({request,env,actor,pathname,method,respond,
  try{row=await env.DB.prepare('SELECT revision,data_json FROM atlas_encounter WHERE id=1').first();}catch(e){if(!/no such table.*atlas_encounter/i.test(String(e.message)))throw e;if(inbox){if(method==='GET')return respond({items:[]});throw err(409,'No active encounter');}if(method==='GET')return respond(publicView?{revision:0,encounter:null}:{revision:0,encounter:null,history:[]});await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_encounter (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL, data_json TEXT NOT NULL, modified_by INTEGER, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)').run();row=await env.DB.prepare('SELECT revision,data_json FROM atlas_encounter WHERE id=1').first();}
  const envelope=atlasEncounterEnvelope(row?.data_json),previous=envelope.encounter;
  if(inbox)return atlasEncounterInbox({request,env,actor,method,respond,err,jsonBody,state:previous,revision:Number(row?.revision||0)});
- if(method==='GET'){const state=previous?.phase==='ended'?atlasEncounterFinish(previous):previous;return respond(publicView?{revision:row?Number(row.revision):0,encounter:atlasEncounterPublic(state)}:{revision:row?Number(row.revision):0,encounter:state,history:envelope.history});}
+ if(method==='GET'){const state=previous?.phase==='ended'?atlasEncounterFinish(previous):previous;return respond(publicView?{revision:row?Number(row.revision):0,encounter:atlasEncounterPublic(state),items:actor.role==='player'?await atlasEncounterInboxRead(env,actor,state):[]}:{revision:row?Number(row.revision):0,encounter:state,history:envelope.history});}
  const body=await jsonBody(request);
  if(!body||Object.keys(body).some(k=>!(method==='DELETE'?['revision']:['revision','encounter','history']).includes(k))||!Number.isInteger(body.revision)||body.revision<0)throw err(400,'Expected encounter revision');
  if(body.revision!==(row?Number(row.revision):0))throw err(409,'Encounter changed elsewhere. Reload before saving.');
@@ -117,6 +120,7 @@ async function atlasEncounterRequest({request,env,actor,pathname,method,respond,
   const raw=JSON.stringify({encounter:null,history});
   const result=await env.DB.prepare("UPDATE atlas_encounter SET revision=revision+1,data_json=?,modified_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=1 AND revision=?").bind(raw,actor.id,body.revision).run();
   if(!result.meta.changes)throw err(409,'Encounter changed elsewhere. Reload before saving.');
+  if(previous?.fightId){try{await env.DB.prepare('DELETE FROM atlas_encounter_inbox WHERE fight_id=?').bind(previous.fightId).run();}catch(e){if(!/no such table.*atlas_encounter_inbox/i.test(String(e.message)))console.warn('Encounter inbox cleanup failed');}}
   await audit(env,actor.id,'delete-encounter',String(body.revision+1));
   return respond({revision:body.revision+1,encounter:null,history});
  }
@@ -129,6 +133,7 @@ async function atlasEncounterRequest({request,env,actor,pathname,method,respond,
  const raw=JSON.stringify({encounter:state,history});
  const result=row?await env.DB.prepare('UPDATE atlas_encounter SET revision=revision+1,data_json=?,modified_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=1 AND revision=?').bind(raw,actor.id,body.revision).run():await env.DB.prepare('INSERT OR IGNORE INTO atlas_encounter(id,revision,data_json,modified_by) VALUES(1,1,?,?)').bind(raw,actor.id).run();
  if(!result.meta.changes)throw err(409,'Encounter changed elsewhere. Reload before saving.');
+ if(previous?.fightId&&(!state||state.phase==='ended'||state.fightId!==previous.fightId)){try{await env.DB.prepare('DELETE FROM atlas_encounter_inbox WHERE fight_id=?').bind(previous.fightId).run();}catch(e){if(!/no such table.*atlas_encounter_inbox/i.test(String(e.message)))console.warn('Encounter inbox cleanup failed');}}
  await audit(env,actor.id,state===null?'delete-encounter':'save-encounter',String(body.revision+1));
  return respond({revision:body.revision+1,encounter:state,history});
 }
