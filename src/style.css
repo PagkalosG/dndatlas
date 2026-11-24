@@ -455,3 +455,23 @@ html{scroll-padding-top:calc(var(--atlas-header-height) + 10px)}
 
 /* v3.12.0 */
 .atlas-header-save{position:relative}.atlas-save-count{position:absolute;right:-5px;top:-5px;background:#d4ad67;color:#17212e;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:700;line-height:15px}.atlas-save-count[hidden]{display:none}.atlas-player-proposals{display:grid;gap:8px;margin:8px 0 14px}.atlas-proposal{display:grid;gap:5px;padding:9px;background:var(--panel2);border:1px solid var(--stroke);border-radius:8px;overflow-wrap:anywhere}.atlas-proposal small{color:var(--muted)}
+
+
+/* Pending choice controls: scoped sizing so global full-width input styling never stretches checkboxes. */
+#atlas-pending-choice-form{display:grid;gap:10px;width:100%;min-width:0;max-width:100%}
+#atlas-pending-choice-form .detail-note,#atlas-pending-choice-form .field{min-width:0;max-width:100%;overflow-wrap:anywhere}
+#atlas-pending-choice-form .detail-note .field{margin-top:8px}
+#atlas-pending-choice-form select{max-width:100%;min-width:0}
+#atlas-pending-choice-form .atlas-pending-options{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;min-width:0}
+#atlas-pending-choice-form .atlas-pending-option{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:10px;min-width:0;max-width:100%;padding:9px 12px;min-height:40px;background:#192a3c;border:1px solid #2e4459;border-radius:9px;cursor:pointer}
+#atlas-pending-choice-form .atlas-pending-option[hidden],#atlas-pending-choice-form [data-pending-other][hidden]{display:none}
+#atlas-pending-choice-form .atlas-pending-option:hover{background:#23374c;border-color:#58718b}
+#atlas-pending-choice-form input[type="checkbox"]{width:16px;height:16px;min-width:16px;max-width:16px;padding:0;margin:0;flex:0 0 16px;justify-self:start;accent-color:var(--gold)}
+#atlas-pending-choice-form .atlas-pending-option-text{display:block;min-width:0;overflow-wrap:anywhere;white-space:normal}
+#atlas-pending-choice-form .atlas-pending-option-text strong,#atlas-pending-choice-form .atlas-pending-option-text .desc{display:block}
+#atlas-pending-choice-form .atlas-pending-option-text .desc{font-size:11px;color:var(--muted);margin-top:2px}
+#atlas-pending-choice-form .atlas-pending-other{padding:10px;border:1px solid var(--stroke);border-radius:10px;min-width:0;max-width:100%}
+#atlas-pending-choice-form .atlas-pending-other summary{cursor:pointer;font-weight:650;overflow-wrap:anywhere}
+#atlas-pending-choice-form .atlas-rest-check{align-items:center;min-width:0;overflow-wrap:anywhere}
+#atlas-pending-choice-form .actions-inline{margin-top:4px}
+@media(min-width:600px){#atlas-pending-choice-form [data-pending-checks="mastery"],#atlas-pending-choice-form [data-pending-checks="spells"],#atlas-pending-choice-form [data-pending-checks="expertise"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
