@@ -1,6 +1,6 @@
 # v3.14.0 — Party companions and summons
 
-Based on v3.13.0 (PR #29). Deploy the upgraded Worker before deploying the frontend. Existing production Worker patch supports the exact v3.13.0 and earlier reviewed versions. No new D1 table, binding, migration, or automatic dice.
+This is a cumulative update from main v3.12.0, including v3.13.0 (PR #29). Deploy the upgraded Worker before deploying the frontend. Existing production Worker patch supports the exact v3.13.0 and earlier reviewed versions. No new D1 table, binding, migration, or automatic dice.
 
 DM / Creator → Multiview → Battle View → Party companions:
 - Add a permanent companion, familiar or mount with a party/DM or character owner, current/max HP, AC, speed, and editable attacks/abilities/source notes.
