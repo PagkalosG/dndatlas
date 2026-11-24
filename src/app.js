@@ -187,7 +187,7 @@
 
  // Manual persistence: compare current data with the last acknowledged D1 snapshot.
  const atlasSavedSheets=new Map(),atlasPendingOps=new Map();
- let atlasBattleBaseline='',atlasBattleHistory=[],atlasBattleHistoryBaseline='[]',atlasBattleDirty=false,atlasPublicBattle=null,atlasPublicRevision=0;
+ let atlasCombatUndo=null,atlasBattleBaseline='',atlasBattleHistory=[],atlasBattleHistoryBaseline='[]',atlasBattleDirty=false,atlasPublicBattle=null,atlasPublicRevision=0;
  function atlasSheetSnapshot(ch){const out=structuredClone(ch);delete out._ownerId;return JSON.stringify(out);}
  function atlasDirtySheets(){return cloud.enabled&&cloud.ready&&cloud.user?characters.filter(ch=>canEditCharacter(ch)&&atlasSavedSheets.get(ch.id)!==atlasSheetSnapshot(ch)):[];}
  function atlasHasPending(){return !!(cloud.enabled&&cloud.ready&&(atlasDirtySheets().length||atlasBattleDirty||atlasPendingOps.size));}
@@ -241,7 +241,7 @@
    if(!cloud.enabled||!cloud.ready)return;
    if(cloud.pendingWrites)return toast(tr('Υπάρχει αποθήκευση σε εξέλιξη.','A save is still in progress.'));
    if(!confirm(tr('Απόρριψη ΟΛΩΝ των μη αποθηκευμένων αλλαγών και λήψη των δεδομένων της D1; Κατέβασε πρώτα το JSON αν τις χρειάζεσαι.','Discard ALL local unsaved changes and load the D1 version? Download a draft JSON first if you need them.')))return;
-   try{await cloudRefresh(true);atlasPendingOps.clear();atlasBattleDirty=false;atlasBattleLoaded=false;atlasBattle=null;atlasBattleHistory=[];await cloudTagsRefresh();if(atlasDmAllowed()&&view==='dm-multiview'&&atlasDmTab!=='party')await atlasBattleLoad();renderApp();toast(tr('Ανανεώθηκαν τα δεδομένα της D1.','D1 data refreshed.'));}
+   try{await cloudRefresh(true);atlasPendingOps.clear();atlasCombatUndo=null;atlasBattleDirty=false;atlasBattleLoaded=false;atlasBattle=null;atlasBattleHistory=[];await cloudTagsRefresh();if(atlasDmAllowed()&&view==='dm-multiview'&&atlasDmTab!=='party')await atlasBattleLoad();renderApp();toast(tr('Ανανεώθηκαν τα δεδομένα της D1.','D1 data refreshed.'));}
    catch(e){toast(tr('Η ανανέωση απέτυχε: ','Refresh failed: ')+e.message);}
  }
 
@@ -440,7 +440,7 @@
 
  // Encounter state is authoritative only after a successful revision-checked D1 write.
  let atlasDmTab='party',atlasBattle=null,atlasBattleRevision=0,atlasBattleLoaded=false,atlasBattleBusy=false,atlasBattleError='',atlasBattleAccount='';
- function atlasBattleReset(){atlasBattleDirty=false;atlasBattleBaseline='';atlasBattleHistory=[];atlasBattleHistoryBaseline='[]';atlasDmTab='party';atlasBattle=null;atlasBattleRevision=0;atlasBattleLoaded=false;atlasBattleBusy=false;atlasBattleError='';atlasBattleAccount='';}
+ function atlasBattleReset(){atlasCombatUndo=null;atlasBattleDirty=false;atlasBattleBaseline='';atlasBattleHistory=[];atlasBattleHistoryBaseline='[]';atlasDmTab='party';atlasBattle=null;atlasBattleRevision=0;atlasBattleLoaded=false;atlasBattleBusy=false;atlasBattleError='';atlasBattleAccount='';}
  function atlasBattleOwner(){return atlasDmAllowed()?String(cloud.user.id)+':'+cloud.token:'';}
  function atlasBattleTabs(){return '<div class="atlas-combat-tabs" role="group" aria-label="'+attr(tr('Προβολή DM','DM view'))+'">'+[['party',tr('Παρέα (Party)','Party View')],['battle',tr('Μάχη (Battle)','Battle View')],['history',tr('Ιστορικό','History')]].map(([v,n])=>'<button class="atlas-combat-tab '+(atlasDmTab===v?'active':'')+'" aria-pressed="'+(atlasDmTab===v)+'" data-action="atlas-battle-tab:'+v+'">'+n+'</button>').join('')+'</div>';}
  async function atlasBattleLoad(){
@@ -454,7 +454,7 @@
    if(!atlasDmAllowed()||atlasBattleBusy||atlasManualSaving||!atlasBattleLoaded||atlasBattleOwner()!==atlasBattleAccount)return;
    if(method==='DELETE'){if(atlasBattle?.archiveId)atlasBattleHistory=atlasBattleHistory.filter(h=>h.archiveId!==atlasBattle.archiveId);next=null;}
    if(next?.phase==='ended'&&atlasBattle?.phase!=='ended'){
-     if(atlasBattleHistory.length>=20)return toast(tr('Το ιστορικό έχει 20 μάχες. Εξήγαγε και διέγραψε μία πρώτα.','History has 20 encounters. Export and delete one first.'));
+     if(atlasBattleHistory.length>=20||(atlasBattleHistory.reduce((n,h)=>n+(h.events||[]).length,0)+(next.events||[]).length)>1500)return toast(tr('Το ιστορικό είναι πλήρες. Εξήγαγε και διέγραψε μία μάχη πρώτα.','History is full. Export and delete an encounter first.'));
      const archiveId=uid(),archive={archiveId,name:next.name,round:next.round,participants:structuredClone(next.participants),events:structuredClone(next.events||[]),endedAt:new Date().toISOString()};
      atlasBattleHistory=[archive,...atlasBattleHistory];
      next={...next,archiveId,phase:'ended',round:1,activeId:null,events:[],participants:next.participants.filter(p=>p.type==='player').map(p=>({...p,initiative:null,out:false}))};
@@ -498,6 +498,7 @@
    if(action==='reload'){if(atlasBattleDirty)return atlasPendingToast();atlasBattleLoad();return;}
    if(!atlasBattleLoaded||atlasBattleBusy||atlasManualSaving)return;
    if(action==='log'){atlasBattleLogOpen();return;}
+   if(action==='undo-log'){const u=atlasCombatUndo;if(!u||!atlasBattleDirty||u.after!==JSON.stringify(atlasBattle)||u.changes.some(x=>!atlasDmTarget(x.id)||atlasSheetSnapshot(atlasDmTarget(x.id))!==x.after))return toast(tr('Υπάρχουν νεότερες αλλαγές. Δεν επιτρέπεται αναίρεση.','Newer changes exist. Undo unavailable.'));for(const x of u.changes)Object.assign(atlasDmTarget(x.id),x.before);atlasCombatUndo=null;atlasBattleSave(u.before);return;}
    if(action==='history-delete'||action==='history-export'||action==='history-recap'){atlasBattleHistoryAction(action,id);return;}
    if(action==='new'){atlasBattleNew();return;}
    if(action==='delete'){if(atlasBattle&&confirm(tr('Οριστική διαγραφή της μάχης; Τα φύλλα χαρακτήρων και οι αλλαγές HP δεν επηρεάζονται.','Permanently delete this encounter? Character sheets and HP changes are unaffected.')))atlasBattleSave(null,'DELETE');return;}
@@ -568,7 +569,7 @@
    try{
     if(!actor||!ATLAS_LOG_TYPES.some(x=>x[0]===kind)||!label||label.length>160||!['none','damage','heal'].includes(mode)||!Number.isInteger(amount)||amount<0||amount>99999||!['','hit','miss','critical','success','failure'].includes(outcome)||note.length>500)throw Error(tr('Μη έγκυρη ενέργεια.','Invalid action.'));
     if(mode!=='none'&&(!target||amount<1||outcome==='miss'))throw Error(tr('Επίλεξε στόχο και θετικό ποσό, χωρίς Miss.','Choose a target and positive amount, not a Miss.'));
-    const updates=new Map(),getSheet=id=>{if(!updates.has(id)){const ch=atlasDmTarget(id);if(!ch)throw Error('Character unavailable');updates.set(id,structuredClone(ch));}return updates.get(id);};
+    const beforeBattle=structuredClone(atlasBattle),updates=new Map(),getSheet=id=>{if(!updates.has(id)){const ch=atlasDmTarget(id);if(!ch)throw Error('Character unavailable');updates.set(id,structuredClone(ch));}return updates.get(id);};
     let effective=0,spent='';
     if(mode!=='none'){if(target.type==='player'){const ch=getSheet(target.characterId),before=ch.hp,after=atlasDmHpChange(before,mode,amount);ch.hp=after;effective=mode==='damage'?before.current+(before.temp||0)-after.current-after.temp:after.current-before.current;}
      else{const before=target.hp;target.hp=mode==='damage'?Math.max(0,before-amount):Math.min(target.maxHp,before+amount);effective=Math.abs(target.hp-before);}}
@@ -578,8 +579,8 @@
       else if(type==='slot'||type==='pact'){const s=type==='pact'?ch.pact:ch.slots?.[key];if(!s||Number(s.used||0)>=Number(s.max))throw Error('Slot unavailable');s.used=Number(s.used||0)+1;spent=type==='pact'?'Pact Magic':'Spell Slot Lv '+key;}else throw Error('Invalid resource');
     }
     atlasBattleAppend(next,{actor:actor.id,actorName:actor.name,target:target?.id||'',targetName:target?.name||'',kind,label,outcome,amount:mode==='none'?amount:effective,hpMode:mode,resource:spent,note});
-    for(const [id,ch] of updates){const original=atlasDmTarget(id);Object.assign(original,ch);}
-    atlasBattleSave(next);
+    const changes=[];for(const [id,ch] of updates){const original=atlasDmTarget(id);changes.push({id,before:structuredClone(original),after:atlasSheetSnapshot(ch)});Object.assign(original,ch);}
+    atlasBattleSave(next);atlasCombatUndo={before:beforeBattle,after:JSON.stringify(atlasBattle),changes};renderApp();
    }catch(err){toast(err.message);}
  },true);
  function atlasBattleLogMarkup(events){
@@ -626,7 +627,7 @@
      const hpActions=ended||missing?'':ch?'<button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="damage">− HP</button><button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="heal">+ HP</button>':button('− HP','damage',p.id)+button('+ HP','heal',p.id);
      return '<article class="atlas-battle-row '+(p.id===b.activeId?'active ':'')+(p.out?'out':'')+'"><div class="atlas-battle-init"><strong>'+esc(p.initiative??'—')+'</strong>'+(!ended?button(tr('Αλλαγή','Edit'),'initiative',p.id):'')+'</div><div class="atlas-battle-name"><strong>'+esc(name)+'</strong><small>'+esc(missing?tr('Λείπει το φύλλο','Missing sheet'):p.type==='player'?tr('Παίκτης','Player'):p.type==='enemy'?tr('Εχθρός','Enemy'):tr('Σύμμαχος','Ally'))+(p.id===b.activeId?' · '+tr('Ενεργό turn','Current turn'):'')+(p.out?' · '+tr('Εκτός μάχης','Out'):'')+'</small>'+(!missing?'<span>HP '+esc(hp.current??'—')+'/'+esc(hp.max??'—')+' · AC '+esc(ac??'—')+(hp.temp?' · Temp '+esc(hp.temp):'')+'</span>':'')+(ch?atlasDmStatus(ch,atlasDmStats(ch)):'')+'</div><div class="atlas-battle-controls">'+hpActions+(!ended?button('↑','up',p.id,i===0)+button('↓','down',p.id,i===b.participants.length-1)+button(p.out?tr('Επαναφορά','Restore'):tr('Εκτός','Out'),'out',p.id,p.id===b.activeId)+(setup?button(tr('Αφαίρεση','Remove'),'remove',p.id):button(tr('Μετάβαση','Jump'),'jump',p.id,p.out)):'')+'</div></article>';
    }).join('');
-   return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+(ended?'':' · '+tr('Γύρος','Round')+' '+b.round)+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'<button class="btn sm warn" data-action="atlas-battle-delete" '+(atlasBattleBusy?'disabled':'')+'>'+tr('Διαγραφή μάχης','Delete Encounter')+'</button></div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div><div class="atlas-battle-workspace"><div class="atlas-battle-order">'+rows+'</div><aside class="atlas-dm-card"><h3>'+tr('Καταγραφή μάχης','Combat Log')+'</h3>'+(!ended&&!setup?button(tr('+ Καταγραφή ενέργειας','+ Log Action'),'log'):'')+atlasBattleLogMarkup(b.events||[])+'</aside></div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
+   return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+(ended?'':' · '+tr('Γύρος','Round')+' '+b.round)+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'<button class="btn sm warn" data-action="atlas-battle-delete" '+(atlasBattleBusy?'disabled':'')+'>'+tr('Διαγραφή μάχης','Delete Encounter')+'</button></div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div><div class="atlas-battle-workspace"><div class="atlas-battle-order">'+rows+'</div><aside class="atlas-dm-card"><h3>'+tr('Καταγραφή μάχης','Combat Log')+'</h3>'+(!ended&&!setup?button(tr('+ Καταγραφή ενέργειας','+ Log Action'),'log')+(atlasCombatUndo&&atlasBattleDirty?button(tr('Αναίρεση τελευταίας μη αποθηκευμένης ενέργειας','Undo last unsaved action'),'undo-log'):''):'')+atlasBattleLogMarkup(b.events||[])+'</aside></div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
  }
 
  function renderDmMultiview(){
@@ -655,7 +656,7 @@
    if(!ch||String(cloud.user.id)!==account||String(cloud.revisions[id])!==revision||cloud.pendingWrites||cloud.polling||cloud.syncBlocked||atlasDmSaving)return toast(tr('Τα δεδομένα άλλαξαν ή συγχρονίζονται. Άνοιξε ξανά την ενέργεια.','Data changed or is syncing. Reopen the action.'));
    let next;try{next=atlasDmHpChange(ch.hp,mode,Number(new FormData(form).get('amount')));}catch(e){return toast(e.message);}
    if(atlasManualSaving)return;
-   const before=ch.hp;ch.hp=next;atlasBattleQuickHp(id,mode,before,next);closeModal();save();renderApp();atlasPendingToast();
+   const before=ch.hp;if(atlasBattleLoaded&&['active','paused'].includes(atlasBattle?.phase)&&atlasBattle.participants.some(p=>p.characterId===id)&&(atlasBattle.events||[]).length>=500)return toast(tr('Το Combat Log είναι γεμάτο.','Combat Log is full.'));ch.hp=next;atlasBattleQuickHp(id,mode,before,next);closeModal();save();renderApp();atlasPendingToast();
  }
  document.addEventListener('click',e=>{
    const el=e.target.closest('[data-atlas-dm-layout],[data-atlas-dm-sheet],[data-atlas-dm-hp]');if(!el)return;e.preventDefault();e.stopImmediatePropagation();if(!atlasDmAllowed())return;
@@ -1736,7 +1737,7 @@ document.addEventListener('submit',e=>{
    if(turn.active){if(spendsSlot)turn.slot=true;if(type!=='ritual'&&x.kind==='reaction')turn.reaction=true;else if(!turn.other&&type!=='ritual'&&['action','bonus'].includes(x.kind))turn[x.kind]=true;}
    closeModal();update();toast(tr('Καταχωρίστηκε χρήση: ','Cast recorded: ')+s.name);
  }
- function deleteItem(kind,id){let ch=c(),mapping={'character':characters,attack:ch.attacks,resource:ch.resources,feature:ch.features,item:ch.inventory,spell:ch.spellbook,journal:ch.journal,companion:ch.companions||[]},obj=mapping[kind];if(!obj)return;if(kind==='character'&&(!cloud.enabled||!['creator','dm'].includes(cloud.user?.role||''))){toast(tr('Μόνο ο Creator και ο DM διαγράφουν χαρακτήρες.','Only Creator or DM can delete characters.'));return;}const item=obj.find(x=>x.id===id);if(!item)return;if(kind==='item'&&(ch.inventory||[]).some(x=>x.containerId===id))return toast(tr('Μετακίνησε πρώτα τα περιεχόμενα του δοχείου.','Move the container contents first.'));let name=item.name||item.title;if(!confirm(`Delete ${name}? This cannot be undone.`))return;if(kind==='character'){if(!atlasNoPending())return;cloudRequest('/characters/'+encodeURIComponent(id),'DELETE').then(()=>cloudRefresh()).then(()=>{closeModal();toast(tr('Ο χαρακτήρας διαγράφηκε.','Character deleted.'));}).catch(err=>toast(err.message));return;}else ch[kind==='attack'?'attacks':kind==='resource'?'resources':kind==='feature'?'features':kind==='item'?'inventory':kind==='spell'?'spellbook':kind==='companion'?'companions':'journal']=obj.filter(x=>x.id!==id);closeModal();update();toast('Deleted.');}
+ function deleteItem(kind,id){let ch=c(),mapping={'character':characters,attack:ch.attacks,resource:ch.resources,feature:ch.features,item:ch.inventory,spell:ch.spellbook,journal:ch.journal,companion:ch.companions||[]},obj=mapping[kind];if(!obj)return;if(kind==='character'&&(!cloud.enabled||!['creator','dm'].includes(cloud.user?.role||''))){toast(tr('Μόνο ο Creator και ο DM διαγράφουν χαρακτήρες.','Only Creator or DM can delete characters.'));return;}const item=obj.find(x=>x.id===id);if(!item)return;if(kind==='item'&&(ch.inventory||[]).some(x=>x.containerId===id))return toast(tr('Μετακίνησε πρώτα τα περιεχόμενα του δοχείου.','Move the container contents first.'));let name=item.name||item.title;if(!confirm(`Delete ${name}? This cannot be undone.`))return;if(kind==='character'){if(atlasManualSaving)return;if(cloud.revisions[id]&&!atlasStageOp('delete:'+id,'/characters/'+encodeURIComponent(id),'DELETE',null))return;characters=characters.filter(x=>x.id!==id);selectedId=characters.find(x=>x.id===selectedId)?.id||characters[0]?.id||null;closeModal();renderApp();atlasPendingToast();return;}else ch[kind==='attack'?'attacks':kind==='resource'?'resources':kind==='feature'?'features':kind==='item'?'inventory':kind==='spell'?'spellbook':kind==='companion'?'companions':'journal']=obj.filter(x=>x.id!==id);closeModal();update();toast('Deleted.');}
  /* v1.7 prototype: guided new-character builder. Does not modify existing characters. */
  const B_SKILLS=['Acrobatics','Animal Handling','Athletics','History','Insight','Intimidation','Perception','Persuasion','Survival'];
  const B_ORIGINS=D.feats.filter(f=>f.tier==='Origin');
@@ -2406,16 +2407,17 @@ document.addEventListener('submit',e=>{
   async function cloudSaveNow(){
     if(atlasManualSaving||!cloud.enabled||!cloud.ready||!atlasHasPending())return;
     if(cloud.polling||atlasBattleBusy)return toast(tr('Γίνεται συγχρονισμός. Δοκίμασε ξανά.','Synchronization in progress. Try again.'));
-    const session=cloud.token;atlasManualSaving=true;const setBusy=()=>atlasSaveUi();setBusy();
+    const session=cloud.token;atlasCombatUndo=null;atlasManualSaving=true;const setBusy=()=>atlasSaveUi();setBusy();
     // Save each changed sheet once; never resend already acknowledged snapshots on retry.
     try{
+      if(atlasBattleDirty){const latest=await cloudRequest('/encounter');if(latest.revision!==atlasBattleRevision)throw Error(tr('Η μάχη άλλαξε σε άλλη συσκευή. Εξήγαγε το draft πριν ανανεώσεις.','Encounter changed on another device. Export your draft before refreshing.'));}
       for(const ch of atlasDirtySheets()){
         if(cloud.token!==session)throw Error('Session changed');
         const snapshot=atlasSheetSnapshot(ch);const id=ch.id;
         // A failed transport can be retried with the same revision; a conflict must be resolved, never rebased silently.
         cloud.failedWrites.delete(id);cloudPush(ch);
         const pending=cloud.queues.get(id);if(!pending)throw Error('Save not started');
-        await pending;
+        try{await pending;}finally{if(cloud.queues.get(id)===pending)cloud.queues.delete(id);}
         if(cloud.token!==session)throw Error('Session changed');
         atlasSavedSheets.set(id,snapshot);cloud.failedWrites.delete(id);cloud.failedDrafts.delete(id);
       }
@@ -2423,11 +2425,13 @@ document.addEventListener('submit',e=>{
         if(!atlasDmAllowed()||atlasBattleOwner()!==atlasBattleAccount)throw Error('Encounter access changed');
         const data=await cloudRequest('/encounter','PUT',{revision:atlasBattleRevision,encounter:atlasBattle,history:atlasBattleHistory});
         if(cloud.token!==session)throw Error('Session changed');
-        atlasBattle=data.encounter;atlasBattleHistory=data.history||[];atlasBattleRevision=data.revision;atlasBattleBaseline=JSON.stringify(atlasBattle);atlasBattleHistoryBaseline=JSON.stringify(atlasBattleHistory);atlasBattleDirty=false;
+        atlasBattle=data.encounter;atlasBattleHistory=data.history||[];atlasBattleRevision=data.revision;atlasBattleBaseline=JSON.stringify(atlasBattle);atlasBattleHistoryBaseline=JSON.stringify(atlasBattleHistory);atlasBattleDirty=false;atlasCombatUndo=null;
       }
+      let reloadSessions=false;
       for(const [key,op] of [...atlasPendingOps]){
-        if(cloud.token!==session)throw Error('Session changed');await cloudRequest(op.path,op.method,op.body);atlasPendingOps.delete(key);
+        if(cloud.token!==session)throw Error('Session changed');await cloudRequest(op.path,op.method,op.body);atlasPendingOps.delete(key);if(key.startsWith('session:'))reloadSessions=true;if(key.startsWith('delete:')){const id=key.slice(7);atlasSavedSheets.delete(id);delete cloud.revisions[id];}
       }
+      if(reloadSessions)await fetchSharedData();
       cloud.syncBlocked=cloud.failedWrites.size>0;
       toast(tr('Οι αλλαγές αποθηκεύτηκαν στη D1.','Changes saved to D1.'));
     }catch(e){toast(tr('Η αποθήκευση σταμάτησε. Οι μη αποθηκευμένες αλλαγές διατηρούνται: ','Save stopped. Unsaved changes remain: ')+e.message);}
@@ -2614,7 +2618,7 @@ document.addEventListener('submit',e=>{
   }
   function cloudApplyAccessUI(){
    if(!cloud.enabled||!cloud.user)return;
-   const readOnly=!canEditCharacter(c());
+   const readOnly=!c()||!canEditCharacter(c());
    document.querySelectorAll('[data-atlas-account-label]').forEach(x=>x.textContent=cloud.user.username);
    if(readOnly){document.querySelectorAll('input#notes-editor,textarea#notes-editor').forEach(x=>x.readOnly=true);}
   }

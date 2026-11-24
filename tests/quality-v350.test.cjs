@@ -57,7 +57,7 @@ test('failed saves keep an explicit downloadable local draft and block automatic
  assert.match(app,/exportScope:'unsynced-local-draft'/);
  assert.match(app,/data-action="download-unsaved-draft"/);
  assert.match(app,/data-action="discard-unsaved-refresh"/);
- assert.match(app,/if\(cloud\.failedWrites\.size\)return atlasDiscardUnsavedRefresh\(\)/);
+ assert.match(app,/if\(atlasHasPending\(\)\|\|cloud\.failedWrites\.size\)return atlasDiscardUnsavedRefresh\(\)/);
  assert.match(app,/if\(cloud\.failedWrites\.size\)throw Error/);
  assert.match(css,/\.atlas-sync-notice\s*\{/);
 });
@@ -170,7 +170,7 @@ test('DM Player draft import asks for manual review and only resolves approval o
  assert.match(source,/DM review/);
  assert.match(source,/entry\.key==='dm-character-approval'/);
  assert.match(source,/approval\.status='resolved'/);
- assert.match(source,/cloudRequest\('\/characters\/'\+encodeURIComponent\(reviewed\.id\),'POST'/);
+ assert.match(source,/characters\.push\(reviewed\);selectedId=reviewed\.id;update\(\)/);
 });
 
 test('Journal keeps and sorts session numbers without changing image gallery behavior',()=>{

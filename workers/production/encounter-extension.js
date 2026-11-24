@@ -56,8 +56,8 @@ async function atlasEncounterRequest({request,env,actor,pathname,method,respond,
  const publicView=method==='GET'&&new URL(request.url).searchParams.get('public')==='1';
  if(!['creator','dm'].includes(actor.role)&&!publicView)throw err(403,'Creator/DM only');
  if(!['GET','PUT','DELETE'].includes(method))throw err(405,'Method not allowed');
- await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_encounter (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL, data_json TEXT NOT NULL, modified_by INTEGER, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)').run();
- const row=await env.DB.prepare('SELECT revision,data_json FROM atlas_encounter WHERE id=1').first();
+ let row;
+ try{row=await env.DB.prepare('SELECT revision,data_json FROM atlas_encounter WHERE id=1').first();}catch(e){if(!/no such table.*atlas_encounter/i.test(String(e.message)))throw e;if(method==='GET')return respond(publicView?{revision:0,encounter:null}:{revision:0,encounter:null,history:[]});await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_encounter (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL, data_json TEXT NOT NULL, modified_by INTEGER, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)').run();row=await env.DB.prepare('SELECT revision,data_json FROM atlas_encounter WHERE id=1').first();}
  const envelope=atlasEncounterEnvelope(row?.data_json),previous=envelope.encounter;
  if(method==='GET'){const state=previous?.phase==='ended'?atlasEncounterFinish(previous):previous;return respond(publicView?{revision:row?Number(row.revision):0,encounter:atlasEncounterPublic(state)}:{revision:row?Number(row.revision):0,encounter:state,history:envelope.history});}
  const body=await jsonBody(request);
@@ -82,6 +82,6 @@ async function atlasEncounterRequest({request,env,actor,pathname,method,respond,
  const raw=JSON.stringify({encounter:state,history});
  const result=row?await env.DB.prepare('UPDATE atlas_encounter SET revision=revision+1,data_json=?,modified_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=1 AND revision=?').bind(raw,actor.id,body.revision).run():await env.DB.prepare('INSERT OR IGNORE INTO atlas_encounter(id,revision,data_json,modified_by) VALUES(1,1,?,?)').bind(raw,actor.id).run();
  if(!result.meta.changes)throw err(409,'Encounter changed elsewhere. Reload before saving.');
- await audit(env,actor.id,'save-encounter',String(body.revision+1));
+ await audit(env,actor.id,state===null?'delete-encounter':'save-encounter',String(body.revision+1));
  return respond({revision:body.revision+1,encounter:state,history});
 }
