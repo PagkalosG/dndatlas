@@ -43,7 +43,8 @@ function atlasMonsterValidateMeta(m,err,custom=false){
  const keys=custom?['id','name','size','type','cr','xp','hp','ac','initiative','detail']:['id','name','cr','xp','detail'];
  if(!m||typeof m!=='object'||Array.isArray(m)||Object.keys(m).some(k=>!keys.includes(k))||!str(m.id,100)||!/^(srd|custom)-[\w-]+$/.test(m.id)||!str(m.name,160)||!atlasMonsterCR.includes(m.cr)||!int(m.xp,0,155000))bad();
  const standard=atlasMonsterXP[atlasMonsterCR.indexOf(m.cr)];
- if(m.xp!==standard&&!(m.cr==='0'&&m.xp===0))bad();
+ // SRD 5.2.1 prints Archmage CR 12 at 8,000 XP; preserve the stat-block value.
+ if(m.xp!==standard&&!(m.cr==='0'&&m.xp===0)&&!(m.id==='srd-archmage'&&m.cr==='12'&&m.xp===8000))bad();
  if(m.id.startsWith('custom-')){if(typeof m.detail!=='string'||m.detail.length>2000)bad();}
  else if(m.detail!==undefined||custom)bad();
  if(custom&&(!['Tiny','Small','Medium','Large','Huge','Gargantuan'].includes(m.size)||!['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend','Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'].includes(m.type)||!int(m.hp,1,99999)||!int(m.ac,0,99)||!int(m.initiative,-100,200)))bad();
