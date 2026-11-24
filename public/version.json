@@ -1,6 +1,6 @@
 {
-  "version": "3.9.1",
+  "version": "3.9.2",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Categorized proficiency selectors, automatic class grants and legacy-safe editing"
+  "notes": "Header Save and menu Settings; short rest Hit Dice tracking"
 }
