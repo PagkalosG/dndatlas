@@ -1324,18 +1324,18 @@
  function atlasPrimalStats(ch,q=ch?.primalCompanion){
    const level=atlasPrimalLevel(ch),f=ATLAS_PRIMAL_FORMS[q?.form];if(level<3||!f)return null;
    const wis=ability(ch,'WIS'),pb=prof(ch),maxHp=f.hpBase*(level+1),damage=Math.max(0,Math.min(maxHp,Math.trunc(Number(q.damage)||0)));
-   return {...f,level,wis,pb,maxHp,hp:q.status==='dead'||q.status==='reviving'?0:maxHp-damage,ac:13+wis,attack:pb+wis,dc:8+pb+wis,damage:f.damageDie+signed(f.damageBase+wis),damageType:f.damageTypes.includes(q.damageType)?q.damageType:f.damageTypes[0],strikes:level>=11?2:1};
+   return {...f,level,wis,pb,maxHp,hp:['dead','reviving','vanished'].includes(q.status)?0:maxHp-damage,ac:13+wis,attack:pb+wis,dc:8+pb+wis,damage:f.damageDie+signed(f.damageBase+wis),damageType:f.damageTypes.includes(q.damageType)?q.damageType:f.damageTypes[0],strikes:level>=11?2:1};
  }
  function atlasPrimalName(form){const f=ATLAS_PRIMAL_FORMS[form];return f?tr(f.el+' ('+f.en+')',f.en):'';}
  function atlasPrimalButton(ch,action,label){return '<button type="button" class="btn sm" data-atlas-primal="'+action+'" data-character="'+attr(ch.id)+'">'+label+'</button>';}
  function atlasPrimalPanel(ch,compact=false){
    if(atlasPrimalLevel(ch)<3)return '';
    const q=ch.primalCompanion,s=atlasPrimalStats(ch),editable=canEditCharacter(ch)&&!atlasManualSaving;
-   const b=(action,label)=>editable?atlasPrimalButton(ch,action,label):'';
+   const b=(action,label)=>editable||action==='detail'?atlasPrimalButton(ch,action,label):'';
    const heading=tr('Πρωταρχικός σύντροφος (Primal Companion)','Primal Companion');
    if(!s)return '<section class="atlas-dm-card"><h3>'+heading+'</h3><p class="muted small">'+tr('Beast Master επιπέδου 3: επίλεξε μία από τις τρεις μορφές.','Beast Master level 3: choose one of the three forms.')+'</p>'+b('summon',tr('Επίκληση συντρόφου','Summon companion'))+'</section>';
-   const status=q.status==='dead'?tr('Νεκρό','Dead'):q.status==='reviving'?tr('Αναβίωση σε εξέλιξη','Revival pending'):s.hp===0?tr('0 HP · επιβεβαίωσε κατάσταση','0 HP · confirm status'):tr('Ενεργό','Active');
-   return '<section class="atlas-dm-card"><div class="page-title"><div><h3>'+esc(q.name||atlasPrimalName(q.form))+'</h3><small>'+heading+' · '+esc(atlasPrimalName(q.form))+' · '+status+'</small></div>'+b('detail',tr('Στατιστικά','Stat block'))+'</div><div class="atlas-dm-stats"><div><small>HP</small><b>'+s.hp+'/'+s.maxHp+'</b></div><div><small>AC</small><b>'+s.ac+'</b></div><div><small>'+tr('Επίθεση','Attack')+'</small><b>'+signed(s.attack)+'</b></div><div><small>'+tr('Ζημιά','Damage')+'</small><b>'+esc(s.damage)+'</b></div></div><p class="muted small">'+tr('Ενεργεί στη σειρά του Ranger, χωρίς δικό του Initiative.','Acts during the Ranger’s turn, without separate initiative.')+'</p><div class="actions-inline">'+(q.status==='active'?b('hp',tr('Ενημέρωση HP','Update HP'))+(s.hp===0?b('dead',tr('Επιβεβαίωση θανάτου','Mark dead')):''):q.status==='dead'?b('revive',tr('Αναβίωση','Revive')):b('complete',tr('Ολοκλήρωση αναβίωσης','Complete revival')))+(q.replaceReady?b('summon',tr('Νέα μορφή μετά την ανάπαυση','Replace after Long Rest')):'')+(!compact&&q.status==='active'&&s.hp>0?b('command',tr('Εντολές μάχης','Combat commands')):'')+'</div></section>';
+   const status=q.status==='dead'?tr('Νεκρό','Dead'):q.status==='reviving'?tr('Αναβίωση σε εξέλιξη','Revival pending'):q.status==='vanished'?tr('Εξαφανίστηκε','Vanished'):s.hp===0?tr('0 HP · επιβεβαίωσε κατάσταση','0 HP · confirm status'):tr('Ενεργό','Active');
+   return '<section class="atlas-dm-card"><div class="page-title"><div><h3>'+esc(q.name||atlasPrimalName(q.form))+'</h3><small>'+heading+' · '+esc(atlasPrimalName(q.form))+' · '+status+'</small></div>'+b('detail',tr('Στατιστικά','Stat block'))+'</div><div class="atlas-dm-stats"><div><small>HP</small><b>'+s.hp+'/'+s.maxHp+'</b></div><div><small>AC</small><b>'+s.ac+'</b></div><div><small>'+tr('Επίθεση','Attack')+'</small><b>'+signed(s.attack)+'</b></div><div><small>'+tr('Ζημιά','Damage')+'</small><b>'+esc(s.damage)+'</b></div></div><p class="muted small">'+tr('Ενεργεί στη σειρά του Ranger, χωρίς δικό του Initiative.','Acts during the Ranger’s turn, without separate initiative.')+'</p><div class="actions-inline">'+(q.status==='active'?b('hp',tr('Ενημέρωση HP','Update HP'))+(s.hp===0?b('dead',tr('Επιβεβαίωση θανάτου','Mark dead')):''):q.status==='dead'?b('revive',tr('Αναβίωση','Revive')):q.status==='reviving'?b('complete',tr('Ολοκλήρωση αναβίωσης','Complete revival')):'')+(q.status!=='vanished'&&Number(ch.hp?.current)===0?b('vanish',tr('Ο Ranger πέθανε','Ranger died')):'')+(q.replaceReady?b('summon',tr('Νέα μορφή μετά την ανάπαυση','Replace after Long Rest')):'')+(!compact&&q.status==='active'&&s.hp>0?b('command',tr('Εντολές μάχης','Combat commands')):'')+'</div></section>';
  }
  function atlasPrimalDetail(ch){
    const q=ch.primalCompanion,s=atlasPrimalStats(ch);if(!s)return;
@@ -1362,12 +1362,14 @@
    openModal(title,'<form id="atlas-primal-form" data-character="'+attr(ch.id)+'" data-mode="'+mode+'">'+fields+'</form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-primal-form">'+tr('Εφαρμογή','Apply')+'</button>');
  }
  function atlasPrimalAction(ch,action){
-   if(atlasPrimalLevel(ch)<3||!canEditCharacter(ch)||atlasManualSaving)return;
-   const q=ch.primalCompanion,s=atlasPrimalStats(ch);
+   if(atlasPrimalLevel(ch)<3)return;
    if(action==='detail')return atlasPrimalDetail(ch);
+   if(!canEditCharacter(ch)||atlasManualSaving)return;
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch);
    if(['summon','hp','revive'].includes(action))return atlasPrimalForm(ch,action);
    if(!s)return;
-   if(action==='dead'&&q.status==='active'&&s.hp===0&&confirm(tr('Επιβεβαίωση θανάτου συντρόφου;','Confirm companion death?'))){q.status='dead';q.replaceReady=false;}
+   if(action==='vanish'&&q.status!=='vanished'&&Number(ch.hp?.current)===0&&confirm(tr('Επιβεβαιώνεις ότι ο Ranger πέθανε; Το θηρίο εξαφανίζεται.','Confirm the Ranger died? The beast vanishes.'))){q.status='vanished';q.damage=s.maxHp;q.replaceReady=false;}
+   else if(action==='dead'&&q.status==='active'&&s.hp===0&&confirm(tr('Επιβεβαίωση θανάτου συντρόφου;','Confirm companion death?'))){q.status='dead';q.replaceReady=false;}
    else if(action==='complete'&&q.status==='reviving'&&confirm(tr('Πέρασε ένα λεπτό από την αναβίωση;','Has one minute passed since revival?'))){q.status='active';q.damage=0;}
    else if(action==='command'&&q.status==='active'&&s.hp>0){
      const canPropose=atlasProposalContext(ch)&&atlasPublicBattle?.currentCharacterId===ch.id;
