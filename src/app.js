@@ -190,9 +190,9 @@
  let atlasPlayerDrafts=[],atlasInbox=[],atlasInboxBusy=false,atlasLastSaved='',atlasCombatUndo=null,atlasBattleBaseline='',atlasBattleHistory=[],atlasBattleHistoryBaseline='[]',atlasBattleDirty=false,atlasPublicBattle=null,atlasPublicRevision=0;
  function atlasSheetSnapshot(ch){const out=structuredClone(ch);delete out._ownerId;return JSON.stringify(out);}
  function atlasDirtySheets(){return cloud.enabled&&cloud.ready&&cloud.user?characters.filter(ch=>canEditCharacter(ch)&&atlasSavedSheets.get(ch.id)!==atlasSheetSnapshot(ch)):[];}
- function atlasPendingCount(){return cloud.enabled&&cloud.ready?atlasDirtySheets().length+Number(atlasBattleDirty)+atlasPendingOps.size+atlasPlayerDrafts.length:0;}
- function atlasHasPending(){return atlasPendingCount()>0;}
- function atlasSaveUi(){const b=document.querySelector('.atlas-header-save'),n=atlasPendingCount();if(b){b.disabled=atlasManualSaving||!n;b.setAttribute('aria-busy',String(atlasManualSaving));b.classList.toggle('dirty',!!n);b.title=tr('Εκκρεμείς αλλαγές: ','Pending changes: ')+n+(atlasLastSaved?' · '+tr('Τελευταίο Save: ','Last save: ')+atlasLastSaved:'');const count=b.querySelector('.atlas-save-count');if(count){count.textContent=n?String(n):'';count.hidden=!n;}}atlasRefreshSyncNotice();}
+ function atlasSavePendingCount(){return cloud.enabled&&cloud.ready?atlasDirtySheets().length+Number(atlasBattleDirty)+atlasPendingOps.size+atlasPlayerDrafts.length:0;}
+ function atlasHasPending(){return atlasSavePendingCount()>0;}
+ function atlasSaveUi(){const b=document.querySelector('.atlas-header-save'),n=atlasSavePendingCount();if(b){b.disabled=atlasManualSaving||!n;b.setAttribute('aria-busy',String(atlasManualSaving));b.classList.toggle('dirty',!!n);b.title=tr('Εκκρεμείς αλλαγές: ','Pending changes: ')+n+(atlasLastSaved?' · '+tr('Τελευταίο Save: ','Last save: ')+atlasLastSaved:'');const count=b.querySelector('.atlas-save-count');if(count){count.textContent=n?String(n):'';count.hidden=!n;}}atlasRefreshSyncNotice();}
  function atlasPendingToast(){toast(tr('Τοπική αλλαγή · πάτησε το κεντρικό Save.','Local change · press the main Save.'));}
  function atlasStageOp(key,path,method,body){if(!cloud.ready||!['creator','dm'].includes(cloud.user?.role||'')||atlasManualSaving)return false;atlasPendingOps.set(key,{path,method,body:structuredClone(body)});atlasSaveUi();return true;}
  function atlasRememberSheets(){atlasSavedSheets.clear();for(const ch of characters)atlasSavedSheets.set(ch.id,atlasSheetSnapshot(ch));}
