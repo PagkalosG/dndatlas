@@ -1,6 +1,6 @@
 {
-  "version": "3.16.0",
+  "version": "3.17.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Restored character companions, class-linked Beast Master Primal Companion, shared player/DM sheet state"
+  "notes": "Spell-linked familiars, Pact of the Chain, Wild Companion, Faithful Steed, Summon Beast and Summon Fey"
 }
