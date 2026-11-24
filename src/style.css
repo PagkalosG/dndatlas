@@ -355,3 +355,18 @@ html{scroll-padding-top:calc(var(--atlas-header-height) + 10px)}
  .top-actions{gap:4px}
 }
 @media (prefers-reduced-motion:reduce){.nav-item{transition:none}}
+
+
+/* v3.6 guided experience: existing theme, progressively disclosed information */
+.atlas-ux-guide{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin:0 0 14px;border:1px solid #41586c;border-radius:12px;background:#152639}
+.atlas-ux-guide strong{color:var(--gold)}.atlas-ux-guide p{margin:3px 0;color:var(--muted);font-size:12px}
+.atlas-ux-guide.compact{justify-content:flex-end;background:transparent;border:0;padding:0}
+.atlas-mode-options{display:grid;gap:10px}
+.atlas-mode-option{display:grid;gap:5px;padding:14px;text-align:left;background:var(--panel2);color:var(--text);border:1px solid var(--stroke);border-radius:10px}
+.atlas-mode-option span{color:var(--muted)}.atlas-mode-option.active{border-color:var(--gold);box-shadow:inset 3px 0 0 var(--gold)}
+.atlas-calc-list{display:grid;gap:5px}.atlas-calc-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 11px;background:var(--panel2);border-radius:8px}
+.atlas-calc-row small,.atlas-search-row small{display:block;color:var(--muted);overflow-wrap:anywhere}.atlas-calc-row b{color:var(--gold);white-space:nowrap}
+.atlas-search-row{display:flex;align-items:stretch;gap:6px;margin:5px 0}.atlas-search-row .tile{flex:1;min-width:0;text-align:left}.atlas-search-row .tile span{min-width:0;overflow-wrap:anywhere}
+.atlas-favorite{min-width:44px;min-height:44px;font-size:21px;color:var(--muted)}.atlas-favorite.active{color:var(--gold);border-color:var(--gold)}
+.atlas-rest-preview{padding:12px;margin-top:12px;background:var(--panel2);border:1px solid var(--stroke);border-radius:10px}.atlas-rest-preview ul{padding-left:20px}.atlas-rest-check{display:flex;align-items:flex-start;gap:8px}.atlas-rest-check input{width:18px;flex:0 0 18px}
+@media(max-width:590px){.atlas-ux-guide{align-items:stretch;flex-direction:column}.atlas-ux-guide .actions-inline{flex-wrap:wrap}.atlas-ux-guide.compact{align-items:flex-end}}

@@ -1,6 +1,6 @@
 {
-  "version": "3.5.2",
+  "version": "3.6.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Unified desktop and mobile header, accessible flag language switch, consistent navigation controls"
+  "notes": "Guided and advanced presentation, scoped search, local favorites, calculation inspector and rest preview"
 }

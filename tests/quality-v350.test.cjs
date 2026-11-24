@@ -121,7 +121,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.5\.2'/);
+ assert.match(app,/APP_VERSION='3\.6\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -201,12 +201,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.5.2');
+ assert.equal(version.version,'3.6.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.5.2'));
-  assert.ok(sw.includes(asset+'?v=3.5.2'));
+  assert.ok(index.includes(asset+'?v=3.6.0'));
+  assert.ok(sw.includes(asset+'?v=3.6.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.5\.2/);
+ assert.match(sw,/dndatlas-shell-v3\.6\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -228,7 +228,7 @@ test('header menu preserves controls and closes on selection, outside click and 
  let expanded='false',focused=0;const handlers={};
  const button={getAttribute:()=>expanded,setAttribute:(name,value)=>{assert.equal(name,'aria-expanded');expanded=value;},focus:()=>focused++};
  const document={querySelector:s=>s.includes('="true"')?(expanded==='true'?button:null):button,addEventListener:(name,fn)=>handlers[name]=fn};
- const source=extract('function atlasSetHeaderMenu(','function renderApp(){');
+ const source=extract('function atlasSetHeaderMenu(','// v3.6: presentation preferences');
  vm.runInNewContext(source,{document});
  const click=(matches)=>handlers.click({target:{closest:s=>matches.includes(s)?button:null}});
  click(['[data-atlas-header-toggle]']);assert.equal(expanded,'true');
@@ -263,4 +263,42 @@ test('unified header has accessible offline language flags and no language dropd
  assert.match(css,/\.atlas-language-flag\[aria-pressed="true"\]/);
  assert.match(css,/\/\* v3\.5\.2 — unified header controls/);
  assert.match(css,/\.atlas-header-toggle,\.top-actions \.atlas-header-settings\{display:inline-flex/);
+});
+
+
+test('UX preferences are account-scoped and only store presentation/catalog favorites',()=>{
+ const src=extract('function atlasUxKey(){','function atlasUxMenu(){');
+ const values=new Map(),cloud={enabled:true,user:{id:'one'}};
+ const ctx={cloud,localStorage:{getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)},tr:t,toast:()=>{},closeModal:()=>{},renderApp:()=>{}};
+ const api=vm.runInNewContext(src+';({atlasUxKey,atlasUxPrefs,atlasWriteUx,atlasSetMode})',ctx);
+ api.atlasSetMode('advanced');api.atlasWriteUx({mode:'advanced',favorites:['spell-shield']});
+ assert.equal(api.atlasUxPrefs().mode,'advanced');assert.equal(api.atlasUxPrefs().favorites[0],'spell-shield');
+ cloud.user={id:'two'};assert.equal(api.atlasUxPrefs().mode,'beginner');assert.equal(api.atlasUxPrefs().favorites.length,0);
+ assert.doesNotMatch(src,/cloudRequest|cloudPush/);
+});
+test('search index includes only catalog, navigation and current character item names, no private notes',()=>{
+ const src=extract('function atlasSearchIndex(ch){','function atlasSearchResults(');
+ const D={spells:[{id:'shield',name:'Shield',kind:'Spell',summary:'Protection'}],maneuvers:[],feats:[],conditions:[],actions:[],masteries:[]};
+ const fun=vm.runInNewContext(src+';atlasSearchIndex',{D,navigation:[['overview','Overview']],L:{translate:x=>x,summary:x=>x.summary},tr:t});
+ const rows=fun({attacks:[{id:'a',name:'Sword',notes:'secret'}],spellbook:[],inventory:[{id:'i',name:'Rope'}],backgroundStory:'private story',notes:'private notes'});
+ assert.equal(rows.length,4);assert.ok(rows.some(x=>x.id==='shield'&&x.favorite));assert.doesNotMatch(JSON.stringify(rows),/private|secret/);
+});
+test('rest preview is pure, restores only tracked resources, and preserves concentration unless explicitly ended',()=>{
+ const src=extract('function atlasRestPlan(ch,type,endConcentration=false){','function atlasRestPreview(');
+ const plan=vm.runInNewContext(src+';atlasRestPlan',{tr:t,totalLevel:()=>3});
+ const ch={hp:{current:10,max:31,temp:4},hitDice:{max:3,used:2},species:'Human',inspiration:false,exhaustion:2,death:{success:1,fail:0},slots:{1:{max:2,used:1}},pact:{max:2,used:1},concentrating:'Hex',resources:[{name:'Second Wind',current:0,max:2,recharge:'short1'},{name:'Manual',current:0,max:1,recharge:'manual'}]};
+ const before=JSON.stringify(ch),short=plan(ch,'short'),long=plan(ch,'long',true);
+ assert.equal(JSON.stringify(ch),before);assert.equal(short.next.resources[0].current,1);assert.equal(short.next.hp.temp,4);assert.equal(short.next.concentrating,'Hex');assert.equal(short.next.slots[1].used,1);
+ assert.equal(long.next.hp.current,31);assert.equal(long.next.hp.temp,0);assert.equal(long.next.hitDice.used,0);assert.equal(long.next.resources[1].current,0);assert.equal(long.next.concentrating,'');assert.equal(long.next.exhaustion,1);assert.equal(long.next.inspiration,true);
+ assert.equal(plan({...ch,hp:{current:0,max:31}},'long').allowed,false);
+});
+test('calculation inspector reuses current engine and labels stored/overridden values',()=>{
+ const src=extract('function atlasCalculationRows(ch){','function atlasCalculations(){');
+ const ctx={tr:t,prof:()=>2,ability:()=>3,skillMod:()=>7,initMod:()=>3,AC:()=>16,totalLevel:()=>3,signed:n=>n>=0?'+'+n:String(n),activeLoadout:()=>({name:'Shield'}),D:{abilities:{STR:'Strength'},skills:[['Athletics','STR']]},saveMod:()=>5,attackStats:()=>({hit:5,ability:'STR',mod:3,pb:2,magic:0,damageMod:3}),attackDamage:()=> '2d6+3'};
+ const fun=vm.runInNewContext(src+';atlasCalculationRows',ctx);
+ const rows=fun({hp:{max:31},passivePerceptionOverride:10,abilities:{STR:16},skills:{Athletics:2},attacks:[{name:'Sword',damage:'2d6'}]});
+ assert.ok(rows.some(x=>x.name==='Passive Perception'&&x.value==='10'&&x.formula.includes('override')));
+ assert.ok(rows.some(x=>x.name==='Athletics'&&x.value==='+7'&&x.formula.includes('2 × 2')));
+ assert.ok(rows.some(x=>x.name==='Sword · Attack'&&x.value==='+5'));
+ assert.ok(rows.some(x=>x.name==='Armor Class'&&x.formula.includes('Stored')));
 });
