@@ -1,6 +1,6 @@
 {
-  "version": "3.12.0",
+  "version": "3.18.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Player combat proposals, DM review and End Turn, explicit Save status"
+  "notes": "Typed dynamic pending character choices, Ranger spell selection, skills, expertise, mastery and Standard Array corrections"
 }

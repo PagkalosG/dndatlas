@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.12.0';
+ const APP_VERSION='3.18.0';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -196,7 +196,7 @@
  function atlasPendingToast(){toast(tr('Τοπική αλλαγή · πάτησε το κεντρικό Save.','Local change · press the main Save.'));}
  function atlasStageOp(key,path,method,body){if(!cloud.ready||!['creator','dm'].includes(cloud.user?.role||'')||atlasManualSaving)return false;atlasPendingOps.set(key,{path,method,body:structuredClone(body)});atlasSaveUi();return true;}
  function atlasRememberSheets(){atlasSavedSheets.clear();for(const ch of characters)atlasSavedSheets.set(ch.id,atlasSheetSnapshot(ch));}
- function atlasBattleMark(){atlasBattleDirty=JSON.stringify(atlasBattle)!==atlasBattleBaseline||JSON.stringify(atlasBattleHistory)!==atlasBattleHistoryBaseline;}
+ function atlasBattleMark(){atlasBattleDirty=JSON.stringify(atlasBattle)!==atlasBattleBaseline||JSON.stringify(atlasBattleHistory)!==atlasBattleHistoryBaseline||JSON.stringify(atlasCompanionRoster)!==atlasCompanionBaseline||JSON.stringify(atlasMonsterPlan)!==atlasMonsterBaseline;}
  function atlasNoPending(){if(!atlasHasPending()&&!atlasManualSaving)return true;toast(tr('Αποθήκευσε πρώτα τις εκκρεμείς αλλαγές με Save.','Save pending changes first.'));return false;}
  window.addEventListener('beforeunload',e=>{if(atlasHasPending()||atlasManualSaving){e.preventDefault();e.returnValue='';}});
  document.addEventListener('input',e=>{if(!cloud.enabled||!cloud.ready||atlasManualSaving||!['notes-editor','plan-editor'].includes(e.target.id))return;const ch=c();if(!ch||!canEditCharacter(ch))return;ch[e.target.id==='notes-editor'?'notes':'plan']=e.target.value;atlasSaveUi();});
@@ -231,7 +231,7 @@
    const drafts=atlasDirtySheets().map(ch=>{
     const copy=structuredClone(ch);delete copy._ownerId;return copy;
    });
-   const output={application:'D&D Atlas',rulesVersion:'2024',schema:1,exportScope:'unsynced-local-draft',createdAt:new Date().toISOString(),characters:drafts,...(atlasBattleDirty?{encounter:atlasBattle,encounterHistory:atlasBattleHistory}:{}),pendingOperations:[...atlasPendingOps.values()],playerSubmissions:atlasPlayerDrafts};
+   const output={application:'D&D Atlas',rulesVersion:'2024',schema:1,exportScope:'unsynced-local-draft',createdAt:new Date().toISOString(),characters:drafts,...(atlasBattleDirty?{encounter:atlasBattle,encounterHistory:atlasBattleHistory,companionRoster:atlasCompanionRoster,monsterPlan:atlasMonsterPlan}:{}),pendingOperations:[...atlasPendingOps.values()],playerSubmissions:atlasPlayerDrafts};
    const blob=new Blob([JSON.stringify(output,null,2)],{type:'application/json'});
    const url=URL.createObjectURL(blob),a=document.createElement('a');
    a.href=url;a.download='dndatlas-unsaved-draft-'+new Date().toISOString().slice(0,10)+'.json';
@@ -242,7 +242,7 @@
    if(!cloud.enabled||!cloud.ready)return;
    if(cloud.pendingWrites)return toast(tr('Υπάρχει αποθήκευση σε εξέλιξη.','A save is still in progress.'));
    if(!confirm(tr('Απόρριψη ΟΛΩΝ των μη αποθηκευμένων αλλαγών και λήψη των δεδομένων της D1; Κατέβασε πρώτα το JSON αν τις χρειάζεσαι.','Discard ALL local unsaved changes and load the D1 version? Download a draft JSON first if you need them.')))return;
-   try{await cloudRefresh(true);atlasPendingOps.clear();atlasPlayerDrafts=[];atlasInbox=[];atlasCombatUndo=null;atlasBattleDirty=false;atlasBattleLoaded=false;atlasBattle=null;atlasBattleHistory=[];await cloudTagsRefresh();if(atlasDmAllowed()&&view==='dm-multiview'&&atlasDmTab!=='party')await atlasBattleLoad();renderApp();toast(tr('Ανανεώθηκαν τα δεδομένα της D1.','D1 data refreshed.'));}
+   try{await cloudRefresh(true);atlasPendingOps.clear();atlasPlayerDrafts=[];atlasInbox=[];atlasCombatUndo=null;atlasBattleDirty=false;atlasBattleLoaded=false;atlasBattle=null;atlasBattleHistory=[];atlasCompanionRoster=[];atlasCompanionBaseline='[]';atlasMonsterPlan={custom:[],templates:[]};atlasMonsterBaseline=JSON.stringify(atlasMonsterPlan);await cloudTagsRefresh();if(atlasDmAllowed()&&view==='dm-multiview'&&atlasDmTab!=='party')await atlasBattleLoad();renderApp();toast(tr('Ανανεώθηκαν τα δεδομένα της D1.','D1 data refreshed.'));}
    catch(e){toast(tr('Η ανανέωση απέτυχε: ','Refresh failed: ')+e.message);}
  }
 
@@ -347,7 +347,7 @@
    for(const s of ch.spellbook||[]){if(s.freeResourceId&&!(ch.resources||[]).some(r=>r.id===s.freeResourceId))add('warning',s.name,tr('Λείπει ο συνδεδεμένος πόρος δωρεάν χρήσεων.','Linked free-casting resource is missing.'),'spells');}
    if(atlasAttunementCount(ch)>3)add('warning','Attunement',tr('Υπέρβαση συνήθους ορίου 3.','Standard limit of 3 exceeded.'),'inventory');
    for(const i of ch.inventory||[]){if(i.containerId&&!atlasContainerAllowed(ch,i.id,i.containerId))add('warning',i.name,tr('Μη έγκυρο δοχείο.','Invalid container.'),'inventory');if(i.attuned&&(!i.requiresAttunement||Number(i.qty)!==1))add('warning',i.name,tr('Έλεγξε τον συντονισμό.','Review attunement.'),'inventory');}
-   for(const p of ch.pendingChoices2024||[])if(p.status!=='resolved')add('warning',p.label||p.key||tr('Εκκρεμής επιλογή','Pending choice'),tr('Απαιτείται επιλογή ή έλεγχος DM.','Choice or DM review required.'),'overview');
+   for(const p of (typeof atlasPendingEntries==='function'?atlasPendingEntries(ch):ch.pendingChoices2024||[]))if(p.status!=='resolved')add('warning',p.label||p.key||tr('Εκκρεμής επιλογή','Pending choice'),tr('Απαιτείται επιλογή ή έλεγχος DM.','Choice or DM review required.'),'overview');
    for(const [key,label] of [['proficiencyOverride','PB'],['passivePerceptionOverride','Passive Perception'],['spellDCOverride','Spell DC'],['spellAttackOverride','Spell Attack']])if(ch[key]!==''&&ch[key]!=null)add('override',label,tr('Καταχωρισμένη χειροκίνητη τιμή (όχι πιστοποίηση έγκρισης).','Recorded manual override (not proof of approval).'),'character');
    return issues;
  }
@@ -433,7 +433,7 @@
    const stats=[['AC',s.ac],[tr('Πρωτοβουλία (Init.)','Initiative'),signed(s.initiative)],[tr('Παθητική αντίληψη (PP)','Passive Perception'),s.pp],[tr('Ταχύτητα','Speed'),s.speed+' ft']];
    const resources=(ch.resources||[]).map(r=>'<div class="atlas-dm-resource"><span>'+esc(r.name)+'</span><b>'+esc(r.current??0)+' / '+esc(r.max??0)+'</b></div>').join('');
    const spells=s.slots.map(x=>'<span class="atlas-dm-chip">Lv '+esc(x.level)+' · '+x.remaining+'/'+x.max+'</span>').join('')+(s.pact?'<span class="atlas-dm-chip">Pact Lv '+esc(s.pact.level)+' · '+s.pact.remaining+'/'+s.pact.max+'</span>':'');
-   return '<article class="atlas-dm-card"><div class="atlas-dm-card-head"><div class="atlas-dm-avatar">'+portraitMarkup(ch)+'</div><div><h3>'+esc(ch.name)+'</h3><small>'+esc(classLabel(ch))+'</small>'+(ch.player?'<small>'+esc(ch.player)+'</small>':'')+'</div></div>'+atlasDmHpBar(s)+'<div class="atlas-dm-stats">'+stats.map(([label,value])=>'<div><small>'+esc(label)+'</small><b>'+esc(value)+'</b></div>').join('')+'</div>'+atlasDmStatus(ch,s)+'<div class="atlas-dm-resource"><span>Hit Dice · '+tr('διαθέσιμα','available')+'</span><b>'+s.hdRemaining+' / '+s.hdMax+'</b></div>'+(spells?'<div class="atlas-dm-block"><strong>'+tr('Θέσεις ξορκιών (Spell Slots)','Spell Slots')+'</strong><div class="atlas-dm-status">'+spells+'</div></div>':'')+(resources?'<details class="atlas-dm-resources"><summary>'+tr('Πόροι κλάσης','Class resources')+' ('+(ch.resources||[]).length+')</summary>'+resources+'</details>':'')+atlasDmActions(ch)+'</article>';
+   return '<article class="atlas-dm-card"><div class="atlas-dm-card-head"><div class="atlas-dm-avatar">'+portraitMarkup(ch)+'</div><div><h3>'+esc(ch.name)+'</h3><small>'+esc(classLabel(ch))+'</small>'+(ch.player?'<small>'+esc(ch.player)+'</small>':'')+'</div></div>'+atlasDmHpBar(s)+'<div class="atlas-dm-stats">'+stats.map(([label,value])=>'<div><small>'+esc(label)+'</small><b>'+esc(value)+'</b></div>').join('')+'</div>'+atlasDmStatus(ch,s)+'<div class="atlas-dm-resource"><span>Hit Dice · '+tr('διαθέσιμα','available')+'</span><b>'+s.hdRemaining+' / '+s.hdMax+'</b></div>'+(spells?'<div class="atlas-dm-block"><strong>'+tr('Θέσεις ξορκιών (Spell Slots)','Spell Slots')+'</strong><div class="atlas-dm-status">'+spells+'</div></div>':'')+(resources?'<details class="atlas-dm-resources"><summary>'+tr('Πόροι κλάσης','Class resources')+' ('+(ch.resources||[]).length+')</summary>'+resources+'</details>':'')+atlasPrimalPanel(ch,true)+atlasLinkedPanel(ch,true)+atlasDmActions(ch)+'</article>';
  }
  function atlasDmTable(rows){
    return '<div class="atlas-dm-table-wrap" tabindex="0" aria-label="'+attr(tr('Πίνακας παρέας','Party table'))+'"><table class="atlas-dm-table"><thead><tr>'+[tr('Χαρακτήρας','Character'),'HP','AC',tr('Πρωτοβουλία','Initiative'),tr('Παθητική αντίληψη','Passive Perception'),'Hit Dice',tr('Θέσεις ξορκιών','Spell Slots'),tr('Κατάσταση','Status'),tr('Ενέργειες','Actions')].map(n=>'<th scope="col">'+n+'</th>').join('')+'</tr></thead><tbody>'+rows.map(({ch,s})=>'<tr><th scope="row">'+esc(ch.name)+'<small>'+esc(classLabel(ch))+'</small></th><td>'+atlasDmHpBar(s)+'</td><td>'+s.ac+'</td><td>'+signed(s.initiative)+'</td><td>'+s.pp+'</td><td>'+s.hdRemaining+'/'+s.hdMax+'</td><td>'+(s.slotMax?s.slotRemaining+'/'+s.slotMax:'—')+'</td><td>'+atlasDmStatus(ch,s)+'</td><td>'+atlasDmActions(ch)+'</td></tr>').join('')+'</tbody></table></div>';
@@ -441,13 +441,13 @@
 
  // Encounter state is authoritative only after a successful revision-checked D1 write.
  let atlasDmTab='party',atlasBattle=null,atlasBattleRevision=0,atlasBattleLoaded=false,atlasBattleBusy=false,atlasBattleError='',atlasBattleAccount='';
- function atlasBattleReset(){atlasInbox=[];atlasCombatUndo=null;atlasBattleDirty=false;atlasBattleBaseline='';atlasBattleHistory=[];atlasBattleHistoryBaseline='[]';atlasDmTab='party';atlasBattle=null;atlasBattleRevision=0;atlasBattleLoaded=false;atlasBattleBusy=false;atlasBattleError='';atlasBattleAccount='';}
+ function atlasBattleReset(){atlasMonsterPlan={custom:[],templates:[]};atlasMonsterBaseline=JSON.stringify(atlasMonsterPlan);atlasCompanionRoster=[];atlasCompanionBaseline='[]';atlasInbox=[];atlasCombatUndo=null;atlasBattleDirty=false;atlasBattleBaseline='';atlasBattleHistory=[];atlasBattleHistoryBaseline='[]';atlasDmTab='party';atlasBattle=null;atlasBattleRevision=0;atlasBattleLoaded=false;atlasBattleBusy=false;atlasBattleError='';atlasBattleAccount='';}
  function atlasBattleOwner(){return atlasDmAllowed()?String(cloud.user.id)+':'+cloud.token:'';}
  function atlasBattleTabs(){return '<div class="atlas-combat-tabs" role="group" aria-label="'+attr(tr('Προβολή DM','DM view'))+'">'+[['party',tr('Παρέα (Party)','Party View')],['battle',tr('Μάχη (Battle)','Battle View')],['history',tr('Ιστορικό','History')]].map(([v,n])=>'<button class="atlas-combat-tab '+(atlasDmTab===v?'active':'')+'" aria-pressed="'+(atlasDmTab===v)+'" data-action="atlas-battle-tab:'+v+'">'+n+'</button>').join('')+'</div>';}
  async function atlasBattleLoad(){
    if(!atlasDmAllowed()||atlasBattleBusy||atlasManualSaving||atlasBattleDirty)return;
    const account=atlasBattleOwner();atlasBattleAccount=account;atlasBattleBusy=true;atlasBattleError='';renderApp();
-   try{const data=await cloudRequest('/encounter');if(atlasBattleOwner()!==account)return;atlasBattle=data.encounter;atlasBattleRevision=data.revision;atlasBattleHistory=data.history||[];atlasBattleBaseline=JSON.stringify(atlasBattle);atlasBattleHistoryBaseline=JSON.stringify(atlasBattleHistory);atlasBattleLoaded=true;await atlasReadInbox();}
+   try{const data=await cloudRequest('/encounter');if(atlasBattleOwner()!==account)return;atlasBattle=data.encounter;atlasBattleRevision=data.revision;atlasBattleHistory=data.history||[];atlasCompanionRoster=data.companions||[];atlasCompanionBaseline=JSON.stringify(atlasCompanionRoster);atlasMonsterPlan=data.monsterPlan||{custom:[],templates:[]};atlasMonsterBaseline=JSON.stringify(atlasMonsterPlan);atlasBattleBaseline=JSON.stringify(atlasBattle);atlasBattleHistoryBaseline=JSON.stringify(atlasBattleHistory);atlasBattleLoaded=true;await atlasReadInbox();}
    catch(e){if(atlasBattleOwner()===account){atlasBattleLoaded=false;atlasBattleError=e.message;}}
    finally{if(atlasBattleOwner()===account){atlasBattleBusy=false;if(view==='dm-multiview')renderApp();}}
  }
@@ -459,8 +459,9 @@
      if(atlasBattleHistory.length>=20||(atlasBattleHistory.reduce((n,h)=>n+(h.events||[]).length,0)+(next.events||[]).length)>1500)return toast(tr('Το ιστορικό είναι πλήρες. Εξήγαγε και διέγραψε μία μάχη πρώτα.','History is full. Export and delete an encounter first.'));
      const archiveId=uid(),archive={archiveId,name:next.name,round:next.round,participants:structuredClone(next.participants),events:structuredClone(next.events||[]),endedAt:new Date().toISOString()};
      atlasBattleHistory=[archive,...atlasBattleHistory];
-     next={...next,archiveId,phase:'ended',round:1,activeId:null,events:[],participants:next.participants.filter(p=>p.type==='player').map(p=>({...p,initiative:null,out:false}))};
+     next={...next,archiveId,phase:'ended',round:1,activeId:null,events:[],effects:[],participants:next.participants.filter(p=>p.type==='player'||p.rosterId).map(p=>({...p,initiative:null,out:false}))};
    }
+   if(next)atlasCompanionRoster=atlasCompanionSync(atlasCompanionRoster,next);
    atlasBattle=next;atlasBattleMark();if(modalOpen)closeModal();renderApp();
  }
  function atlasBattleStep(state,direction){
@@ -471,10 +472,221 @@
    return next;
  }
  function atlasBattleParticipant(ch){return {id:uid(),type:'player',characterId:ch.id,name:ch.name,initiative:null,out:false};}
+
+ // Persistent party roster lives in the same private revisioned encounter envelope.
+ let atlasCompanionRoster=[],atlasCompanionBaseline='[]';
+ const ATLAS_COMPANION_KINDS=[['companion','Σύντροφος','Companion'],['familiar','Οικείο πλάσμα','Familiar'],['mount','Υποζύγιο','Mount'],['summon','Επικαλεσμένο πλάσμα','Summon']];
+ function atlasCompanionKind(kind){const k=ATLAS_COMPANION_KINDS.find(x=>x[0]===kind);return k?tr(k[1]+' ('+k[2]+')',k[2]):kind;}
+ function atlasCompanionParticipant(q,initiative=null){
+   return {id:uid(),type:'ally',name:q.name,initiative,hp:q.hp,maxHp:q.maxHp,ac:q.ac,out:false,rosterId:q.id,ownerId:q.ownerId,companionKind:q.kind,speed:q.speed,actions:q.actions};
+ }
+ function atlasCompanionSync(roster,state){
+   return roster.map(q=>{const p=state?.participants.find(p=>p.rosterId===q.id);return p?{...q,hp:p.hp}:q;});
+ }
+ function atlasCompanionPanel(){
+   const b=atlasBattle,editable=!atlasBattleBusy&&!atlasManualSaving;
+   const button=(label,action,id='',disabled=false)=>'<button class="btn sm" data-action="atlas-battle-companion-'+action+(id?':'+attr(id):'')+'" '+(!editable||disabled?'disabled':'')+'>'+label+'</button>';
+   const rows=atlasCompanionRoster.map(q=>{
+     const joined=b?.participants.some(p=>p.rosterId===q.id)&&b.phase!=='ended',owner=characters.find(ch=>ch.id===q.ownerId);
+     return '<div class="tile"><div style="min-width:0;flex:1"><strong>'+esc(q.name)+'</strong><small class="desc">'+esc(atlasCompanionKind(q.kind))+' · '+esc(owner?.name||(q.ownerId?tr('Λείπει ο ιδιοκτήτης','Missing owner'):tr('Παρέα','Party')))+' · HP '+q.hp+'/'+q.maxHp+' · AC '+q.ac+' · '+q.speed+' ft</small></div><div class="actions-inline">'+(b&&b.phase!=='ended'&&!joined?button(tr('Στη μάχη','Join battle'),'join',q.id):'')+button(tr('Επεξεργασία','Edit'),'edit',q.id,joined)+button(tr('Διαγραφή','Delete'),'delete',q.id,joined)+'</div></div>';
+   }).join('');
+   return '<section class="atlas-dm-card"><div class="page-title"><div><h3>'+tr('Σύντροφοι παρέας','Party companions')+'</h3><small>'+tr('Μόνιμη βιβλιοθήκη · παραμένει μετά τη μάχη','Persistent library · survives encounters')+'</small></div><div class="actions-inline">'+button(tr('+ Σύντροφος','+ Companion'),'new')+button(tr('Εισαγωγή από φύλλο','Import from sheet'),'import')+(b&&b.phase!=='ended'?button(tr('+ Επίκληση','+ Summon'),'summon'):'')+'</div></div>'+(rows||'<p class="muted small">'+tr('Δεν υπάρχουν σύντροφοι.','No companions yet.')+'</p>')+'<p class="muted small">'+tr('Οι εισαγωγές είναι ανεξάρτητα αντίγραφα για τον DM. Τα HP μάχης ενημερώνουν τη βιβλιοθήκη, όχι το αρχικό φύλλο.','Imports are independent DM copies. Battle HP updates this library, not the original character sheet.')+'</p></section>';
+ }
+ function atlasCompanionOpen(mode,q={}){
+   const b=atlasBattle,summon=mode==='summon',join=mode==='join';
+   const option=(items,value)=>items.map(([v,n])=>'<option value="'+attr(v)+'" '+(v===value?'selected':'')+'>'+esc(n)+'</option>').join('');
+   const select=(key,label,items,value)=>'<label class="field">'+label+'<select name="'+key+'">'+option(items,value)+'</select></label>';
+   const input=(key,label,type,value,extra='')=>'<label class="field">'+label+'<input name="'+key+'" type="'+type+'" value="'+attr(value??'')+'" '+extra+'></label>';
+   let fields='';
+   if(mode==='import'){
+     const sources=characters.flatMap(ch=>(ch.companions||[]).map((p,i)=>[JSON.stringify([ch.id,p.id]),ch.name+' · '+p.name]));
+     if(!sources.length)return toast(tr('Δεν υπάρχουν σύντροφοι στα φύλλα.','No sheet companions available.'));
+     fields=select('source',tr('Σύντροφος φύλλου','Sheet companion'),sources,'')+'<p class="muted">'+tr('Δημιουργεί ανεξάρτητο αντίγραφο στη βιβλιοθήκη DM.','Creates an independent copy in the DM library.')+'</p>';
+   }else if(join){
+     fields='<p>'+esc(q.name)+'</p>'+(b.phase==='setup'?'<p>'+tr('Συμπλήρωσε Initiative στην προετοιμασία.','Enter Initiative during setup.')+'</p>':input('initiative',tr('Τελικό Initiative','Final Initiative'),'number',0,'min="-100" max="200" step="1" required'));
+   }else{
+     fields='<div class="form-grid">'+input('name',tr('Όνομα','Name'),'text',q.name,'maxlength="160" required')+
+       (!summon?select('kind',tr('Τύπος','Type'),ATLAS_COMPANION_KINDS.filter(x=>x[0]!=='summon').map(x=>[x[0],atlasCompanionKind(x[0])]),q.kind||'companion'):'')+
+       select('ownerId',tr('Ιδιοκτήτης / χειριστής','Owner / controller'),[['',tr('Παρέα / DM','Party / DM')],...characters.map(ch=>[ch.id,ch.name])],q.ownerId||'')+
+       input('maxHp','Max HP','number',q.maxHp??1,'min="1" max="99999" step="1" required')+input('hp','HP','number',q.hp??1,'min="0" max="99999" step="1" required')+
+       input('ac','AC','number',q.ac??10,'min="0" max="99" step="1" required')+input('speed',tr('Ταχύτητα (ft)','Speed (ft)'),'number',q.speed??30,'min="0" max="999" step="1" required')+
+       '<label class="field wide">'+tr('Επιθέσεις / ικανότητες / κανόνες πηγής','Attacks / abilities / source rules')+'<textarea name="actions" maxlength="2000" rows="4">'+esc(q.actions||'')+'</textarea></label>'+
+       (summon?input('expiresRound',tr('Γύρος υπενθύμισης λήξης (προαιρετικός)','Expiration reminder round (optional)'),'number','','min="'+b.round+'" max="99999" step="1"')+(b.phase!=='setup'?input('initiative',tr('Τελικό Initiative','Final Initiative'),'number',0,'min="-100" max="200" step="1" required'):''):'')+'</div>';
+   }
+   openModal(mode==='import'?tr('Εισαγωγή συντρόφου','Import companion'):join?tr('Συμμετοχή στη μάχη','Join encounter'):summon?tr('Προσθήκη επίκλησης','Add summon'):tr('Σύντροφος παρέας','Party companion'),'<form id="atlas-companion-form" data-mode="'+mode+'" data-id="'+attr(q.id||'')+'" data-revision="'+atlasBattleRevision+'" data-fight="'+attr(b?.fightId||'')+'">'+fields+'<p class="muted small">'+tr('Χρησιμοποίησε το Initiative και τα στατιστικά της συγκεκριμένης πηγής 2024. Δεν γίνονται αυτόματες ζαριές.','Use Initiative and stats from the specific 2024 source. No automatic rolls.')+'</p></form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button type="submit" form="atlas-companion-form" class="btn primary">'+tr('Εφαρμογή','Apply')+'</button>',true);
+ }
+ function atlasCompanionCommit(roster,b=atlasBattle){
+   atlasCompanionRoster=roster;atlasBattleSave(b);
+ }
+ function atlasCompanionAction(action,id){
+   if(!atlasDmAllowed()||!atlasBattleLoaded||atlasBattleBusy||atlasManualSaving)return;
+   const b=atlasBattle,q=atlasCompanionRoster.find(x=>x.id===id),p=b?.participants.find(x=>x.id===id);
+   if(action==='new'||action==='import')return atlasCompanionOpen(action);
+   if(action==='summon'&&b&&b.phase!=='ended')return atlasCompanionOpen(action);
+   if(action==='join'&&q&&b&&b.phase!=='ended'&&!b.participants.some(p=>p.rosterId===id))return atlasCompanionOpen(action,q);
+   if(action==='detail'&&p&&p.companionKind)return openModal(p.name,'<p>'+esc(atlasCompanionKind(p.companionKind))+' · HP '+p.hp+'/'+p.maxHp+' · AC '+p.ac+' · '+p.speed+' ft</p><p style="white-space:pre-wrap">'+esc(p.actions||tr('Δεν υπάρχουν σημειώσεις.','No notes.'))+'</p>',btn(tr('Κλείσιμο','Close'),'close-modal'));
+   if(action==='dismiss'&&p?.companionKind==='summon'&&!p.rosterId&&b.phase!=='ended'){
+     if(p.id===b.activeId)return toast(tr('Προχώρησε πρώτα στο επόμενο turn.','Advance to the next turn first.'));
+     const next=structuredClone(b),x=next.participants.find(x=>x.id===id);
+     if(x.dismissed)return;
+     x.out=true;x.dismissed=true;delete x.expiresRound;
+     const removed=new Set((next.effects||[]).filter(e=>e.targetId===id||e.turnId===id).map(e=>e.id));next.effects=(next.effects||[]).filter(e=>!removed.has(e.id)&&!removed.has(e.parent));
+     try{if(next.phase!=='setup')atlasBattleAppend(next,{kind:'other',label:tr('Λήξη επίκλησης','Summon dismissed'),target:x.id,targetName:x.name,amount:0,note:'',outcome:''});atlasBattleSave(next);}catch(e){toast(e.message);}return;
+   }
+   if(!q||b&&b.phase!=='ended'&&b.participants.some(p=>p.rosterId===id))return;
+   if(action==='edit')return atlasCompanionOpen(action,q);
+   if(action==='delete'&&confirm(tr('Διαγραφή συντρόφου από τη βιβλιοθήκη;','Delete companion from library?'))){
+     const next=b?.phase==='ended'?{...b,participants:b.participants.filter(p=>p.rosterId!==id)}:b;
+     atlasCompanionCommit(atlasCompanionRoster.filter(x=>x.id!==id),next);
+   }
+ }
+ document.addEventListener('submit',ev=>{
+   const f=ev.target;if(f.id!=='atlas-companion-form')return;ev.preventDefault();ev.stopImmediatePropagation();
+   if(!atlasDmAllowed()||atlasManualSaving||atlasBattleBusy||!atlasBattleLoaded||Number(f.dataset.revision)!==atlasBattleRevision||f.dataset.fight!==(atlasBattle?.fightId||''))return;
+   const fd=new FormData(f),mode=f.dataset.mode,b=atlasBattle,roster=structuredClone(atlasCompanionRoster);
+   const int=(n,min,max)=>{const raw=fd.get(n),v=Number(raw);if(raw===null||String(raw).trim()===''||!Number.isInteger(v)||v<min||v>max)throw Error(tr('Μη έγκυρη αριθμητική τιμή.','Invalid numeric value.'));return v;};
+   try{
+     if(mode==='join'){
+       const q=roster.find(q=>q.id===f.dataset.id);if(!q||!b||b.phase==='ended'||b.participants.some(p=>p.rosterId===q.id)||b.participants.length>=60)return;
+       const next=structuredClone(b);next.participants.push(atlasCompanionParticipant(q,b.phase==='setup'?null:int('initiative',-100,200)));return atlasBattleSave(next);
+     }
+     let q;
+     if(mode==='import'){
+       const [ownerId,sourceId]=JSON.parse(String(fd.get('source')||'[]')),ch=characters.find(ch=>ch.id===ownerId),source=ch?.companions?.find(p=>p.id===sourceId);
+       if(!source||!source.id||roster.some(q=>q.ownerId===ownerId&&q.sourceId===source.id))throw Error(tr('Ο σύντροφος έχει ήδη εισαχθεί ή λείπει.','Companion already imported or unavailable.'));
+       const maxHp=Math.max(1,Math.min(99999,Math.trunc(Number(source.maxHp)||1)));
+       const type=String(source.type||'').toLowerCase();
+       q={id:uid(),sourceId:String(source.id).slice(0,80),ownerId,name:String(source.name||'').trim().slice(0,160),kind:type.includes('familiar')?'familiar':type.includes('mount')?'mount':'companion',maxHp,hp:Math.max(0,Math.min(maxHp,Math.trunc(Number(source.hp)||0))),ac:Math.max(0,Math.min(99,Math.trunc(Number(source.ac)||0))),speed:Math.max(0,Math.min(999,Math.trunc(Number(source.speed)||0))),actions:String(source.description||'').slice(0,2000)};
+     }else{
+       const maxHp=int('maxHp',1,99999),ownerId=String(fd.get('ownerId')||''),kind=mode==='summon'?'summon':String(fd.get('kind'));
+       q={id:mode==='edit'?f.dataset.id:uid(),ownerId,name:String(fd.get('name')||'').trim(),kind,maxHp,hp:int('hp',0,maxHp),ac:int('ac',0,99),speed:int('speed',0,999),actions:String(fd.get('actions')||'').trim()};
+       if(ownerId&&!characters.some(ch=>ch.id===ownerId)||!ATLAS_COMPANION_KINDS.some(x=>x[0]===kind))throw Error(tr('Μη έγκυρος σύντροφος.','Invalid companion.'));
+     }
+     if(!q.name||q.name.length>160||q.actions.length>2000)throw Error(tr('Συμπλήρωσε έγκυρο όνομα και σημειώσεις.','Enter a valid name and notes.'));
+     if(mode==='summon'){
+       if(!b||b.phase==='ended'||b.participants.length>=60)return;
+       const next=structuredClone(b),p=atlasCompanionParticipant(q,b.phase==='setup'?null:int('initiative',-100,200));delete p.rosterId;
+       if(String(fd.get('expiresRound')||'').trim())p.expiresRound=int('expiresRound',b.round,99999);
+       next.participants.push(p);return atlasBattleSave(next);
+     }
+     if(mode==='edit'){
+       const i=roster.findIndex(x=>x.id===q.id);if(i<0||b&&b.phase!=='ended'&&b.participants.some(p=>p.rosterId===q.id))return;
+       if(roster[i].sourceId)q.sourceId=roster[i].sourceId;roster[i]=q;
+       const next=b?.phase==='ended'?{...b,participants:b.participants.map(p=>p.rosterId===q.id?{...atlasCompanionParticipant(q),id:p.id}:p)}:b;
+       return atlasCompanionCommit(roster,next);
+     }
+     if(roster.length>=60)throw Error(tr('Μέγιστο 60 σύντροφοι.','Maximum 60 companions.'));
+     roster.push(q);atlasCompanionCommit(roster);
+   }catch(e){toast(e.message);}
+ },true);
+
+
+ // v3.15.0 Monster library & encounter templates; DM-only private draft.
+ let atlasMonsterPage=0,atlasMonsterPlan={custom:[],templates:[]},atlasMonsterBaseline='{"custom":[],"templates":[]}';
+ const ATLAS_CR=['0','1/8','1/4','1/2',...Array.from({length:30},(_,i)=>String(i+1))];
+ const ATLAS_CR_XP=[10,25,50,100,200,450,700,1100,1800,2300,2900,3900,5000,5900,7200,8400,10000,11500,13000,15000,18000,20000,22000,25000,33000,41000,50000,62000,75000,90000,105000,120000,135000,155000];
+ const ATLAS_XP_BUDGET=[[50,75,100],[100,150,200],[150,225,400],[250,375,500],[500,750,1100],[600,1000,1400],[750,1300,1700],[1000,1700,2100],[1300,2000,2600],[1600,2300,3100],[1900,2900,4100],[2200,3700,4700],[2600,4200,5400],[2900,4900,6200],[3300,5400,7800],[3800,6100,9800],[4500,7200,11700],[5000,8700,14200],[5500,10700,17200],[6400,13200,22000]];
+ function atlasMonsterBudget(levels){return levels.reduce((a,n)=>{const row=ATLAS_XP_BUDGET[n-1];return row?a.map((x,i)=>x+row[i]):a;},[0,0,0]);}
+ function atlasMonsterDifficulty(xp,budget){return !budget[2]?'unknown':xp<=budget[0]?'low':xp<=budget[1]?'moderate':xp<=budget[2]?'high':'over';}
+ function atlasMonsterAll(){return [...(window.ATLAS_MONSTERS_2024||[]),...atlasMonsterPlan.custom];}
+ function atlasMonsterFind(id){return atlasMonsterAll().find(x=>x.id===id);}
+ function atlasMonsterSnapshot(m){return {id:m.id,name:m.name,cr:m.cr,xp:m.xp,...(m.id.startsWith('custom-')?{detail:m.detail}: {})};}
+ function atlasMonsterParticipant(m,name,initiative){return {id:uid(),type:'enemy',name,initiative,hp:m.hp,maxHp:m.hp,ac:m.ac,out:false,monster:atlasMonsterSnapshot(m)};}
+ function atlasMonsterStats(b){
+   const levels=(b?.participants||[]).filter(p=>p.type==='player').map(p=>characters.find(ch=>ch.id===p.characterId)).filter(Boolean).map(ch=>totalLevel(ch)).filter(n=>Number.isInteger(n)&&n>=1&&n<=20);
+   const enemies=(b?.participants||[]).filter(p=>p.type==='enemy');
+   const xp=enemies.reduce((n,p)=>n+(p.monster?.xp||0),0),unknown=enemies.filter(p=>!p.monster).length;
+   return {levels,budget:atlasMonsterBudget(levels),xp,unknown,enemies:enemies.length};
+ }
+ function atlasMonsterPanel(b){
+   const v=atlasMonsterStats(b),phase=b?.phase,live=b&&phase!=='ended',label={low:tr('Χαμηλή (Low)','Low'),moderate:tr('Μέτρια (Moderate)','Moderate'),high:tr('Υψηλή (High)','High'),over:tr('Πάνω από τον υψηλό προϋπολογισμό','Above high budget'),unknown:tr('Άγνωστη','Unknown')};
+   const button=(l,a,id='',disabled=false)=>'<button class="btn sm" data-action="atlas-battle-monster-'+a+(id?':'+attr(id):'')+'" '+(disabled||atlasBattleBusy||atlasManualSaving?'disabled':'')+'>'+l+'</button>';
+   return '<section class="atlas-dm-card"><div class="page-title"><div><h3>'+tr('Βιβλιοθήκη τεράτων','Monster Library')+'</h3><small>'+atlasMonsterAll().length+' · SRD 5.2.1 / '+tr('Προσαρμοσμένα','Custom')+'</small></div><div class="actions-inline">'+button(tr('Αναζήτηση πλασμάτων','Browse creatures'),'browse')+button(tr('+ Προσαρμοσμένο','+ Custom'),'custom')+'</div></div>'+
+   (live?'<div class="notice"><strong>'+tr('Προϋπολογισμός XP 2024','2024 XP budget')+'</strong><p>'+tr('Παίκτες','Players')+': '+v.levels.length+' · '+tr('Εχθροί','Enemies')+': '+v.enemies+' · XP '+v.xp.toLocaleString()+' · '+label[atlasMonsterDifficulty(v.xp,v.budget)]+'</p><small>'+tr('Χαμηλή','Low')+' '+v.budget[0]+' · '+tr('Μέτρια','Moderate')+' '+v.budget[1]+' · '+tr('Υψηλή','High')+' '+v.budget[2]+(v.unknown?' · '+v.unknown+' '+tr('εχθροί χωρίς XP — εκτίμηση ελλιπής','enemies without XP — incomplete estimate'):'')+'</small></div>':'')+
+   '<div class="page-title"><h3>'+tr('Πρότυπα μαχών','Encounter Templates')+'</h3>'+button(tr('Αποθήκευση σύνθεσης','Save composition'),'template-save','',!live||!v.enemies||!!v.unknown)+'</div>'+
+   (atlasMonsterPlan.templates.map(t=>'<div class="tile"><div style="flex:1;min-width:0"><strong>'+esc(t.name)+'</strong><small class="desc">'+t.enemies.length+' '+tr('εχθροί','enemies')+'</small></div><div class="actions-inline">'+button(tr('Φόρτωση','Load'),'template-load',t.id,live&&phase!=='setup')+button(tr('Διαγραφή','Delete'),'template-delete',t.id)+'</div></div>').join('')||'<p class="muted small">'+tr('Δεν υπάρχουν πρότυπα.','No templates.')+'</p>')+
+   '<p class="muted small">'+tr('Η εκτίμηση βασίζεται στο άθροισμα XP, χωρίς πολλαπλασιαστή 2014. Τα πραγματικά αποτελέσματα εξαρτώνται από τη σύνθεση, τους πόρους και τις τακτικές.','Estimate uses summed XP, without the 2014 multiplier. Actual challenge depends on composition, resources and tactics.')+'</p><small>SRD 5.2.1 · <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener noreferrer">Wizards of the Coast</a> · CC BY 4.0</small></section>';
+ }
+ function atlasMonsterBrowse(){
+   atlasMonsterPage=0;const all=atlasMonsterAll(),options=(items)=>items.map(x=>'<option value="'+attr(x)+'">'+esc(x)+'</option>').join('');
+   openModal(tr('Βιβλιοθήκη τεράτων','Monster Library'),'<div class="form-grid"><label class="field wide">'+tr('Αναζήτηση','Search')+'<input id="atlas-monster-search" type="search"></label><label class="field">CR<select id="atlas-monster-cr"><option value="">'+tr('Όλα','All')+'</option>'+options(ATLAS_CR)+'</select></label><label class="field">'+tr('Τύπος','Type')+'<select id="atlas-monster-type"><option value="">'+tr('Όλα','All')+'</option>'+options([...new Set(all.map(x=>x.type))].sort())+'</select></label><label class="field">'+tr('Μέγεθος','Size')+'<select id="atlas-monster-size"><option value="">'+tr('Όλα','All')+'</option>'+options([...new Set(all.map(x=>x.size))].sort())+'</select></label></div><div id="atlas-monster-results"></div>',btn(tr('Κλείσιμο','Close'),'close-modal'),true);atlasMonsterSearch();
+ }
+ function atlasMonsterSearch(){
+   const root=document.getElementById('atlas-monster-results');if(!root)return;
+   const v=id=>document.getElementById('atlas-monster-'+id)?.value||'',q=v('search').toLowerCase().trim();
+   const rows=atlasMonsterAll().filter(m=>(!q||m.name.toLowerCase().includes(q))&&(!v('cr')||m.cr===v('cr'))&&(!v('type')||m.type===v('type'))&&(!v('size')||m.size===v('size')));
+   const pages=Math.max(1,Math.ceil(rows.length/30));atlasMonsterPage=Math.max(0,Math.min(pages-1,atlasMonsterPage));
+   root.innerHTML='<p class="muted small">'+rows.length+' '+tr('αποτελέσματα','results')+' · '+(atlasMonsterPage+1)+' / '+pages+'</p>'+rows.slice(atlasMonsterPage*30,(atlasMonsterPage+1)*30).map(m=>'<button class="tile" data-action="atlas-battle-monster-detail:'+attr(m.id)+'"><span><strong>'+esc(m.name)+'</strong><small class="desc">'+esc(m.size)+' · '+esc(m.type)+' · CR '+esc(m.cr)+' · '+m.xp+' XP'+(m.id.startsWith('custom-')?' · Custom':'')+'</small></span><span>HP '+m.hp+' · AC '+m.ac+' →</span></button>').join('')+'<div class="actions-inline"><button class="btn sm" data-action="atlas-battle-monster-prev" '+(atlasMonsterPage===0?'disabled':'')+'>'+tr('Προηγούμενα','Previous')+'</button><button class="btn sm" data-action="atlas-battle-monster-next" '+(atlasMonsterPage+1>=pages?'disabled':'')+'>'+tr('Επόμενα','Next')+'</button></div>';
+ }
+ function atlasMonsterDetail(m,participant=null){
+   const b=atlasBattle,live=b&&b.phase!=='ended',custom=m.id.startsWith('custom-'),detail=participant?.monster?.detail??m.detail??'';
+   const form=live&&!participant?'<form id="atlas-monster-form" data-mode="add" data-id="'+attr(m.id)+'" data-revision="'+atlasBattleRevision+'" data-fight="'+attr(b.fightId||'')+'"><div class="form-grid"><label class="field">'+tr('Πλήθος','Quantity')+'<input type="number" name="count" min="1" max="60" value="1" required></label><label class="field">'+tr('Κοινό τελικό Initiative (προαιρετικό στην προετοιμασία)','Shared final Initiative (optional in setup)')+'<input type="number" name="initiative" min="-100" max="200" step="1" '+(b.phase==='setup'?'':'required')+'></label></div><p class="muted small">'+tr('Εισάγετε αποτέλεσμα πραγματικού ζαριού ή το Initiative Score της πηγής.','Enter a physical roll total or the source Initiative Score.')+' ('+m.initiative+')</p></form>':'';
+   openModal(participant?.name||m.name,'<div class="detail-meta"><span class="chip gold">HP '+(participant?participant.hp+'/'+participant.maxHp:m.hp)+'</span><span class="chip">AC '+m.ac+'</span><span class="chip">CR '+esc(m.cr)+' · '+m.xp+' XP</span><span class="chip">'+(custom?'Custom':'SRD 5.2.1')+'</span></div><div style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(detail)+'</div>'+form,btn(tr('Πίσω','Back'),'atlas-battle-monster-browse')+(custom&&!participant?btn(tr('Επεξεργασία','Edit'),'atlas-battle-monster-edit:'+m.id)+btn(tr('Διαγραφή','Delete'),'atlas-battle-monster-delete:'+m.id):'')+(form?'<button type="submit" form="atlas-monster-form" class="btn primary">'+tr('Προσθήκη στη μάχη','Add to encounter')+'</button>':''),true);
+ }
+ function atlasMonsterCustom(m={}){
+   const input=(key,label,type,value,extra='')=>'<label class="field">'+label+'<input name="'+key+'" type="'+type+'" value="'+attr(value??'')+'" '+extra+'></label>';
+   const select=(key,label,items,value)=>'<label class="field">'+label+'<select name="'+key+'">'+items.map(x=>'<option value="'+attr(x)+'" '+(x===value?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>';
+   openModal(tr('Προσαρμοσμένο τέρας','Custom monster'),'<form id="atlas-monster-form" data-mode="custom" data-id="'+attr(m.id||'')+'" data-revision="'+atlasBattleRevision+'" data-fight="'+attr(atlasBattle?.fightId||'')+'"><div class="form-grid">'+input('name',tr('Όνομα','Name'),'text',m.name,'maxlength="160" required')+select('size',tr('Μέγεθος','Size'),['Tiny','Small','Medium','Large','Huge','Gargantuan'],m.size||'Medium')+select('type',tr('Τύπος','Type'),['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend','Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'],m.type||'Humanoid')+select('cr','CR',ATLAS_CR,m.cr||'0')+input('hp','HP','number',m.hp??1,'min="1" max="99999" required')+input('ac','AC','number',m.ac??10,'min="0" max="99" required')+input('initiative',tr('Βαθμός πρωτοβουλίας','Initiative Score'),'number',m.initiative??10,'min="-100" max="200" required')+'<label class="field wide">'+tr('Πλήρες stat block / επιθέσεις / ανοσίες','Stat block / attacks / immunities')+'<textarea name="detail" rows="7" maxlength="2000">'+esc(m.detail||'')+'</textarea></label></div></form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button type="submit" form="atlas-monster-form" class="btn primary">'+tr('Εφαρμογή','Apply')+'</button>',true);
+ }
+ function atlasMonsterCommit(plan,b=atlasBattle){atlasMonsterPlan=plan;atlasBattleSave(b);}
+ function atlasMonsterAction(action,id){
+   if(!atlasDmAllowed()||!atlasBattleLoaded||atlasBattleBusy||atlasManualSaving)return;
+   const b=atlasBattle,plan=structuredClone(atlasMonsterPlan),m=atlasMonsterFind(id);
+   if(action==='browse')return atlasMonsterBrowse();
+   if(action==='prev'||action==='next'){atlasMonsterPage+=action==='next'?1:-1;return atlasMonsterSearch();}
+   if(action==='detail'&&m)return atlasMonsterDetail(m);
+   if(action==='participant'){
+     const p=b?.participants.find(x=>x.id===id);if(!p?.monster)return;
+     const def={...(atlasMonsterFind(p.monster.id)||{}),...p.monster,hp:p.maxHp,ac:p.ac,initiative:10};
+     return atlasMonsterDetail(def,p);
+   }
+   if(action==='custom'||action==='edit'&&m?.id.startsWith('custom-'))return atlasMonsterCustom(action==='edit'?m:{});
+   if(action==='delete'&&m?.id.startsWith('custom-')&&confirm(tr('Διαγραφή από τη βιβλιοθήκη; Οι υπάρχουσες μάχες κρατούν το αντίγραφο.','Delete from library? Existing encounters keep their snapshot.'))){plan.custom=plan.custom.filter(x=>x.id!==id);return atlasMonsterCommit(plan);}
+   if(action==='template-save'&&b&&b.phase!=='ended'){
+     const enemies=b.participants.filter(p=>p.type==='enemy');if(!enemies.length||enemies.some(p=>!p.monster))return;
+     openModal(tr('Αποθήκευση προτύπου','Save template'),'<form id="atlas-monster-form" data-mode="template" data-revision="'+atlasBattleRevision+'" data-fight="'+attr(b.fightId||'')+'"><label class="field">'+tr('Όνομα προτύπου','Template name')+'<input name="name" maxlength="120" required value="'+attr(b.name)+'"></label></form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button type="submit" form="atlas-monster-form" class="btn primary">'+tr('Εφαρμογή','Apply')+'</button>');return;
+   }
+   const t=plan.templates.find(x=>x.id===id);if(!t)return;
+   if(action==='template-delete'&&confirm(tr('Διαγραφή προτύπου;','Delete template?'))){plan.templates=plan.templates.filter(x=>x.id!==id);return atlasMonsterCommit(plan);}
+   if(action==='template-load'&&(!b||['setup','ended'].includes(b.phase))){
+     const next=b?.phase==='setup'?structuredClone(b):{name:t.name,phase:'setup',round:1,activeId:null,events:[],fightId:crypto.randomUUID(),reviews:[],participants:[...characters.map(atlasBattleParticipant),...atlasCompanionRoster.map(q=>atlasCompanionParticipant(q))]};
+     if(next.participants.length+t.enemies.length>60)return toast(tr('Μέγιστο 60 συμμετέχοντες.','Maximum 60 combatants.'));
+     if(b?.phase==='setup'&&!confirm(tr('Προσθήκη των εχθρών στο τρέχον encounter;','Append enemies to the current encounter?')))return;
+     next.participants.push(...t.enemies.map(p=>({...structuredClone(p),id:uid(),hp:p.maxHp,initiative:null,out:false})));
+     return atlasBattleSave(next);
+   }
+ }
+ document.addEventListener('input',e=>{if(e.target.id==='atlas-monster-search'){atlasMonsterPage=0;atlasMonsterSearch();}});
+ document.addEventListener('change',e=>{if(['atlas-monster-cr','atlas-monster-type','atlas-monster-size'].includes(e.target.id)){atlasMonsterPage=0;atlasMonsterSearch();}});
+ document.addEventListener('submit',e=>{
+   const f=e.target;if(f.id!=='atlas-monster-form')return;e.preventDefault();e.stopImmediatePropagation();
+   if(!atlasDmAllowed()||atlasManualSaving||atlasBattleBusy||!atlasBattleLoaded||Number(f.dataset.revision)!==atlasBattleRevision||f.dataset.fight!==(atlasBattle?.fightId||''))return;
+   const fd=new FormData(f),mode=f.dataset.mode,b=atlasBattle,plan=structuredClone(atlasMonsterPlan);
+   const integer=(n,min,max)=>{const raw=fd.get(n),v=Number(raw);if(raw===null||String(raw).trim()===''||!Number.isInteger(v)||v<min||v>max)throw Error(tr('Μη έγκυρη αριθμητική τιμή.','Invalid number.'));return v;};
+   try{
+     if(mode==='add'){
+       const m=atlasMonsterFind(f.dataset.id);if(!m||!b||b.phase==='ended')return;
+       const count=integer('count',1,60),initiative=String(fd.get('initiative')||'').trim()?integer('initiative',-100,200):null;
+       if(initiative===null&&b.phase!=='setup'||b.participants.length+count>60)throw Error(tr('Συμπλήρωσε Initiative και έλεγξε το όριο 60 συμμετεχόντων.','Enter Initiative and check the 60 combatant limit.'));
+       const next=structuredClone(b);let n=1;for(let i=0;i<count;i++){let name=m.name;while(next.participants.some(p=>p.name===name))name=m.name.slice(0,150)+' '+(++n);next.participants.push(atlasMonsterParticipant(m,name,initiative));}return atlasBattleSave(next);
+     }
+     const name=String(fd.get('name')||'').trim();if(!name||name.length>(mode==='template'?120:160))return;
+     if(mode==='custom'){
+       const cr=String(fd.get('cr')),index=ATLAS_CR.indexOf(cr),detail=String(fd.get('detail')||'').trim(),size=String(fd.get('size')),type=String(fd.get('type'));if(index<0||detail.length>2000)return;
+       const m={id:f.dataset.id||'custom-'+crypto.randomUUID(),name,size,type,cr,xp:ATLAS_CR_XP[index],hp:integer('hp',1,99999),ac:integer('ac',0,99),initiative:integer('initiative',-100,200),detail};
+       const i=plan.custom.findIndex(x=>x.id===m.id);if(i>=0)plan.custom[i]=m;else{if(plan.custom.length>=40)throw Error(tr('Μέγιστο 40 προσαρμοσμένα τέρατα.','Maximum 40 custom monsters.'));plan.custom.push(m);}return atlasMonsterCommit(plan);
+     }
+     if(mode==='template'&&b&&b.phase!=='ended'){
+       const enemies=b.participants.filter(p=>p.type==='enemy');if(!enemies.length||enemies.some(p=>!p.monster)||plan.templates.length>=20)throw Error(tr('Μέγιστο 20 πρότυπα, με γνωστό XP για κάθε εχθρό.','Maximum 20 templates, with known XP for every enemy.'));
+       plan.templates.push({id:uid(),name,enemies:enemies.map(p=>({...structuredClone(p),hp:p.maxHp,initiative:null,out:false}))});return atlasMonsterCommit(plan);
+     }
+   }catch(err){toast(err.message);}
+ },true);
+
  function atlasBattleNew(){
    if(!atlasDmAllowed()||!atlasBattleLoaded||atlasBattleBusy)return;
    if(atlasBattle&&atlasBattle.phase!=='ended')return;
-   openModal(tr('Νέα μάχη','New encounter'),'<form id="atlas-battle-form" data-mode="new" data-revision="'+atlasBattleRevision+'"><label class="field">'+tr('Όνομα μάχης','Encounter name')+'<input name="name" maxlength="120" required></label><p>'+tr('Επίλεξε συμμετέχοντες','Select participants')+'</p>'+characters.map(ch=>'<label class="atlas-rest-check"><input type="checkbox" name="player" value="'+attr(ch.id)+'" checked>'+esc(ch.name)+'</label>').join('')+'</form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button type="submit" form="atlas-battle-form" class="btn primary">'+tr('Δημιουργία','Create')+'</button>');
+   openModal(tr('Νέα μάχη','New encounter'),'<form id="atlas-battle-form" data-mode="new" data-revision="'+atlasBattleRevision+'"><label class="field">'+tr('Όνομα μάχης','Encounter name')+'<input name="name" maxlength="120" required></label><p>'+tr('Επίλεξε συμμετέχοντες','Select participants')+'</p>'+characters.map(ch=>'<label class="atlas-rest-check"><input type="checkbox" name="player" value="'+attr(ch.id)+'" checked>'+esc(ch.name)+'</label>').join('')+atlasCompanionRoster.map(q=>'<label class="atlas-rest-check"><input type="checkbox" name="companion" value="'+attr(q.id)+'" checked>'+esc(q.name)+' · '+esc(atlasCompanionKind(q.kind))+'</label>').join('')+'</form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button type="submit" form="atlas-battle-form" class="btn primary">'+tr('Δημιουργία','Create')+'</button>');
  }
  function atlasBattleEdit(mode,id=''){
    if(!atlasDmAllowed()||!atlasBattleLoaded||atlasBattleBusy||!atlasBattle||atlasBattle.phase==='ended')return;
@@ -499,6 +711,9 @@
    if(action==='copy'){const field=document.getElementById('atlas-recap');if(field)navigator.clipboard.writeText(field.value).then(()=>toast(tr('Αντιγράφηκε.','Copied.'))).catch(()=>{field.select();});return;}
    if(action==='reload'){if(atlasBattleDirty)return atlasPendingToast();atlasBattleLoad();return;}
    if(!atlasBattleLoaded||atlasBattleBusy||atlasManualSaving)return;
+   if(action.startsWith('monster-'))return atlasMonsterAction(action.slice(8),id);
+   if(action.startsWith('companion-'))return atlasCompanionAction(action.slice(10),id);
+   if(action.startsWith('effect-'))return atlasEffectAction(action.slice(7),id);
    if(action==='inbox-refresh'){atlasReadInbox(true);return;}
    if(action==='enable-submissions'){if(atlasBattle&&['active','paused'].includes(atlasBattle.phase))atlasBattleSave(structuredClone(atlasBattle));return;}
    if(action==='approve'||action==='reject'){atlasReviewProposal(id,action);return;}
@@ -513,7 +728,7 @@
    if(action==='sort'&&next.phase==='setup'){if(ps.some(p=>p.initiative===null))return toast(tr('Συμπλήρωσε όλα τα Initiative.','Enter all Initiative totals.'));ps.sort((a,b)=>b.initiative-a.initiative);}
    else if(['up','down'].includes(action)&&p){const j=i+(action==='up'?-1:1);if(j<0||j>=ps.length)return;if(next.phase!=='setup'&&!confirm(tr('Διόρθωση σειράς στη διάρκεια μάχης;','Correct order during combat?')))return;[ps[i],ps[j]]=[ps[j],ps[i]];}
    else if(action==='remove'&&p&&next.phase==='setup'){ps.splice(i,1);}
-   else if(action==='out'&&p){if(p.id===next.activeId)return toast(tr('Προχώρησε πρώτα στο επόμενο turn.','Advance to the next turn first.'));p.out=!p.out;}
+   else if(action==='out'&&p&&!p.dismissed){if(p.id===next.activeId)return toast(tr('Προχώρησε πρώτα στο επόμενο turn.','Advance to the next turn first.'));p.out=!p.out;}
    else if(action==='start'&&next.phase==='setup'){if(!ps.length||ps.some(p=>p.initiative===null)||!ps.some(p=>!p.out))return toast(tr('Απαιτούνται συμμετέχοντες και Initiative.','Participants and Initiative required.'));if(!confirm(tr('Έναρξη με την εμφανιζόμενη σειρά;','Start with the displayed order?')))return;next.phase='active';next.round=1;next.activeId=ps.find(p=>!p.out).id;}
    else if(action==='next'||action==='prev'){const stepped=atlasBattleStep(next,action==='next'?1:-1);if(stepped.activeId===next.activeId&&stepped.round===next.round)return;return atlasBattleSave(stepped);}
    else if(action==='jump'&&p&&!p.out&&['active','paused'].includes(next.phase)){if(!confirm(tr('Μετάβαση στο συγκεκριμένο turn;','Jump to this turn?')))return;next.activeId=p.id;}
@@ -527,7 +742,7 @@
    const form=e.target;if(form.id!=='atlas-battle-form')return;e.preventDefault();e.stopImmediatePropagation();
    if(!atlasDmAllowed()||atlasBattleBusy||!atlasBattleLoaded||Number(form.dataset.revision)!==atlasBattleRevision)return toast(tr('Άνοιξε ξανά την ενέργεια.','Reopen the action.'));
    const fd=new FormData(form),mode=form.dataset.mode;
-   if(mode==='new'){if(atlasBattle&&atlasBattle.phase!=='ended')return;const name=String(fd.get('name')||'').trim();if(!name)return;return atlasBattleSave({name,phase:'setup',round:1,activeId:null,events:[],fightId:crypto.randomUUID(),reviews:[],participants:characters.filter(ch=>fd.getAll('player').includes(ch.id)).map(atlasBattleParticipant)});}
+   if(mode==='new'){if(atlasBattle&&atlasBattle.phase!=='ended')return;const name=String(fd.get('name')||'').trim();if(!name)return;const participants=[...characters.filter(ch=>fd.getAll('player').includes(ch.id)).map(atlasBattleParticipant),...atlasCompanionRoster.filter(q=>fd.getAll('companion').includes(q.id)).map(q=>atlasCompanionParticipant(q))];if(participants.length>60)return toast(tr('Μέγιστο 60 συμμετέχοντες.','Maximum 60 combatants.'));return atlasBattleSave({name,phase:'setup',round:1,activeId:null,events:[],fightId:crypto.randomUUID(),reviews:[],participants});}
    if(!atlasBattle||atlasBattle.phase==='ended')return;
    const next=JSON.parse(JSON.stringify(atlasBattle)),p=next.participants.find(p=>p.id===form.dataset.id);
    const integer=(n,min,max)=>{const raw=fd.get(n),v=Number(raw);if(raw===null||String(raw).trim()===''||!Number.isInteger(v)||v<min||v>max)throw Error(tr('Μη έγκυρη αριθμητική τιμή.','Invalid numeric value.'));return v;};
@@ -536,9 +751,106 @@
      if(id){const ch=characters.find(ch=>ch.id===id);if(!ch||next.participants.some(p=>p.characterId===id))return;next.participants.push({...atlasBattleParticipant(ch),initiative});}
      else{const name=String(fd.get('name')||'').trim(),type=String(fd.get('type')),maxHp=integer('maxHp',1,99999);if(!name||!['enemy','ally'].includes(type))throw Error(tr('Συμπλήρωσε όνομα.','Enter a name.'));next.participants.push({id:uid(),type,name,initiative,maxHp,hp:maxHp,ac:integer('ac',0,99),out:false});}
     }else if(mode==='initiative'&&p){p.initiative=integer('initiative',-100,200);}
-    else if(p&&p.type!=='player'&&['damage','heal'].includes(mode)){const amount=integer('amount',1,99999);const before=p.hp;p.hp=mode==='damage'?Math.max(0,p.hp-amount):Math.min(p.maxHp,p.hp+amount);if(next.phase==='active'||next.phase==='paused')atlasBattleAppend(next,{actor:'',actorName:'',target:p.id,targetName:p.name,kind:mode==='damage'?'damage':'heal',label:mode==='damage'?'HP adjustment':'Healing adjustment',outcome:'',amount:Math.abs(p.hp-before),note:''});}
+    else if(p&&p.type!=='player'&&['damage','heal'].includes(mode)){const amount=integer('amount',1,99999);const before=p.hp;p.hp=mode==='damage'?Math.max(0,p.hp-amount):Math.min(p.maxHp,p.hp+amount);if(next.phase==='active'||next.phase==='paused')atlasBattleAppend(next,{actor:'',actorName:'',target:p.id,targetName:p.name,kind:mode==='damage'?'damage':'heal',label:mode==='damage'?'HP adjustment':'Healing adjustment',outcome:'',amount:Math.abs(p.hp-before),note:''});if(mode==='damage')atlasEffectDamage(next,p.id,amount);}
     else return;
     atlasBattleSave(next);
+   }catch(err){toast(err.message);}
+ },true);
+
+
+ // v3.13.0: encounter-local effects. No network calls, dice or sheet mutations.
+ const ATLAS_EFFECT_CONDITIONS=[['Blinded','Τυφλωμένος'],['Charmed','Γοητευμένος'],['Deafened','Κωφός'],['Exhaustion','Εξάντληση'],['Frightened','Φοβισμένος'],['Grappled','Ακινητοποιημένος με λαβή'],['Incapacitated','Ανίκανος για ενέργεια'],['Invisible','Αόρατος'],['Paralyzed','Παραλυμένος'],['Petrified','Απολιθωμένος'],['Poisoned','Δηλητηριασμένος'],['Prone','Πρηνής'],['Restrained','Περιορισμένος'],['Stunned','Ζαλισμένος'],['Unconscious','Αναίσθητος']];
+ function atlasEffectDC(damage){return Math.min(30,Math.max(10,Math.floor(damage/2)));}
+ function atlasEffectDue(state,e){
+   if(e.mode==='manual'||!state.activeId)return false;
+   if(state.round!==e.round)return state.round>e.round;
+   const current=state.participants.findIndex(p=>p.id===state.activeId),target=state.participants.findIndex(p=>p.id===e.turnId);
+   return current>=0&&target>=0&&(e.boundary==='start'?current>=target:current>target);
+ }
+ function atlasEffectRemove(state,id){state.effects=(state.effects||[]).filter(e=>e.id!==id&&e.parent!==id);}
+ function atlasEffectConcentration(state,target){return (state.effects||[]).find(e=>e.kind==='concentration'&&e.targetId===target);}
+ function atlasEffectDamage(state,target,damage){
+   const concentration=atlasEffectConcentration(state,target);
+   if(!concentration||!Number.isInteger(damage)||damage<=0)return;
+   if((state.effects||[]).length>=200)throw Error(tr('Επίλυσε πρώτα τις εκκρεμείς καταστάσεις.','Resolve pending effects first.'));
+   state.effects=[...(state.effects||[]),{id:uid(),kind:'check',targetId:target,label:concentration.label,parent:concentration.id,mode:'manual',round:state.round,boundary:'start',turnId:target,ability:'CON',dc:atlasEffectDC(damage),note:String(damage)}];
+ }
+ function atlasEffectName(e){const item=ATLAS_EFFECT_CONDITIONS.find(x=>x[0]===e.label);return e.kind==='condition'&&item?tr(item[1]+' ('+item[0]+')',item[0]):e.label;}
+ function atlasEffectPanel(b){
+   if(!['active','paused'].includes(b.phase))return '';
+   const button=(label,action,id='')=>'<button class="btn sm" data-action="atlas-battle-effect-'+action+(id?':'+attr(id):'')+'" '+(atlasBattleBusy||atlasManualSaving?'disabled':'')+'>'+label+'</button>';
+   const name=id=>b.participants.find(p=>p.id===id)?.name||'—';
+   const effects=b.effects||[],due=effects.filter(e=>e.kind==='check'||atlasEffectDue(b,e)).length;
+   return '<section class="atlas-dm-card"><div class="page-title"><div><h3>'+tr('Καταστάσεις και επιδράσεις','Conditions & Effects')+'</h3><small>'+tr('Μόνο για τη συγκεκριμένη μάχη · ','Encounter only · ')+due+' '+tr('υπενθυμίσεις','reminders')+'</small></div>'+button(tr('+ Επίδραση','+ Effect'),'add')+'</div>'+
+   (effects.length?effects.map(e=>{
+     const ready=e.kind==='check'||atlasEffectDue(b,e),linked=effects.find(x=>x.id===e.parent);
+     const title=e.kind==='check'?tr('Έλεγχος συγκέντρωσης','Concentration check')+' · '+e.label:atlasEffectName(e);
+     const when=e.mode==='manual'?'':tr('Γύρος','Round')+' '+e.round+' · '+(e.boundary==='start'?tr('Αρχή σειράς','Start of turn'):tr('Τέλος σειράς','End of turn'))+' · '+name(e.turnId);
+     const details=[e.kind==='concentration'?tr('Συγκέντρωση','Concentration'):'',when,e.dc?'DC '+e.dc+' '+e.ability:'',linked&&e.kind!=='check'?tr('Συνδέεται με ','Linked to ')+linked.label:'',e.kind==='check'?tr('Ζημιά','Damage')+' '+e.note:e.note].filter(Boolean).join(' · ');
+     const actions=e.kind==='check'?button(tr('Επιτυχία','Success'),'pass',e.id)+button(tr('Αποτυχία','Failure'),'fail',e.id):button(tr('Λήξη','End'),'end',e.id)+(ready&&e.mode==='save'?button(tr('Επόμενος γύρος','Next round'),'repeat',e.id):'')+(e.kind==='concentration'?button(tr('Έλεγχος ζημιάς','Damage check'),'check',e.id):'');
+     return '<div class="tile"><div style="flex:1;min-width:0"><strong>'+esc(name(e.targetId))+' · '+esc(title)+'</strong><small class="desc">'+esc(details)+'</small>'+(ready?'<span class="notice">'+(e.kind==='check'?tr('Απαιτείται δοκιμασία σωτηρίας','Saving throw required'):e.mode==='save'?tr('Έλεγχος δοκιμασίας σωτηρίας','Review saving throw'):tr('Έλεγχος λήξης','Review expiration'))+'</span>':'')+'</div><div class="actions-inline">'+actions+'</div></div>';
+   }).join(''):'<p class="muted small">'+tr('Δεν υπάρχουν ενεργές επιδράσεις.','No active effects.')+'</p>')+
+   '<p class="muted small">'+tr('Η λήξη και οι δοκιμασίες επιβεβαιώνονται από τον DM. Δεν αλλάζουν αυτόματα τα φύλλα ή τις ζαριές.','Expiration and saves are confirmed by the DM. Sheets and dice are not changed automatically.')+'</p></section>';
+ }
+ function atlasEffectOpen(b){
+   const opts=(items)=>items.map(([v,n])=>'<option value="'+attr(v)+'">'+esc(n)+'</option>').join('');
+   const ps=b.participants.map(p=>[p.id,p.name]);
+   const select=(key,label,items)=>'<label class="field">'+label+'<select name="'+key+'">'+opts(items)+'</select></label>';
+   const input=(key,label,type,value,extra='')=>'<label class="field">'+label+'<input name="'+key+'" type="'+type+'" value="'+attr(value)+'" '+extra+'></label>';
+   const form='<form id="atlas-effect-form" data-revision="'+atlasBattleRevision+'" data-fight="'+attr(b.fightId||'')+'"><div class="form-grid">'+
+   select('targetId',tr('Στόχος','Target'),ps)+select('kind',tr('Τύπος','Type'),[['condition',tr('Κατάσταση','Condition')],['temporary',tr('Προσωρινή επίδραση','Temporary effect')],['concentration',tr('Συγκέντρωση','Concentration')]])+
+   select('condition',tr('Κατάσταση 2024','2024 condition'),ATLAS_EFFECT_CONDITIONS.map(([en,el])=>[en,tr(el+' ('+en+')',en)]))+
+   input('label',tr('Όνομα ξορκιού / προσωρινής επίδρασης','Spell / temporary effect name'),'text','','maxlength="160"')+
+   select('mode',tr('Λήξη / υπενθύμιση','Expiration / reminder'),[['manual',tr('Χειροκίνητη λήξη','Manual end')],['expire',tr('Υπενθύμιση λήξης','Expiration reminder')],['save',tr('Επαναληπτική δοκιμασία σωτηρίας','Recurring saving throw')]])+
+   select('turnId',tr('Σειρά συμμετέχοντα','Combatant turn'),ps)+select('boundary',tr('Χρονικό σημείο','Timing'),[['start',tr('Αρχή σειράς','Start of turn')],['end',tr('Τέλος σειράς','End of turn')]])+
+   input('round',tr('Πρώτος γύρος υπενθύμισης','First reminder round'),'number',b.round,'min="'+b.round+'" max="99999" step="1" required')+
+   select('ability',tr('Δοκιμασία σωτηρίας','Saving throw'),['STR','DEX','CON','INT','WIS','CHA'].map(x=>[x,x]))+
+   input('dc','DC','number',10,'min="1" max="99" step="1" required')+
+   select('parent',tr('Σύνδεση με συγκέντρωση (προαιρετική)','Link to concentration (optional)'),[['','—'],...(b.effects||[]).filter(e=>e.kind==='concentration').map(e=>[e.id,(b.participants.find(p=>p.id===e.targetId)?.name||'')+' · '+e.label])])+
+   input('note',tr('Σημειώσεις / επίπεδο εξάντλησης','Notes / exhaustion level'),'text','','maxlength="500"')+
+   '</div><p class="muted small">'+tr('Για συγκέντρωση, στόχος είναι ο caster. Διάλεξε πρώτα τη συγκέντρωση και μετά πρόσθεσε συνδεδεμένες επιδράσεις. Για καταστάσεις χρησιμοποίησε το πεδίο Κατάσταση 2024.','For concentration, target the caster. Add concentration first, then linked effects. For conditions use the 2024 condition field.')+'</p></form>';
+   openModal(tr('Προσθήκη επίδρασης','Add effect'),form,btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-effect-form">'+tr('Εφαρμογή','Apply')+'</button>',true);
+ }
+ function atlasEffectAction(action,id){
+   if(!atlasDmAllowed()||!atlasBattleLoaded||atlasBattleBusy||atlasManualSaving||!['active','paused'].includes(atlasBattle?.phase))return;
+   const next=structuredClone(atlasBattle);
+   if(action==='add')return atlasEffectOpen(next);
+   const e=(next.effects||[]).find(x=>x.id===id);if(!e)return;
+   try{
+     if(action==='check'&&e.kind==='concentration'){
+       openModal(tr('Έλεγχος συγκέντρωσης','Concentration check'),'<form id="atlas-effect-damage-form" data-id="'+attr(id)+'" data-revision="'+atlasBattleRevision+'" data-fight="'+attr(next.fightId||'')+'"><label class="field">'+tr('Τελική ζημιά μετά από αντιστάσεις','Final damage after resistances')+'<input name="damage" type="number" min="1" max="99999" step="1" required></label></form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-effect-damage-form">'+tr('Καταγραφή','Record')+'</button>');return;
+     }
+     if(action==='repeat'&&e.mode==='save'&&atlasEffectDue(next,e)){const round=Math.max(e.round+1,next.round);e.round=round;if(atlasEffectDue(next,e))e.round++;if(e.round>99999)throw Error(tr('Έφτασες στο όριο γύρων.','Round limit reached.'));}
+     else if(action==='pass'&&e.kind==='check')atlasEffectRemove(next,id);
+     else if(action==='fail'&&e.kind==='check')atlasEffectRemove(next,e.parent);
+     else if(action==='end'&&e.kind!=='check')atlasEffectRemove(next,id);
+     else return;
+     const p=next.participants.find(p=>p.id===e.targetId);
+     atlasBattleAppend(next,{kind:e.kind==='check'||e.kind==='concentration'?'concentration':'condition',label:(action==='repeat'?tr('Επόμενη υπενθύμιση: ','Next reminder: '):action==='pass'?tr('Επιτυχής δοκιμασία: ','Save passed: '):action==='fail'?tr('Απώλεια συγκέντρωσης: ','Concentration lost: '):tr('Έληξε: ','Ended: '))+e.label.slice(0,120),target:p.id,targetName:p.name,amount:0,outcome:action==='pass'?'success':action==='fail'?'failure':'',note:''});
+     atlasBattleSave(next);
+   }catch(err){toast(err.message);}
+ }
+ document.addEventListener('submit',ev=>{
+   const f=ev.target;if(!['atlas-effect-form','atlas-effect-damage-form'].includes(f.id))return;ev.preventDefault();ev.stopImmediatePropagation();
+   if(!atlasDmAllowed()||atlasManualSaving||atlasBattleBusy||!atlasBattleLoaded||!['active','paused'].includes(atlasBattle?.phase)||Number(f.dataset.revision)!==atlasBattleRevision||f.dataset.fight!==(atlasBattle.fightId||''))return;
+   const b=structuredClone(atlasBattle),fd=new FormData(f);
+   try{
+     if(f.id==='atlas-effect-damage-form'){
+       const e=(b.effects||[]).find(x=>x.id===f.dataset.id&&x.kind==='concentration'),damage=Number(fd.get('damage'));
+       if(!e||!Number.isInteger(damage)||damage<1||damage>99999)return;
+       atlasEffectDamage(b,e.targetId,damage);return atlasBattleSave(b);
+     }
+     const kind=String(fd.get('kind')),targetId=String(fd.get('targetId')),p=b.participants.find(p=>p.id===targetId),mode=String(fd.get('mode')),turnId=String(fd.get('turnId')),boundary=String(fd.get('boundary')),round=Number(fd.get('round')),ability=String(fd.get('ability')),dc=mode==='save'?Number(fd.get('dc')):0,note=String(fd.get('note')||'').trim(),parent=String(fd.get('parent')||''),label=String(fd.get(kind==='condition'?'condition':'label')||'').trim();
+     if(!p||!['condition','temporary','concentration'].includes(kind)||!['manual','expire','save'].includes(mode)||!b.participants.some(p=>p.id===turnId)||!['start','end'].includes(boundary)||!Number.isInteger(round)||round<b.round||round>99999||!['STR','DEX','CON','INT','WIS','CHA'].includes(ability)||mode==='save'&&(!Number.isInteger(dc)||dc<1||dc>99)||!label||label.length>160||note.length>500||kind==='condition'&&!ATLAS_EFFECT_CONDITIONS.some(x=>x[0]===label)||kind==='concentration'&&parent||parent&&!(b.effects||[]).some(e=>e.id===parent&&e.kind==='concentration'))throw Error(tr('Μη έγκυρη επίδραση.','Invalid effect.'));
+     const prior=atlasEffectConcentration(b,targetId);
+     const incap=['Incapacitated','Paralyzed','Petrified','Stunned','Unconscious'];
+     if(kind==='concentration'&&(b.effects||[]).some(e=>e.targetId===targetId&&e.kind==='condition'&&incap.includes(e.label)))throw Error(tr('Ο στόχος δεν μπορεί να συγκεντρωθεί.','Target cannot concentrate.'));
+     if(prior&&(kind==='concentration'||kind==='condition'&&incap.includes(label)))atlasEffectRemove(b,prior.id);
+     if(parent&&!(b.effects||[]).some(e=>e.id===parent))throw Error(tr('Η συνδεδεμένη συγκέντρωση έληξε.','Linked concentration ended.'));
+     if((b.effects||[]).length>=200)throw Error(tr('Μέγιστο 200 επιδράσεις.','Maximum 200 effects.'));
+     b.effects=[...(b.effects||[]),{id:uid(),kind,targetId,label,parent,mode,round,boundary,turnId,ability,dc,note}];
+     atlasBattleAppend(b,{kind:kind==='concentration'?'concentration':'condition',label:tr('Προστέθηκε: ','Added: ')+label.slice(0,120),target:p.id,targetName:p.name,amount:0,outcome:'',note:''});
+     atlasBattleSave(b);
    }catch(err){toast(err.message);}
  },true);
 
@@ -547,10 +859,10 @@
    const events=state.events||[];if(events.length>=500)throw Error(tr('Μέγιστο 500 εγγραφές ανά μάχη.','Maximum 500 events per encounter.'));
    state.events=[...events,{id:uid(),round:state.round,turn:state.activeId||'',at:new Date().toISOString(),...event}];
  }
- function atlasBattleQuickHp(characterId,mode,before,after){
+ function atlasBattleQuickHp(characterId,mode,before,after,damage=0){
    if(!atlasBattleLoaded||!atlasBattle||!['active','paused'].includes(atlasBattle.phase)||!atlasDmAllowed())return;
    const p=atlasBattle.participants.find(p=>p.characterId===characterId);if(!p)return;
-   try{atlasBattleAppend(atlasBattle,{actor:'',actorName:'',target:p.id,targetName:p.name,kind:mode==='damage'?'damage':'heal',label:mode==='damage'?'HP adjustment':'Healing adjustment',outcome:'',amount:mode==='damage'?Math.max(0,(before.current+(before.temp||0))-(after.current+(after.temp||0))):Math.max(0,after.current-before.current),note:''});atlasBattleMark();}catch(e){toast(e.message);}
+   try{atlasBattleAppend(atlasBattle,{actor:'',actorName:'',target:p.id,targetName:p.name,kind:mode==='damage'?'damage':'heal',label:mode==='damage'?'HP adjustment':'Healing adjustment',outcome:'',amount:mode==='damage'?Math.max(0,(before.current+(before.temp||0))-(after.current+(after.temp||0))):Math.max(0,after.current-before.current),note:''});if(mode==='damage')atlasEffectDamage(atlasBattle,p.id,damage);atlasBattleMark();}catch(e){toast(e.message);}
  }
  function atlasBattleLogOpen(proposal=null){
    const b=atlasBattle;if(!b||!['active','paused'].includes(b.phase))return;
@@ -567,7 +879,7 @@
  function atlasBattleLogOptions(){
    const form=document.getElementById('atlas-combat-log-form');if(!form||!atlasBattle)return;
    const p=atlasBattle.participants.find(p=>p.id===form.elements.actor.value),ch=characters.find(c=>c.id===p?.characterId),kind=form.elements.kind.value;
-   const names=kind==='attack'?(ch?.attacks||[]).map(x=>x.name):kind==='spell'?(ch?.spellbook||[]).map(x=>x.name):[...(ch?.features||[]).map(x=>x.name),...(ch?.resources||[]).map(x=>x.name),...((D.actions||[]).map(x=>x.name))];
+   const names=kind==='attack'?(ch?.attacks||[]).map(x=>x.name).concat(p?.companionKind?(p.actions||'').split('\n').map(x=>x.trim().slice(0,160)):[]):kind==='spell'?(ch?.spellbook||[]).map(x=>x.name):[...(ch?.features||[]).map(x=>x.name),...(ch?.resources||[]).map(x=>x.name),...((D.actions||[]).map(x=>x.name))];
    document.getElementById('atlas-log-options').innerHTML=[...new Set(names.filter(Boolean))].map(n=>'<option value="'+attr(n)+'"></option>').join('');
    const choices=ch?[...(ch.resources||[]).filter(r=>Number(r.current)>0).map(r=>['resource:'+r.id,r.name+' ('+r.current+'/'+r.max+')']),...Object.entries(ch.slots||{}).filter(([k,s])=>Number(s.max)>Number(s.used||0)).map(([k,s])=>['slot:'+k,'Spell Slot Lv '+k+' ('+(s.max-(s.used||0))+'/'+s.max+')']),...(ch.pact?.max>Number(ch.pact.used||0)?[['pact:','Pact Magic']]:[])]:[];
    document.getElementById('atlas-log-resource').innerHTML='<option value="">—</option>'+choices.map(([v,n])=>'<option value="'+attr(v)+'">'+esc(n)+'</option>').join('');
@@ -585,6 +897,7 @@
     let effective=0,spent='';
     if(mode!=='none'){if(target.type==='player'){const ch=getSheet(target.characterId),before=ch.hp,after=atlasDmHpChange(before,mode,amount);ch.hp=after;effective=mode==='damage'?before.current+(before.temp||0)-after.current-after.temp:after.current-before.current;}
      else{const before=target.hp;target.hp=mode==='damage'?Math.max(0,before-amount):Math.min(target.maxHp,before+amount);effective=Math.abs(target.hp-before);}}
+    if(mode==='damage')atlasEffectDamage(next,target.id,amount);
     const resource=String(fd.get('resource')||'');
     if(resource){if(actor.type!=='player')throw Error('No sheet resource');const ch=getSheet(actor.characterId),[type,key]=resource.split(':');
       if(type==='resource'){const r=ch.resources.find(r=>r.id===key);if(!r||Number(r.current)<1)throw Error('Resource unavailable');r.current--;spent=r.name;}
@@ -711,15 +1024,15 @@
    const button=(label,action,id='',disabled=false)=>'<button class="btn sm" data-action="atlas-battle-'+action+(id?':'+attr(id):'')+'" '+(disabled||atlasBattleBusy?'disabled':'')+'>'+label+'</button>';
    const error=atlasBattleError?'<p class="notice">'+esc(atlasBattleError)+'</p>':'';
    if(!atlasBattleLoaded)return '<section class="atlas-dm-page"><h2>'+tr('Παρακολούθηση μάχης','Battle View')+'</h2>'+error+(atlasBattleBusy?'<p role="status">'+tr('Φόρτωση μάχης…','Loading encounter…')+'</p>':button(tr('Φόρτωση / επανάληψη','Load / retry'),'reload'))+'</section>';
-   if(!atlasBattle)return '<section class="atlas-dm-page"><h2>'+tr('Παρακολούθηση μάχης','Battle View')+'</h2>'+error+button(tr('+ Νέα μάχη','+ New Encounter'),'new')+'</section>';
+   if(!atlasBattle)return '<section class="atlas-dm-page"><h2>'+tr('Παρακολούθηση μάχης','Battle View')+'</h2>'+error+button(tr('+ Νέα μάχη','+ New Encounter'),'new')+atlasCompanionPanel()+atlasMonsterPanel(null)+'</section>';
    const b=atlasBattle,ended=b.phase==='ended',setup=b.phase==='setup',active=b.participants.find(p=>p.id===b.activeId);
    const phaseLabel={setup:tr('Προετοιμασία','Setup'),active:tr('Σε εξέλιξη','In progress'),paused:tr('Σε παύση','Paused'),ended:tr('Ολοκληρώθηκε','Ended')}[b.phase];
    const rows=b.participants.map((p,i)=>{
      const ch=p.type==='player'?characters.find(x=>x.id===p.characterId):null,hp=ch?.hp||{current:p.hp,max:p.maxHp,temp:0},name=ch?.name||p.name,ac=ch?AC(ch):p.ac,missing=p.type==='player'&&!ch;
      const hpActions=ended||missing?'':ch?'<button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="damage">− HP</button><button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="heal">+ HP</button>':button('− HP','damage',p.id)+button('+ HP','heal',p.id);
-     return '<article class="atlas-battle-row '+(p.id===b.activeId?'active ':'')+(p.out?'out':'')+'"><div class="atlas-battle-init"><strong>'+esc(p.initiative??'—')+'</strong>'+(!ended?button(tr('Αλλαγή','Edit'),'initiative',p.id):'')+'</div><div class="atlas-battle-name"><strong>'+esc(name)+'</strong><small>'+esc(missing?tr('Λείπει το φύλλο','Missing sheet'):p.type==='player'?tr('Παίκτης','Player'):p.type==='enemy'?tr('Εχθρός','Enemy'):tr('Σύμμαχος','Ally'))+(p.id===b.activeId?' · '+tr('Ενεργό turn','Current turn'):'')+(p.out?' · '+tr('Εκτός μάχης','Out'):'')+'</small>'+(!missing?'<span>HP '+esc(hp.current??'—')+'/'+esc(hp.max??'—')+' · AC '+esc(ac??'—')+(hp.temp?' · Temp '+esc(hp.temp):'')+'</span>':'')+(ch?atlasDmStatus(ch,atlasDmStats(ch)):'')+'</div><div class="atlas-battle-controls">'+hpActions+(!ended?button('↑','up',p.id,i===0)+button('↓','down',p.id,i===b.participants.length-1)+button(p.out?tr('Επαναφορά','Restore'):tr('Εκτός','Out'),'out',p.id,p.id===b.activeId)+(setup?button(tr('Αφαίρεση','Remove'),'remove',p.id):button(tr('Μετάβαση','Jump'),'jump',p.id,p.out)):'')+'</div></article>';
+     return '<article class="atlas-battle-row '+(p.id===b.activeId?'active ':'')+(p.out?'out':'')+'"><div class="atlas-battle-init"><strong>'+esc(p.initiative??'—')+'</strong>'+(!ended?button(tr('Αλλαγή','Edit'),'initiative',p.id):'')+'</div><div class="atlas-battle-name"><strong>'+esc(name)+'</strong><small>'+esc(missing?tr('Λείπει το φύλλο','Missing sheet'):p.type==='player'?tr('Παίκτης','Player'):p.type==='enemy'?tr('Εχθρός','Enemy'):p.companionKind?atlasCompanionKind(p.companionKind):tr('Σύμμαχος','Ally'))+(p.id===b.activeId?' · '+tr('Ενεργό turn','Current turn'):'')+(p.dismissed?' · '+tr('Έληξε','Dismissed'):p.out?' · '+tr('Εκτός μάχης','Out'):'')+'</small>'+(!missing?'<span>HP '+esc(hp.current??'—')+'/'+esc(hp.max??'—')+' · AC '+esc(ac??'—')+(hp.temp?' · Temp '+esc(hp.temp):'')+'</span>':'')+(ch?atlasDmStatus(ch,atlasDmStats(ch))+atlasPrimalPanel(ch,true)+atlasLinkedPanel(ch,true):'')+(p.companionKind?'<small>'+esc(characters.find(ch=>ch.id===p.ownerId)?.name||tr('Παρέα / DM','Party / DM'))+' · '+p.speed+' ft</small>':'')+(p.expiresRound&&b.round>=p.expiresRound&&!p.out?'<span class="notice">'+tr('Έλεγχος λήξης επίκλησης','Review summon expiration')+'</span>':'')+'</div><div class="atlas-battle-controls">'+hpActions+(p.monster?button(tr('Στατιστικά','Stat block'),'monster-participant',p.id):'')+(p.companionKind?button(tr('Ικανότητες','Abilities'),'companion-detail',p.id):'')+(!ended&&p.companionKind==='summon'&&!p.rosterId&&!p.dismissed?button(tr('Λήξη','Dismiss'),'companion-dismiss',p.id,p.id===b.activeId):'')+(!ended?button('↑','up',p.id,i===0)+button('↓','down',p.id,i===b.participants.length-1)+(p.dismissed?'':button(p.out?tr('Επαναφορά','Restore'):tr('Εκτός','Out'),'out',p.id,p.id===b.activeId))+(setup?button(tr('Αφαίρεση','Remove'),'remove',p.id):button(tr('Μετάβαση','Jump'),'jump',p.id,p.out)):'')+'</div></article>';
    }).join('');
-   return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+(ended?'':' · '+tr('Γύρος','Round')+' '+b.round)+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'<button class="btn sm warn" data-action="atlas-battle-delete" '+(atlasBattleBusy?'disabled':'')+'>'+tr('Διαγραφή μάχης','Delete Encounter')+'</button></div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div><div class="atlas-battle-workspace"><div class="atlas-battle-order">'+rows+'</div><aside class="atlas-dm-card"><h3>'+tr('Καταγραφή μάχης','Combat Log')+'</h3>'+(!ended&&!setup?button(tr('+ Καταγραφή ενέργειας','+ Log Action'),'log')+(atlasCombatUndo&&atlasBattleDirty?button(tr('Αναίρεση τελευταίας μη αποθηκευμένης ενέργειας','Undo last unsaved action'),'undo-log'):''):'')+atlasBattleLogMarkup(b.events||[])+atlasInboxMarkup()+'</aside></div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
+   return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+(ended?'':' · '+tr('Γύρος','Round')+' '+b.round)+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'<button class="btn sm warn" data-action="atlas-battle-delete" '+(atlasBattleBusy?'disabled':'')+'>'+tr('Διαγραφή μάχης','Delete Encounter')+'</button></div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div>'+atlasCompanionPanel()+atlasMonsterPanel(b)+atlasEffectPanel(b)+'<div class="atlas-battle-workspace"><div class="atlas-battle-order">'+rows+'</div><aside class="atlas-dm-card"><h3>'+tr('Καταγραφή μάχης','Combat Log')+'</h3>'+(!ended&&!setup?button(tr('+ Καταγραφή ενέργειας','+ Log Action'),'log')+(atlasCombatUndo&&atlasBattleDirty?button(tr('Αναίρεση τελευταίας μη αποθηκευμένης ενέργειας','Undo last unsaved action'),'undo-log'):''):'')+atlasBattleLogMarkup(b.events||[])+atlasInboxMarkup()+'</aside></div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
  }
 
  function renderDmMultiview(){
@@ -748,7 +1061,8 @@
    if(!ch||String(cloud.user.id)!==account||String(cloud.revisions[id])!==revision||cloud.pendingWrites||cloud.polling||cloud.syncBlocked||atlasDmSaving)return toast(tr('Τα δεδομένα άλλαξαν ή συγχρονίζονται. Άνοιξε ξανά την ενέργεια.','Data changed or is syncing. Reopen the action.'));
    let next;try{next=atlasDmHpChange(ch.hp,mode,Number(new FormData(form).get('amount')));}catch(e){return toast(e.message);}
    if(atlasManualSaving)return;
-   const before=ch.hp;if(atlasBattleLoaded&&['active','paused'].includes(atlasBattle?.phase)&&atlasBattle.participants.some(p=>p.characterId===id)&&(atlasBattle.events||[]).length>=500)return toast(tr('Το Combat Log είναι γεμάτο.','Combat Log is full.'));ch.hp=next;atlasBattleQuickHp(id,mode,before,next);closeModal();save();renderApp();atlasPendingToast();
+   const battleTarget=atlasBattle?.participants.find(p=>p.characterId===id);if(mode==='damage'&&battleTarget&&atlasEffectConcentration(atlasBattle,battleTarget.id)&&(atlasBattle.effects||[]).length>=200)return toast(tr('Επίλυσε πρώτα τις εκκρεμείς καταστάσεις.','Resolve pending effects first.'));
+   const before=ch.hp;if(atlasBattleLoaded&&['active','paused'].includes(atlasBattle?.phase)&&atlasBattle.participants.some(p=>p.characterId===id)&&(atlasBattle.events||[]).length>=500)return toast(tr('Το Combat Log είναι γεμάτο.','Combat Log is full.'));ch.hp=next;atlasBattleQuickHp(id,mode,before,next,Number(new FormData(form).get('amount')));closeModal();save();renderApp();atlasPendingToast();
  }
  document.addEventListener('click',e=>{
    const el=e.target.closest('[data-atlas-dm-layout],[data-atlas-dm-sheet],[data-atlas-dm-hp]');if(!el)return;e.preventDefault();e.stopImmediatePropagation();if(!atlasDmAllowed())return;
@@ -946,24 +1260,251 @@
   return items.length?items.map(f=>`<button class="atlas-reference-row" data-feature-detail="${attr(f.id)}"><span><b>${esc(pairedTerm(f.name))}</b><small class="${f.selectedValue?'atlas-feature-selected':''}">${esc(f.selectedValue||f.subline||f.source||'')}${f.level?' · '+tr('Επίπεδο','Level')+' '+f.level:''}</small></span><span class="atlas-chevron">›</span></button>`).join(''):`<p class="muted">${tr('Δεν υπάρχουν καταχωρισμένες ικανότητες.','No features recorded.')}</p>`;
  }
 
+
+ // v3.18.0: typed, state-derived character choices. Legacy labels are migration hints, never proof of a selection.
+ const ATLAS_PENDING_ABILITIES={Acolyte:['INT','WIS','CHA'],Artisan:['STR','DEX','INT'],Charlatan:['DEX','CON','CHA'],Criminal:['DEX','CON','INT'],Entertainer:['STR','DEX','CHA'],Farmer:['STR','CON','WIS'],Guard:['STR','INT','WIS'],Guide:['DEX','CON','WIS'],Hermit:['CON','WIS','CHA'],Merchant:['CON','INT','CHA'],Noble:['STR','INT','CHA'],Sage:['CON','INT','WIS'],Sailor:['STR','DEX','WIS'],Scribe:['DEX','INT','WIS'],Soldier:['STR','DEX','CON'],Wayfarer:['DEX','WIS','CHA']};
+ const ATLAS_PENDING_RANGER_SPELLS=[[],['Alarm','Animal Friendship','Cure Wounds','Detect Magic','Detect Poison and Disease','Ensnaring Strike','Entangle','Fog Cloud','Goodberry','Hail of Thorns','Hunter’s Mark','Jump','Longstrider','Speak with Animals'],['Aid','Animal Messenger','Barkskin','Beast Sense','Cordon of Arrows','Darkvision','Enhance Ability','Find Traps','Gust of Wind','Lesser Restoration','Locate Animals or Plants','Locate Object','Magic Weapon','Pass without Trace','Protection from Poison','Silence','Spike Growth','Summon Beast'],['Conjure Animals','Conjure Barrage','Daylight','Dispel Magic','Elemental Weapon','Lightning Arrow','Meld into Stone','Nondetection','Plant Growth','Protection from Energy','Revivify','Speak with Plants','Summon Fey','Water Breathing','Water Walk','Wind Wall'],['Conjure Woodland Beings','Dominate Beast','Freedom of Movement','Grasping Vine','Locate Creature','Stoneskin','Summon Elemental'],['Commune with Nature','Conjure Volley','Greater Restoration','Steel Wind Strike','Swift Quiver','Tree Stride']];
+ const ATLAS_PENDING_DRUID_CANTRIPS=['Druidcraft','Elementalism','Guidance','Mending','Message','Poison Spray','Produce Flame','Resistance','Shillelagh','Spare the Dying','Starry Wisp','Thorn Whip','Thunderclap'];
+ const ATLAS_PENDING_RANGER_LIMITS=[0,2,3,4,5,6,6,7,7,9,9,10,10,11,11,12,12,14,14,15,15];
+ const ATLAS_PENDING_RANGER_SLOTS=[[],[2],[2],[3],[3],[4,2],[4,2],[4,3],[4,3],[4,3,2],[4,3,2],[4,3,3],[4,3,3],[4,3,3,1],[4,3,3,1],[4,3,3,2],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,1],[4,3,3,3,2],[4,3,3,3,2]];
+ const ATLAS_PENDING_ARRAY=[8,10,12,13,14,15];
+ const atlasPendingNorm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const atlasPendingLevel=(ch,name)=>Math.max(0,...(ch.classes||[]).filter(x=>x.name===name).map(x=>Number(x.level)||0));
+ function atlasPendingKind(p,ch){
+   const k=String(p.key||'')+' '+String(p.label||''),t=k.toLowerCase().replace(/[_-]/g,' ');
+   if(p.kind&&['skills','deft','mastery','druidic','primal','ranger-spells','array','expertise','student','review'].includes(p.kind))return p.kind;
+   if(/standard array|rebuild.*scores|ability score allocation/.test(t))return 'array';
+   if(/deft explorer/.test(t))return 'deft';
+   if(/weapon master/.test(t))return 'mastery';
+   if(/druidic warrior|druid cantrip/.test(t))return 'druidic';
+   if(/primal companion/.test(t))return 'primal';
+   if(/student of war/.test(t))return 'student';
+   if(/expertise/.test(t))return 'expertise';
+   if(/ranger.*(prepared|spells)|prepared spells/.test(t)&&atlasPendingLevel(ch,'Ranger'))return 'ranger-spells';
+   if(/class skills|background skills|keen senses|skill proficien|choose.*skills|verify.*skills/.test(t)&&!/docx|spells/.test(t))return 'skills';
+   if(/^(dm.review|dm.character.approval)/i.test(p.key||''))return 'review';
+   return 'unsupported';
+ }
+ function atlasPendingSpecies(ch){return /\belf\b/i.test(ch.species||'')?'Elf':ch.species;}
+ function atlasPendingWoodElf(ch){return [ch.species,ch.lineage,ch.elfLineage,ch.subspecies,ch.subrace,ch.speciesLineage,ch.speciesChoice,...(ch.features||[]).map(x=>x.name)].some(v=>/\bwood[\s-]+elf\b|\belf\s*\(wood\)/i.test(String(v||'')))||atlasPendingSpecies(ch)==='Elf'&&[ch.lineage,ch.elfLineage,ch.subspecies,ch.subrace,ch.speciesLineage,ch.speciesChoice].some(v=>String(v||'').trim().toLowerCase()==='wood');}
+ function atlasPendingSkillPlan(ch){
+   const p=atlasSkillPlan({...ch,species:atlasPendingSpecies(ch)}),sources=p.sources.filter(s=>s.key!=='feat');
+   for(const q of (ch.classes||[]).slice(1)){const rule=ATLAS_SKILL_RULES_2024.classes[q.name];if(rule&&['Bard','Ranger','Rogue'].includes(q.name))sources.push({key:'multi:'+q.name,title:q.name+' · '+tr('Πολυκλασικότητα','Multiclass'),count:1,options:rule[1]==='*'?p.all:rule[1].split(',')});}
+   return {...p,sources};
+ }
+ function atlasPendingOtherSkillSources(ch){const old=ch.skillChoiceSources2024||{};return [...new Set([...(Array.isArray(old.feat)?old.feat:[]),ch.studentOfWarSkill,...(ch.pendingOtherSkills2024||[])].filter(x=>D.skills.some(s=>s[0]===x)&&Number(ch.skills?.[x])>=1))];}
+ function atlasPendingSkillPicks(ch,p){
+   const old=ch.skillChoiceSources2024||{},taken=new Set([...p.fixed,...atlasPendingOtherSkillSources(ch)]),picks={};
+   for(const source of p.sources){const stored=Array.isArray(old[source.key])?old[source.key]:[],suggested=source.options.filter(x=>Number(ch.skills?.[x])>=1&&!taken.has(x));
+     picks[source.key]=(stored.length?stored:suggested).filter(x=>source.options.includes(x)&&!taken.has(x)).slice(0,source.count);
+     picks[source.key].forEach(x=>taken.add(x));}
+   return picks;
+ }
+ function atlasPendingSkillsValid(ch){
+   const p=atlasPendingSkillPlan(ch),stored=ch.skillChoiceSources2024||{},taken=new Set([...p.fixed,...atlasPendingOtherSkillSources(ch)]);
+   if(!p.fixed.length||!p.sources.length||p.fixed.some(x=>Number(ch.skills?.[x])<1||!Number(ch.skills?.[x])))return false;
+   for(const src of p.sources){const a=stored[src.key];if(!Array.isArray(a)||a.length!==src.count||new Set(a).size!==a.length||a.some(x=>!src.options.includes(x)||taken.has(x)||!(Number(ch.skills?.[x])>=1)))return false;a.forEach(x=>taken.add(x));}
+   return true;
+ }
+ function atlasPendingLanguages(ch){return Array.isArray(ch.languages)?[...new Set(ch.languages.map(x=>String(x).trim()).filter(Boolean))]:languageList(ch.languages);}
+ function atlasPendingLanguageOptions(ch){return CHARACTER_LANGUAGES.filter(x=>x!=='Common'&&!['Druidic','Thieves’ Cant','Gith','Quori'].includes(x));}
+ function atlasPendingExpertiseCount(ch,kind){
+   if(kind==='deft')return atlasPendingLevel(ch,'Ranger')>=2?1:0;
+   return (atlasPendingLevel(ch,'Ranger')>=9?2:0)+(atlasPendingLevel(ch,'Rogue')>=1?2:0)+(atlasPendingLevel(ch,'Rogue')>=6?2:0)+(atlasPendingLevel(ch,'Bard')>=2?2:0)+(atlasPendingLevel(ch,'Bard')>=9?2:0);
+ }
+ function atlasPendingExpertiseValid(ch,kind){
+   const count=atlasPendingExpertiseCount(ch,kind),a=kind==='deft'?[ch.deftExplorer2024?.skill]:ch.expertiseChoices2024||[];
+   if(!count)return true;if(a.length!==count||new Set(a).size!==count||a.some(x=>Number(ch.skills?.[x])!==2))return false;
+   if(kind==='deft'){const langs=ch.deftExplorer2024?.languages||[],known=atlasPendingLanguages(ch);return langs.length===2&&new Set(langs).size===2&&langs.every(x=>atlasPendingLanguageOptions(ch).includes(x)&&known.includes(x))&&!((ch.expertiseChoices2024||[]).includes(a[0]));}
+   return !a.includes(ch.deftExplorer2024?.skill);
+ }
+ function atlasPendingHasDruidic(ch){const style=String(ch.fightingStyle||'').trim();return atlasPendingLevel(ch,'Ranger')>=2&&(style?/druidic warrior/i.test(style):(ch.features||[]).some(x=>/druidic warrior/i.test(String(x.name||'')))||(ch.pendingChoices2024||[]).some(p=>atlasPendingKind(p,ch)==='druidic'));}
+ function atlasPendingSpellName(s){return findReference(s.ref)?.name||s.name||'';}
+ function atlasPendingSpellDef(name){const key=atlasPendingNorm(name);return D.spells.find(x=>atlasPendingNorm(x.name)===key);}
+ function atlasPendingSpellSource(s){const raw=String(s.spellSource||'').trim().toLowerCase();return /^(ranger|ranger spellcasting|ranger spells)$/.test(raw)?'ranger':/druidic warrior/.test(raw)?'druidic warrior':raw;}
+ function atlasPendingSpellAlways(ch,s){
+   const n=atlasPendingNorm(atlasPendingSpellName(s)),src=atlasPendingSpellSource(s);
+   return s.alwaysPrepared===true||/favored enemy|lineage|species|wood elf|magic initiate|subclass|gloom stalker|fey wanderer|swarmkeeper|hunter magic/.test(src)||n==='huntersmark'&&atlasPendingLevel(ch,'Ranger')>0||atlasPendingWoodElf(ch)&&['druidcraft','longstrider','passwithouttrace'].includes(n);
+ }
+ function atlasPendingRangerPlan(ch){
+   const level=atlasPendingLevel(ch,'Ranger'),slots=ATLAS_PENDING_RANGER_SLOTS[level]||[],limit=ATLAS_PENDING_RANGER_LIMITS[level]||0;
+   const fixed=new Set(['huntersmark']);if(atlasPendingWoodElf(ch)){if(totalLevel(ch)>=3)fixed.add('longstrider');if(totalLevel(ch)>=5)fixed.add('passwithouttrace');}
+   for(const s of ch.spellbook||[])if(atlasPendingSpellAlways(ch,s))fixed.add(atlasPendingNorm(atlasPendingSpellName(s)));
+   const options=ATLAS_PENDING_RANGER_SPELLS.slice(1,slots.length+1).flat().map(atlasPendingSpellDef).filter(x=>x&&!fixed.has(atlasPendingNorm(x.name)));
+   return {level,slots,limit,options};
+ }
+ function atlasPendingDruidPlan(ch){
+   const options=ATLAS_PENDING_DRUID_CANTRIPS.map(atlasPendingSpellDef).filter(Boolean).filter(d=>!((atlasPendingWoodElf(ch)&&d.name==='Druidcraft')||(ch.spellbook||[]).some(s=>atlasPendingNorm(atlasPendingSpellName(s))===atlasPendingNorm(d.name)&&atlasPendingSpellAlways(ch,s))));
+   return {limit:2,options};
+ }
+ function atlasPendingSpellSelected(ch,kind,plan){
+   const src=kind==='druidic'?'druidic warrior':'ranger',stored=kind==='druidic'?ch.druidicWarriorChoices2024:ch.rangerPreparedChoices2024;
+   if(Array.isArray(stored))return stored.filter(x=>plan.options.some(d=>d.id===x));
+   const ids=(ch.spellbook||[]).filter(s=>s.prepared!==false&&!atlasPendingSpellAlways(ch,s)&&(!atlasPendingSpellSource(s)||atlasPendingSpellSource(s)===src||kind==='druidic'&&atlasPendingSpellSource(s)==='druid')).map(s=>atlasPendingSpellDef(atlasPendingSpellName(s))?.id).filter(x=>plan.options.some(d=>d.id===x));
+   return [...new Set(ids)];
+ }
+ function atlasPendingSpellValid(ch,kind){
+   const p=kind==='druidic'?atlasPendingDruidPlan(ch):atlasPendingRangerPlan(ch),ids=kind==='druidic'?ch.druidicWarriorChoices2024:ch.rangerPreparedChoices2024;
+   if(!p.limit)return true;
+   if(!Array.isArray(ids)||ids.length!==p.limit||new Set(ids).size!==ids.length||ids.some(id=>!p.options.some(d=>d.id===id)))return false;
+   const src=kind==='druidic'?'druidic warrior':'ranger',selected=(ch.spellbook||[]).filter(s=>atlasPendingSpellSource(s)===src&&s.prepared!==false&&!atlasPendingSpellAlways(ch,s)&&(kind==='druidic'||Number(findReference(s.ref)?.level??s.level)>0));
+   if(selected.length!==ids.length||!ids.every(id=>selected.some(s=>atlasPendingSpellDef(atlasPendingSpellName(s))?.id===id)))return false;
+   if(kind==='ranger-spells'){const hm=(ch.spellbook||[]).find(s=>atlasPendingNorm(atlasPendingSpellName(s))==='huntersmark'&&s.alwaysPrepared===true&&s.prepared!==false),max=p.level>=17?6:p.level>=13?5:p.level>=9?4:p.level>=5?3:2;if(!hm||!(ch.resources||[]).some(r=>r.id===hm.freeResourceId&&Number(r.max)===max))return false;if((ch.classes||[]).length===1&&p.slots.some((n,i)=>Number(ch.slots?.[i+1]?.max)!==n))return false;if(atlasPendingWoodElf(ch)){for(const name of ['Druidcraft',...(totalLevel(ch)>=3?['Longstrider']:[]),...(totalLevel(ch)>=5?['Pass without Trace']:[])])if(!(ch.spellbook||[]).some(s=>atlasPendingNorm(atlasPendingSpellName(s))===atlasPendingNorm(name)&&s.alwaysPrepared===true&&s.prepared!==false))return false;}}
+   return true;
+ }
+ function atlasPendingArrayScores(base,boosts,bg){
+   const keys=['STR','DEX','CON','INT','WIS','CHA'],allowed=ATLAS_PENDING_ABILITIES[bg];
+   if(!allowed||keys.some(k=>!Number.isInteger(base?.[k]))||JSON.stringify(keys.map(k=>base[k]).sort((a,b)=>a-b))!==JSON.stringify(ATLAS_PENDING_ARRAY))return null;
+   if(!boosts||Object.keys(boosts).some(k=>!allowed.includes(k))||Object.values(boosts).some(n=>![1,2].includes(n))||Object.values(boosts).reduce((a,b)=>a+b,0)!==3||![2,3].includes(Object.keys(boosts).length))return null;
+   return Object.fromEntries(keys.map(k=>[k,base[k]+(boosts[k]||0)]));
+ }
+ function atlasPendingArrayValid(ch){const q=ch.standardArray2024;if(!q||q.background!==ch.background)return false;const final=atlasPendingArrayScores(q.base,q.boosts,ch.background);return !!final&&Object.keys(final).every(k=>Number(ch.abilities?.[k])===final[k]+Number(q.laterIncreases?.[k]||0));}
+ function atlasPendingSupported(ch,kind){
+   if(kind==='skills'){const p=atlasPendingSkillPlan(ch);return !!p.fixed.length&&!!p.sources.length;}
+   if(kind==='deft'||kind==='expertise')return atlasPendingExpertiseCount(ch,kind)>0;
+   if(kind==='mastery')return masteryCapacity(ch)>0;
+   if(kind==='druidic')return atlasPendingHasDruidic(ch);
+   if(kind==='primal')return atlasPrimalLevel(ch)>=3;
+   if(kind==='ranger-spells'){const r=(ch.classes||[]).find(x=>x.name==='Ranger');return !!r&&['','Beast Master','Hunter'].includes(String(r.subclass||''))&&(ch.classes||[]).length===1;}
+   if(kind==='array')return !!ATLAS_PENDING_ABILITIES[ch.background]&&totalLevel(ch)<=3;
+   if(kind==='student')return isBattleMaster(ch);
+   return false;
+ }
+ function atlasPendingResolved(ch,p,kind=atlasPendingKind(p,ch)){
+   if(kind==='skills')return atlasPendingSkillsValid(ch);
+   if(kind==='deft'||kind==='expertise')return atlasPendingExpertiseValid(ch,kind);
+   if(kind==='mastery')return masteryCapacity(ch)>0&&selectedMasteries(ch).length===masteryCapacity(ch);
+   if(kind==='primal')return atlasPrimalLevel(ch)<3||!!atlasPrimalStats(ch);
+   if(kind==='druidic'||kind==='ranger-spells')return atlasPendingSpellValid(ch,kind);
+   if(kind==='array')return atlasPendingArrayValid(ch);
+   if(kind==='student'){const q=studentSelection(ch);return !!q.tool&&!!q.skill;}
+   return p.status==='resolved'&&(kind==='review'||p.resolutionMode==='dm-review');
+ }
+ function atlasPendingEntries(ch){
+   const entries=(ch.pendingChoices2024||[]).map((p,i)=>({...p,choiceKey:String(p.key||'legacy-'+i),kind:atlasPendingKind(p,ch)})),existing=new Set(entries.map(p=>p.kind));
+   const add=(kind,el,en)=>{if(!existing.has(kind)&&atlasPendingSupported(ch,kind)){const p={key:'dynamic-'+kind,choiceKey:'dynamic-'+kind,kind,label:tr(el,en)};if(!atlasPendingResolved(ch,p,kind))entries.push(p);}};
+   add('skills','Επιλογές επάρκειας δεξιοτήτων (Skills)','Skill proficiency choices');
+   add('mastery','Εξειδικεύσεις όπλων (Weapon Mastery)','Weapon Mastery choices');
+   add('deft','Ειδίκευση και γλώσσες (Deft Explorer)','Deft Explorer expertise and languages');
+   add('expertise','Επιλογές ειδίκευσης (Expertise)','Expertise choices');
+   add('druidic','Ξόρκια μηδενικού επιπέδου (Druidic Warrior)','Druidic Warrior cantrips');
+   add('primal','Πρωταρχικός σύντροφος (Primal Companion)','Primal Companion form');
+   add('ranger-spells','Προετοιμασμένα ξόρκια Ranger','Ranger prepared spells');
+   return entries.map(p=>({...p,status:atlasPendingResolved(ch,p,p.kind)?'resolved':'pending'}));
+ }
+ function atlasPendingSelect(name,label,values,current,required=true){return '<label class="field">'+esc(label)+'<select name="'+attr(name)+'" '+(required?'required':'')+'><option value="">—</option>'+values.map(x=>{const [v,n]=Array.isArray(x)?x:[x,x];return '<option value="'+attr(v)+'" '+(String(current??'')===String(v)?'selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label>';}
+ function atlasPendingChecks(name,options,selected,limit){
+   const set=new Set(selected),label=tr('Επιλεγμένα','Selected');
+   return '<p class="muted small" data-pending-count="'+attr(name)+'">'+label+': '+set.size+' / '+limit+'</p><div class="tile-list" data-pending-checks="'+attr(name)+'" data-limit="'+limit+'">'+options.map(([v,n,desc])=>'<label class="tile" style="justify-content:flex-start"><input type="checkbox" name="'+attr(name)+'" value="'+attr(v)+'" '+(set.has(v)?'checked':'')+'><span style="flex:1;min-width:0"><strong>'+esc(n)+'</strong>'+(desc?'<small class="desc">'+esc(desc)+'</small>':'')+'</span></label>').join('')+'</div>';
+ }
+ function atlasPendingFields(ch,p){
+   const kind=p.kind;
+   if(kind==='skills'){
+     const plan=atlasPendingSkillPlan(ch),picks=atlasPendingSkillPicks(ch,plan),old=ch.skillChoiceSources2024||{},fixed=new Set(plan.fixed),claimed=new Set([...fixed,...Object.values(picks).flat()]);
+     const preserved=atlasPendingOtherSkillSources(ch);
+     const extras=Object.keys(ch.skills||{}).filter(x=>Number(ch.skills[x])>=1&&!claimed.has(x)&&!preserved.includes(x));
+     return '<p>'+tr('Υποχρεωτικές δεξιότητες υποβάθρου','Fixed background skills')+': <b>'+esc(plan.fixed.join(' · '))+'</b></p>'+plan.sources.map(src=>'<div class="detail-note"><strong>'+esc(src.title)+' · '+src.count+'</strong>'+Array.from({length:src.count},(_,i)=>atlasPendingSelect('skill:'+src.key+':'+i,tr('Επιλογή','Choice')+' '+(i+1),src.options.filter(x=>!fixed.has(x)&&!preserved.includes(x)),picks[src.key][i])).join('')+'</div>').join('')+(preserved.length?'<p class="muted small">'+tr('Διατηρούνται καταγεγραμμένες άλλες πηγές: ','Preserved recorded other sources: ')+esc(preserved.join(', '))+'</p>':'')+(extras.length?'<p class="notice">'+tr('Μη αντιστοιχισμένες εισαγόμενες δεξιότητες: ','Unassigned imported skills: ')+esc(extras.join(', '))+'. '+tr('Αν δεν επιλεγούν ξανά, απαιτείται έλεγχος DM πριν αφαιρεθούν.','If not selected again, DM review is required before removal.')+'</p>':'')+(atlasCanDmOverride()?atlasPendingChecks('retain',plan.all.filter(x=>Number(ch.skills?.[x])>=1&&!preserved.includes(x)).map(x=>[x,x,tr('Άλλη πηγή (DM)','Other source (DM)')]),(ch.pendingOtherSkills2024||[]).filter(x=>plan.all.includes(x)),18):'')+'<label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω την ανακατανομή των εισαγόμενων proficiencies.','Confirm rebuilding the imported proficiencies.')+'</label>';
+   }
+   if(kind==='deft'||kind==='expertise'){
+     const count=atlasPendingExpertiseCount(ch,kind),old=kind==='deft'?[ch.deftExplorer2024?.skill].filter(Boolean):ch.expertiseChoices2024||[],blocked=kind==='deft'?ch.expertiseChoices2024||[]:[ch.deftExplorer2024?.skill],options=D.skills.map(x=>x[0]).filter(x=>Number(ch.skills?.[x])>=1&&!blocked.includes(x));
+     const defaults=old.length?old:options.filter(x=>Number(ch.skills[x])===2).slice(0,count);
+     return '<p class="muted">'+tr('Μόνο δεξιότητες στις οποίες έχεις ήδη επάρκεια.','Only skills in which you are already proficient.')+'</p>'+atlasPendingChecks('expertise',options.map(x=>[x,x,Number(ch.skills[x])===2?tr('Ήδη Expertise','Existing Expertise'):'']),defaults,count)+(kind==='deft'?'<h3>'+tr('Δύο γλώσσες','Two languages')+'</h3>'+[0,1].map(i=>atlasPendingSelect('language'+i,tr('Γλώσσα','Language')+' '+(i+1),atlasPendingLanguageOptions(ch),ch.deftExplorer2024?.languages?.[i])).join('')+'<p class="muted small">'+tr('Οι υπάρχουσες γλώσσες διατηρούνται· επιβεβαίωσε ποιες προέρχονται από το Deft Explorer.','Existing languages are retained; confirm which came from Deft Explorer.')+'</p>':'')+'<label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω ότι οι επιλεγμένες ειδικεύσεις ανήκουν σε αυτή την πηγή.','Confirm these expertise selections belong to this source.')+'</label>';
+   }
+   if(kind==='mastery')return atlasPendingChecks('mastery',D.weapons.filter(w=>R.masteryEligible(ch,w,D.weapons)).map(w=>[w.name,w.name,w.mastery]),selectedMasteries(ch),masteryCapacity(ch));
+   if(kind==='druidic'||kind==='ranger-spells'){
+     const plan=kind==='druidic'?atlasPendingDruidPlan(ch):atlasPendingRangerPlan(ch);
+     return '<p>'+tr('Επίλεξε ακριβώς','Choose exactly')+' <b>'+plan.limit+'</b> '+tr('νόμιμα ξόρκια. Τα επιπλέον ξόρκια από άλλες πηγές δεν καταναλώνουν θέσεις.','legal spells. Additional spells from other sources do not count.')+'</p>'+atlasPendingChecks('spells',plan.options.map(d=>[d.id,d.name,'Lv '+d.level+' · '+d.school+(d.concentration?' · Concentration':'')+(d.ritual?' · Ritual':'')]),atlasPendingSpellSelected(ch,kind,plan),plan.limit)+'<label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω την αρχική επιλογή ή διόρθωση των ξορκιών (όχι δωρεάν αλλαγές μέσα στη μάχη).','Confirm initial spell selection or correction (not free changes during combat).')+'</label>';
+   }
+   if(kind==='array'){
+     const q=ch.standardArray2024,allowed=ATLAS_PENDING_ABILITIES[ch.background],keys=['STR','DEX','CON','INT','WIS','CHA'],values=ATLAS_PENDING_ARRAY.map(n=>[n,String(n)]);
+     return '<p class="notice">'+tr('Η αρχική κατανομή αλλάζει τα πραγματικά ability scores. Τα HP προσαρμόζονται στη μεταβολή CON. Έλεγξε χειροκίνητα την AC και τυχόν ειδικές εξαιρέσεις με τον DM.','The initial allocation changes actual ability scores. HP adjusts for CON changes. Review AC and special exceptions with the DM.')+'</p><div class="form-grid">'+keys.map(k=>atlasPendingSelect('base:'+k,k+' · '+tr('Τρέχον','Current')+' '+ch.abilities?.[k],values,q?.base?.[k])).join('')+'</div><h3>'+esc(ch.background)+' · '+tr('Αυξήσεις','Increases')+'</h3><div class="form-grid">'+allowed.map(k=>atlasPendingSelect('boost:'+k,k,[[0,'+0'],[1,'+1'],[2,'+2']],q?.boosts?.[k]??0)).join('')+'</div><p class="muted small">'+tr('Χρησιμοποίησε κάθε τιμή του Standard Array μία φορά. Επίλεξε +2/+1 ή +1/+1/+1.','Use every Standard Array value once. Choose +2/+1 or +1/+1/+1.')+'</p><label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω τη διόρθωση της αρχικής κατανομής.','Confirm correcting the initial allocation.')+'</label>';
+   }
+   return '';
+ }
+ function atlasPendingSpellPut(ch,def,source,extra={}){
+   ch.spellbook=ch.spellbook||[];const key=atlasPendingNorm(def.name);
+   let row=ch.spellbook.find(x=>atlasPendingNorm(atlasPendingSpellName(x))===key&&atlasPendingSpellSource(x)===source.toLowerCase());
+   if(!row)row=ch.spellbook.find(x=>atlasPendingNorm(atlasPendingSpellName(x))===key&&!atlasPendingSpellSource(x));
+   if(!row){row={id:uid()};ch.spellbook.push(row);}
+   Object.assign(row,{ref:def.id,name:def.name,level:def.level,prepared:true,spellSource:source,...extra});return row;
+ }
+ function atlasPendingRangerGrants(ch,plan){
+   const level=plan.level;ch.resources=ch.resources||[];
+   let r=ch.resources.find(x=>x.id==='atlas-favored-enemy'||/favored enemy|hunter.?s mark/i.test(x.name||''));
+   const max=level>=17?6:level>=13?5:level>=9?4:level>=5?3:2;
+   if(!r){r={id:'atlas-favored-enemy',name:'Favored Enemy · Hunter’s Mark',max,current:max,recharge:'long'};ch.resources.push(r);}else{const spent=Math.max(0,Number(r.max||0)-Number(r.current||0));Object.assign(r,{max,current:Math.max(0,max-spent),recharge:'long'});}
+   const h=atlasPendingSpellDef('Hunter’s Mark');if(!h)throw Error('Missing Hunter’s Mark reference');
+   let existing=(ch.spellbook||[]).find(x=>atlasPendingNorm(atlasPendingSpellName(x))==='huntersmark'&&(!atlasPendingSpellSource(x)||/ranger|favored enemy/i.test(x.spellSource)));
+   if(existing)Object.assign(existing,{ref:h.id,name:h.name,level:1,prepared:true,spellSource:'Favored Enemy',alwaysPrepared:true,freeResourceId:r.id});else atlasPendingSpellPut(ch,h,'Favored Enemy',{alwaysPrepared:true,freeResourceId:r.id});
+   if(atlasPendingWoodElf(ch)){for(const name of ['Druidcraft',...(totalLevel(ch)>=3?['Longstrider']:[]),...(totalLevel(ch)>=5?['Pass without Trace']:[])]){const d=atlasPendingSpellDef(name);if(!d)continue;let e=(ch.spellbook||[]).find(x=>atlasPendingNorm(atlasPendingSpellName(x))===atlasPendingNorm(name)&&(!atlasPendingSpellSource(x)||/ranger|wood elf|lineage|species/i.test(x.spellSource)));if(e)Object.assign(e,{ref:d.id,name:d.name,level:d.level,prepared:true,spellSource:'Wood Elf Lineage',alwaysPrepared:true});else atlasPendingSpellPut(ch,d,'Wood Elf Lineage',{alwaysPrepared:true});}}
+   if((ch.classes||[]).length===1){const slots={};plan.slots.forEach((max,i)=>{const k=String(i+1);slots[k]={...(ch.slots?.[k]||{}),max,used:Math.min(max,Math.max(0,Number(ch.slots?.[k]?.used)||0))};});ch.slots=slots;ch.spellAbility='WIS';}
+ }
+ function atlasPendingApply(ch,kind,fd,dm=false){
+   const list=n=>fd.getAll(n).map(String),one=n=>String(fd.get(n)||''),unique=(a,n)=>a.length===n&&new Set(a).size===n,need=()=>{if(!fd.get('confirm'))throw Error(tr('Απαιτείται επιβεβαίωση.','Confirmation required.'));},bad=()=>{throw Error(tr('Συμπλήρωσε ακριβώς τις νόμιμες και διαφορετικές επιλογές.','Choose exactly the required distinct legal options.'));};
+   if(!atlasPendingSupported(ch,kind))bad();
+   if(kind==='skills'){
+     need();const p=atlasPendingSkillPlan(ch),old=ch.skillChoiceSources2024||{},next={...old},reserved=new Set(atlasPendingOtherSkillSources(ch)),taken=new Set(p.fixed);
+     for(const src of p.sources){const a=Array.from({length:src.count},(_,i)=>one('skill:'+src.key+':'+i));if(!unique(a,src.count)||a.some(x=>!src.options.includes(x)||taken.has(x)||reserved.has(x)))bad();a.forEach(x=>taken.add(x));next[src.key]=a;}
+     const keep=[...(Array.isArray(old.feat)?old.feat:[]),ch.studentOfWarSkill,...(!dm?ch.pendingOtherSkills2024||[]:[])].filter(x=>p.all.includes(x)&&Number(ch.skills?.[x])>=1);
+     const other=dm?list('retain'):ch.pendingOtherSkills2024||[];if(other.some(x=>!p.all.includes(x)||!(Number(ch.skills?.[x])>=1)))bad();
+     const selected=new Set([...taken,...keep,...other]),ranks={};const dropped=Object.keys(ch.skills||{}).filter(x=>Number(ch.skills[x])>=1&&!selected.has(x));if(dropped.length&&!dm)throw Error(tr('Μόνο ο DM μπορεί να αφαιρέσει μη αντιστοιχισμένες εισαγόμενες δεξιότητες: ','Only the DM can remove unassigned imported skills: ')+dropped.join(', '));if(other.some(x=>taken.has(x)))bad();for(const x of selected)ranks[x]=Number(ch.skills?.[x])===2?2:1;
+     ch.skills=ranks;ch.skillChoiceSources2024=next;if(dm)ch.pendingOtherSkills2024=other;return;
+   }
+   if(kind==='deft'||kind==='expertise'){
+     need();const count=atlasPendingExpertiseCount(ch,kind),a=list('expertise'),old=kind==='deft'?[ch.deftExplorer2024?.skill].filter(Boolean):ch.expertiseChoices2024||[],blocked=kind==='deft'?ch.expertiseChoices2024||[]:[ch.deftExplorer2024?.skill];
+     if(!unique(a,count)||a.some(x=>!D.skills.some(s=>s[0]===x)||!(Number(ch.skills?.[x])>=1)||blocked.includes(x)))bad();
+     const existing=Object.keys(ch.skills||{}).filter(x=>Number(ch.skills[x])===2&&!blocked.includes(x)&&!a.includes(x)&&!old.includes(x));
+     if(existing.length&&!dm)throw Error(tr('Υπάρχουν άλλες μη αντιστοιχισμένες ειδικεύσεις. Χρειάζεται έλεγχος DM πριν προσθέσεις νέες.','Other unassigned expertise exists. DM review is required before adding more.'));
+     if(kind==='deft'){const languages=[one('language0'),one('language1')],allowed=atlasPendingLanguageOptions(ch);if(!unique(languages,2)||languages.some(x=>!allowed.includes(x)))bad();const known=atlasPendingLanguages(ch),prior=ch.deftExplorer2024?.languages||[];ch.languages=[...new Set([...known.filter(x=>!prior.includes(x)||languages.includes(x)),...languages])].join(', ');ch.deftExplorer2024={skill:a[0],languages};}
+     else ch.expertiseChoices2024=a;
+     old.filter(x=>!a.includes(x)&&!blocked.includes(x)&&Number(ch.skills?.[x])===2).forEach(x=>ch.skills[x]=1);a.forEach(x=>ch.skills[x]=2);return;
+   }
+   if(kind==='mastery'){const a=list('mastery'),limit=masteryCapacity(ch);if(!unique(a,limit)||a.some(n=>!R.masteryEligible(ch,D.weapons.find(w=>w.name===n),D.weapons)))bad();ch.weaponMasteries=a;return;}
+   if(kind==='druidic'||kind==='ranger-spells'){
+     need();const p=kind==='druidic'?atlasPendingDruidPlan(ch):atlasPendingRangerPlan(ch),ids=list('spells');if(!unique(ids,p.limit)||ids.some(id=>!p.options.some(d=>d.id===id)))bad();
+     const src=kind==='druidic'?'Druidic Warrior':'Ranger',old=kind==='druidic'?ch.druidicWarriorChoices2024:ch.rangerPreparedChoices2024;
+     if(kind==='ranger-spells')atlasPendingRangerGrants(ch,p);
+     ch.spellbook=ch.spellbook||[];
+     const candidates=new Set(p.options.map(d=>atlasPendingNorm(d.name)));
+     for(const s of ch.spellbook){const d=atlasPendingSpellDef(atlasPendingSpellName(s)),source=atlasPendingSpellSource(s),isOwned=source===src.toLowerCase()||(Array.isArray(old)&&old.includes(d?.id)&&!source);
+       if(isOwned&&!atlasPendingSpellAlways(ch,s)&&!ids.includes(d?.id))s.prepared=false;
+       else if(!source&&candidates.has(atlasPendingNorm(atlasPendingSpellName(s)))&&!ids.includes(d?.id)&&kind==='ranger-spells')s.prepared=false;
+     }
+     if(kind==='druidic'){ch.spellbook=ch.spellbook.filter(s=>atlasPendingSpellSource(s)!=='druidic warrior'||ids.includes(atlasPendingSpellDef(atlasPendingSpellName(s))?.id)||atlasPendingSpellAlways(ch,s));}
+     for(const id of ids)atlasPendingSpellPut(ch,p.options.find(d=>d.id===id),src);
+     if(kind==='druidic'){ch.druidicWarriorChoices2024=ids;ch.fightingStyle='Druidic Warrior';}else ch.rangerPreparedChoices2024=ids;
+     return;
+   }
+   if(kind==='array'){
+     need();const keys=['STR','DEX','CON','INT','WIS','CHA'],base=Object.fromEntries(keys.map(k=>[k,Number(one('base:'+k))])),boosts={};for(const k of ATLAS_PENDING_ABILITIES[ch.background]){const n=Number(one('boost:'+k));if(n)boosts[k]=n;}
+     const scores=atlasPendingArrayScores(base,boosts,ch.background);if(!scores)bad();
+     const delta=(Math.floor((scores.CON-10)/2)-Math.floor((Number(ch.abilities?.CON||10)-10)/2))*totalLevel(ch);
+     ch.abilities={...ch.abilities,...scores};ch.standardArray2024={background:ch.background,base,boosts};
+     if(ch.hp&&Number.isFinite(Number(ch.hp.max))){const oldMax=Number(ch.hp.max),current=Number(ch.hp.current)||0,newMax=Math.max(1,oldMax+delta);ch.hp.max=newMax;ch.hp.current=current===0?0:Math.min(newMax,Math.max(1,current+newMax-oldMax));}return;
+   }
+   bad();
+ }
  function pendingChoiceAlert(ch){
-  const choices=(ch.pendingChoices2024||[]).filter(x=>x.status!=='resolved');
-  if(!choices.length)return '';
-  const can= !cloud.enabled||canEditCharacter(ch);
-  return '<section class="atlas-mastery-alert" role="status"><div><strong>'+esc(tr('Εκκρεμείς επιλογές χαρακτήρα','Pending character choices'))+' ('+choices.length+')</strong><p>'+esc(tr('Ο χαρακτήρας χρειάζεται επιβεβαίωση πριν θεωρηθεί ολοκληρωμένος.','This character needs choices confirmed before it is complete.'))+'</p></div>'+(can?'<button class="btn primary" data-action="pending-choices">'+esc(tr('Διαχείριση επιλογών','Review choices'))+'</button>':'')+'</section>';
+   const choices=atlasPendingEntries(ch).filter(x=>x.status!=='resolved');if(!choices.length)return '';
+   const can=canEditCharacter(ch);return '<section class="atlas-mastery-alert" role="status"><div><strong>'+tr('Εκκρεμείς επιλογές χαρακτήρα','Pending character choices')+' ('+choices.length+')</strong><p>'+tr('Οι εκκρεμότητες ελέγχονται από τα πραγματικά δεδομένα του φύλλου.','Choices are checked against actual sheet data.')+'</p></div>'+(can?btn(tr('Διαχείριση επιλογών','Review choices'),'pending-choices','primary'):'')+'</section>';
  }
  function showPendingChoices(){
-  const ch=c(),choices=ch.pendingChoices2024||[];
-  if(cloud.enabled&&!canEditCharacter(ch))return toast(tr('Δεν έχεις δικαίωμα επεξεργασίας.','You cannot edit this character.'));
-  const list=choices.map((p,i)=>'<div class="tile"><div><strong>'+esc(p.label||p.key)+'</strong><p class="muted small">'+esc(p.notes||'')+'</p><p class="small">'+esc(p.status==='resolved'?tr('Επιβεβαιωμένο','Confirmed'):tr('Εκκρεμεί','Pending'))+(p.value?' · '+esc(p.value):'')+'</p></div><button class="btn sm" data-action="pending-edit:'+i+'">'+esc(tr('Επιλογή','Choose'))+'</button></div>').join('');
-  openModal(tr('Εκκρεμείς επιλογές','Pending choices'),'<p class="muted">'+esc(tr('Οι επιλογές αποθηκεύονται στον χαρακτήρα. Για skills, feats και spells έλεγξε επίσης τις αντίστοιχες καρτέλες.','Choices are saved to this character. For skills, feats and spells, also verify the appropriate tabs.'))+'</p><div class="tile-list">'+list+'</div>',btn(tr('Κλείσιμο','Close'),'close-modal'),true);
+   const ch=c();if(!ch||!canEditCharacter(ch))return;
+   const all=atlasPendingEntries(ch),choices=all.filter(x=>x.status!=='resolved');
+   const list=choices.map(p=>'<div class="tile"><div style="flex:1;min-width:0"><strong>'+esc(p.label||p.key)+'</strong>'+(p.notes?'<p class="muted small">'+esc(p.notes)+'</p>':'')+'<p class="small">'+(atlasPendingSupported(ch,p.kind)?tr('Απαιτείται πραγματική επιλογή','Actual selection required'):tr('Απαιτείται έλεγχος DM','DM review required'))+'</p></div><button class="btn sm" data-action="pending-edit:'+all.indexOf(p)+'">'+tr('Επιλογή','Choose')+'</button></div>').join('');
+   openModal(tr('Εκκρεμείς επιλογές','Pending choices'),'<p class="muted">'+tr('Οι επιλογές εφαρμόζονται στο φύλλο. Πάτησε το κεντρικό Save για συγχρονισμό.','Choices update the sheet. Press the main Save to sync.')+'</p><div class="tile-list">'+(list||'<p>'+tr('Δεν υπάρχουν εκκρεμείς επιλογές.','No pending choices.')+'</p>')+'</div><p class="muted small">'+(all.length-choices.length)+' '+tr('ολοκληρωμένες καταγεγραμμένες επιλογές','completed recorded choices')+'</p>',btn(tr('Κλείσιμο','Close'),'close-modal'),true);
  }
  function editPendingChoice(index){
-  const ch=c(),p=(ch.pendingChoices2024||[])[index];if(!p)return;
-  const options=Array.isArray(p.options)?p.options:[];
-  const control=options.length?'<select name="pendingValue" required><option value="">—</option>'+options.map(v=>'<option value="'+attr(v)+'" '+(p.value===v?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':'<textarea name="pendingValue" required maxlength="1000" rows="3" placeholder="'+attr(tr('Η επιλογή που επιβεβαιώνει ο παίκτης','Player-confirmed choice'))+'">'+esc(p.value||'')+'</textarea>';
-  openModal(p.label||p.key,'<form id="atlas-pending-choice-form" data-choice-index="'+index+'"><p class="muted">'+esc(p.notes||'')+'</p><label>'+esc(tr('Επιλογή / επιβεβαίωση','Choice / confirmation'))+control+'</label><div class="actions-inline"><button class="btn primary" type="submit">'+esc(tr('Αποθήκευση επιλογής','Save choice'))+'</button><button class="btn" type="button" data-action="pending-choices">'+esc(tr('Πίσω','Back'))+'</button></div></form>','',true);
+   const ch=c(),p=ch&&atlasPendingEntries(ch)[index];if(!p||!canEditCharacter(ch)||atlasManualSaving)return;
+   if(p.kind==='primal'&&atlasPendingSupported(ch,p.kind))return atlasPrimalForm(ch,'summon');
+   if(p.kind==='student'&&atlasPendingSupported(ch,p.kind))return editStudentOfWar();
+   const supported=atlasPendingSupported(ch,p.kind),review=p.kind==='review'&&atlasCanDmOverride();
+   const fields=supported?atlasPendingFields(ch,p):review?'<p>'+tr('Ο DM πρέπει να ελέγξει τα πραγματικά στοιχεία του φύλλου. Η επιβεβαίωση αυτή δεν χορηγεί κανένα trait.','The DM must verify the actual sheet. This confirmation grants no trait.')+'</p><label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω τον έλεγχο DM.','Confirm DM review.')+'</label>':'<p class="notice">'+tr('Δεν υπάρχει ακόμη πλήρης εξειδικευμένος selector για αυτή την απαίτηση. Δεν μπορεί να ολοκληρωθεί γράφοντας μια σημείωση. Χρειάζεται έλεγχος των αντίστοιχων κανόνων από τον DM.','A complete typed selector is not yet available for this requirement. A note cannot complete it. The DM must review the relevant rules.')+'</p>';
+   openModal(p.label||p.key,'<form id="atlas-pending-choice-form" data-character="'+attr(ch.id)+'" data-choice-key="'+attr(p.choiceKey)+'">'+fields+'<div class="actions-inline">'+(supported||review?'<button class="btn primary" type="submit">'+tr('Εφαρμογή επιλογής','Apply choice')+'</button>':'')+btn(tr('Πίσω','Back'),'pending-choices')+'</div></form>','',true);
+   document.querySelectorAll('#atlas-pending-choice-form [data-pending-checks]').forEach(atlasPendingRefreshChecks);
  }
+ function atlasPendingRefreshChecks(group){const boxes=[...group.querySelectorAll('input[type=checkbox]')],n=boxes.filter(x=>x.checked).length,limit=Number(group.dataset.limit);boxes.forEach(x=>x.disabled=!x.checked&&n>=limit);const count=group.previousElementSibling;if(count?.hasAttribute('data-pending-count'))count.textContent=tr('Επιλεγμένα','Selected')+': '+n+' / '+limit;}
+ document.addEventListener('change',e=>{const group=e.target.closest?.('#atlas-pending-choice-form [data-pending-checks]');if(group)atlasPendingRefreshChecks(group);});
 
  function renderOverview(ch){return `<div class="atlas-overview">${atlasOverviewHeader(ch)}<div class="atlas-rest-row"><button class="btn primary" data-action="short-rest">🪑 ${tr('Σύντομη ανάπαυση','Short Rest')}</button><button class="btn primary" data-action="long-rest">🛏️ ${tr('Παρατεταμένη ανάπαυση','Long Rest')}</button></div>${masteryAlert(ch)}${studentOverviewAlert(ch)}${pendingChoiceAlert(ch)}${atlasStory(ch)}${atlasCoreStats(ch)}${panel('ABILITY SCORES',atlasOverviewAbilities(ch),'<button class="btn sm" data-action="edit-abilities">Edit</button>')}${panel('SKILLS',atlasOverviewSkills(ch),'','All 18 skills')}<div class="atlas-overview-bottom">${panel('FEATS',atlasOverviewOwned(ch,'feat'))}${panel('FEATURES',atlasOverviewOwned(ch,'feature'))}</div><div class="atlas-overview-bottom-note">${tr('Κανόνες: D&D 2024. Τα εισαγόμενα φύλλα ίσως χρειάζονται έλεγχο εκκρεμών επιλογών.','Ruleset: D&D 2024 only. Existing/imported sheets may need review for unresolved character choices.')}</div></div>`;}
 
@@ -999,7 +1540,227 @@
  function renderSlots(ch){let any=false,rows='';for(let i=1;i<=9;i++){const s=ch.slots?.[i];if(!s||!s.max)continue;any=true;rows+=slotCell(ch,'slot',i,s.max,s.used||0);}let p=ch.pact||{max:0,used:0,level:1};if(p.max){any=true;rows+=slotCell(ch,'pact',p.level,p.max,p.used);}
  return any?`<div class="slots">${rows}</div><div class="tiny muted" style="margin-top:9px">Πατάς κύκλο όταν ξοδεύεις/ανακτάς slot. Long Rest επαναφέρει τα συνήθη slots· Pact Magic και σε Short Rest.</div>`:`<div class="empty"><strong>No spell slots</strong>Κανονικό για αρκετές martial classes. ${btn('Configure','edit-spell-setup','sm')}</div>`;}
  function slotCell(ch,type,lvl,max,used){return `<div class="slot"><div class="slot-head"><strong>${type==='pact'?'PACT · ':''}L${lvl}</strong><span>${Math.max(0,max-used)}/${max}</span></div><div class="dots">${Array.from({length:max},(_,i)=>`<button class="dot ${i<max-used?'filled':''}" title="${i<max-used?'Spend':'Restore'} slot" data-slot="${type}:${lvl}:${i<max-used?'spend':'restore'}">${i<max-used?'✓':'·'}</button>`).join('')}</div></div>`;}
- function renderCompanions(ch){const list=ch.companions||[];return list.length?`<div class="tile-list">${list.map(p=>`<div class="tile"><button class="linklike" style="text-align:left;min-width:0;flex:1" data-companion-detail="${attr(p.id)}"><span class="name">${esc(p.name)} · HP ${p.hp}/${p.maxHp}</span><span class="desc">${esc(p.type||'Companion')} · AC ${p.ac} · Speed ${p.speed} ft</span></button><button class="btn sm" data-edit-companion="${attr(p.id)}">Edit</button></div>`).join('')}</div>`:'<div class="empty">Familiars, wild shapes, mounts και companions μπορούν να προστεθούν εδώ.</div>';}
+
+ // Class-granted companions are derived from the owning character, not generic monster copies.
+ const ATLAS_PRIMAL_FORMS={
+   land:{en:'Beast of the Land',el:'Θηρίο της Ξηράς',size:'Medium',speed:'40 ft. / Climb 40 ft.',hpBase:5,die:8,damageBase:2,damageDie:'1d8',damageTypes:['Bludgeoning','Piercing','Slashing'],scores:[14,14,15,8,14,11],darkvision:60},
+   sea:{en:'Beast of the Sea',el:'Θηρίο της Θάλασσας',size:'Medium',speed:'5 ft. / Swim 60 ft.',hpBase:5,die:8,damageBase:2,damageDie:'1d6',damageTypes:['Bludgeoning','Piercing'],scores:[14,14,15,8,14,11],darkvision:90},
+   sky:{en:'Beast of the Sky',el:'Θηρίο του Ουρανού',size:'Small',speed:'10 ft. / Fly 60 ft.',hpBase:4,die:6,damageBase:3,damageDie:'1d4',damageTypes:['Slashing'],scores:[6,16,13,8,14,11],darkvision:60}
+ };
+ function atlasPrimalLevel(ch){return (ch?.classes||[]).reduce((n,x)=>String(x.name).toLowerCase()==='ranger'&&String(x.subclass||'').toLowerCase().replace(/[^a-z]/g,'')==='beastmaster'?Math.max(n,Number(x.level)||0):n,0);}
+ function atlasPrimalStats(ch,q=ch?.primalCompanion){
+   const level=atlasPrimalLevel(ch),f=Object.hasOwn(ATLAS_PRIMAL_FORMS,q?.form)?ATLAS_PRIMAL_FORMS[q.form]:null;if(level<3||!f)return null;
+   const wis=ability(ch,'WIS'),pb=prof(ch),maxHp=f.hpBase*(level+1),damage=Math.max(0,Math.min(maxHp,Math.trunc(Number(q.damage)||0)));
+   return {...f,level,wis,pb,maxHp,hp:['dead','reviving','vanished'].includes(q.status)?0:maxHp-damage,ac:13+wis,attack:pb+wis,dc:8+pb+wis,damage:f.damageDie+signed(f.damageBase+wis),damageType:f.damageTypes.includes(q.damageType)?q.damageType:f.damageTypes[0],strikes:level>=11?2:1};
+ }
+ function atlasPrimalName(form){const f=ATLAS_PRIMAL_FORMS[form];return f?tr(f.el+' ('+f.en+')',f.en):'';}
+ function atlasPrimalButton(ch,action,label){return '<button type="button" class="btn sm" data-atlas-primal="'+action+'" data-character="'+attr(ch.id)+'">'+label+'</button>';}
+ function atlasPrimalPanel(ch,compact=false){
+   if(atlasPrimalLevel(ch)<3)return '';
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch),editable=canEditCharacter(ch)&&!atlasManualSaving;
+   const b=(action,label)=>editable||action==='detail'?atlasPrimalButton(ch,action,label):'';
+   const heading=tr('Πρωταρχικός σύντροφος (Primal Companion)','Primal Companion');
+   if(!s)return '<section class="atlas-dm-card"><h3>'+heading+'</h3><p class="muted small">'+tr('Beast Master επιπέδου 3: επίλεξε μία από τις τρεις μορφές.','Beast Master level 3: choose one of the three forms.')+'</p>'+b('summon',tr('Επίκληση συντρόφου','Summon companion'))+'</section>';
+   const status=q.status==='dead'?tr('Νεκρό','Dead'):q.status==='reviving'?tr('Αναβίωση σε εξέλιξη','Revival pending'):q.status==='vanished'?tr('Εξαφανίστηκε','Vanished'):s.hp===0?tr('0 HP · επιβεβαίωσε κατάσταση','0 HP · confirm status'):tr('Ενεργό','Active');
+   return '<section class="atlas-dm-card"><div class="page-title"><div><h3>'+esc(q.name||atlasPrimalName(q.form))+'</h3><small>'+heading+' · '+esc(atlasPrimalName(q.form))+' · '+status+'</small></div>'+b('detail',tr('Στατιστικά','Stat block'))+'</div><div class="atlas-dm-stats"><div><small>HP</small><b>'+s.hp+'/'+s.maxHp+'</b></div><div><small>AC</small><b>'+s.ac+'</b></div><div><small>'+tr('Επίθεση','Attack')+'</small><b>'+signed(s.attack)+'</b></div><div><small>'+tr('Ζημιά','Damage')+'</small><b>'+esc(s.damage)+'</b></div></div><p class="muted small">'+tr('Ενεργεί στη σειρά του Ranger, χωρίς δικό του Initiative.','Acts during the Ranger’s turn, without separate initiative.')+'</p><div class="actions-inline">'+(q.status==='active'?b('hp',tr('Ενημέρωση HP','Update HP'))+(s.hp===0?b('dead',tr('Επιβεβαίωση θανάτου','Mark dead')):''):q.status==='dead'?b('revive',tr('Αναβίωση','Revive')):q.status==='reviving'?b('complete',tr('Ολοκλήρωση αναβίωσης','Complete revival')):'')+(q.status!=='vanished'&&Number(ch.hp?.current)===0?b('vanish',tr('Ο Ranger πέθανε','Ranger died')):'')+(q.replaceReady?b('summon',tr('Νέα μορφή μετά την ανάπαυση','Replace after Long Rest')):'')+(!compact&&q.status==='active'&&s.hp>0?b('command',tr('Εντολές μάχης','Combat commands')):'')+'</div></section>';
+ }
+ function atlasPrimalDetail(ch){
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch);if(!s)return;
+   const checks=['STR','DEX','CON','INT','WIS','CHA'].map((k,i)=>k+' '+s.scores[i]+' · '+tr('Έλεγχος/σωτηρία','Check/save')+' '+signed(Math.floor((s.scores[i]-10)/2)+s.pb));
+   const special=q.form==='land'?tr('Αν προηγηθούν 20 ft. ευθείας κίνησης προς τον στόχο, επιπλέον 1d6 ίδιας ζημιάς και Prone σε στόχο Large ή μικρότερο.','After moving 20 ft. straight toward the target, add 1d6 of the same damage; a Large or smaller target falls Prone.'):q.form==='sea'?tr('Grappled στον στόχο, Escape DC ','Grappled target, escape DC ')+s.dc+' · '+tr('Αναπνοή σε νερό και αέρα.','Breathes air and water.'):tr('Flyby: η πτήση έξω από την εμβέλεια δεν προκαλεί Opportunity Attacks.','Flyby: flying out of reach does not provoke opportunity attacks.');
+   openModal(q.name||atlasPrimalName(q.form),'<div class="detail-meta"><span class="chip gold">HP '+s.hp+'/'+s.maxHp+'</span><span class="chip">AC '+s.ac+'</span><span class="chip">'+esc(s.speed)+'</span></div><p>'+esc(q.appearance||'')+'</p><p>'+checks.map(esc).join('<br>')+'</p><p>Darkvision '+s.darkvision+' ft. · Passive Perception 12 · '+tr('Ζάρια ζωής','Hit Dice')+' '+s.level+'d'+s.die+'</p><h3>Beast’s Strike</h3><p>'+tr('Επίθεση','Attack')+' 1d20'+signed(s.attack)+' · '+tr('Ζημιά','Damage')+' '+esc(s.damage)+' '+esc(s.damageType)+' · 5 ft. · '+s.strikes+' '+tr('χτυπήματα ανά εντολή','strikes per command')+'</p><p>'+esc(special)+'</p>'+(s.level>=7?'<p>'+tr('Επίπεδο 7: επιλέγεις Force ή τον κανονικό τύπο ζημιάς. Με Bonus Action εντολή, το θηρίο μπορεί επιπλέον να κάνει Dash, Disengage, Dodge ή Help με τη δική του Bonus Action.','Level 7: choose Force or normal damage. A Bonus Action command also permits the beast to use its own Bonus Action for Dash, Disengage, Dodge or Help.')+'</p>':'')+(s.level>=11?'<p>'+tr('Επίπεδο 11: στο πρώτο χτύπημα κάθε turn σε στόχο του Hunter’s Mark σου, πρόσθεσε την αντίστοιχη bonus ζημιά ως Force.','Level 11: on its first hit each turn against your Hunter’s Mark target, add the spell’s bonus damage as Force.')+'</p>':'')+(s.level>=15?'<p>'+tr('Επίπεδο 15: ξόρκι που στοχεύει εσένα μπορεί να επηρεάσει και το θηρίο εντός 30 ft.','Level 15: a spell targeting yourself may also affect your beast within 30 ft.')+'</p>':''),btn(tr('Κλείσιμο','Close'),'close-modal'),true);
+ }
+ function atlasPrimalSlots(ch){
+   return [...Object.entries(ch.slots||{}).filter(([k,v])=>Number(k)>=1&&Number(k)<=9&&Number(v.max)>Number(v.used||0)).map(([k,v])=>['slot-'+k,'Spell Slot Lv '+k+' ('+(v.max-(v.used||0))+'/'+v.max+')']),...(ch.pact?.max>Number(ch.pact.used||0)?[['pact','Pact Magic']]:[])];
+ }
+ function atlasPrimalForm(ch,mode){
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch),opt=(v,n,sel)=>'<option value="'+attr(v)+'" '+(sel===v?'selected':'')+'>'+esc(n)+'</option>';
+   let fields='',title='';
+   if(mode==='summon'){
+     if(s&&!q.replaceReady)return;
+     title=tr('Επίκληση πρωταρχικού συντρόφου','Summon Primal Companion');
+     fields='<label class="field">'+tr('Μορφή','Form')+'<select name="form">'+Object.keys(ATLAS_PRIMAL_FORMS).map(k=>opt(k,atlasPrimalName(k),q?.form)).join('')+'</select></label><label class="field">'+tr('Όνομα','Name')+'<input name="name" maxlength="100" value="'+attr(q?.name||'')+'"></label><label class="field">'+tr('Εμφάνιση ζώου (αισθητική επιλογή)','Animal appearance (cosmetic)')+'<input name="appearance" maxlength="160" value="'+attr(q?.appearance||'')+'"></label><label class="field">'+tr('Τύπος ζημιάς','Damage type')+'<select name="damageType">'+['Bludgeoning','Piercing','Slashing'].map(k=>opt(k,k,q?.damageType||'Slashing')).join('')+'</select></label><p class="muted small">'+tr('Η μορφή καθορίζει τα στατιστικά, όχι το είδος ζώου που περιγράφεις. Μόνο ένας σύντροφος. Μετά την αρχική επίκληση, αντικατάσταση κατά την ολοκλήρωση Long Rest.','Form determines stats, not the animal appearance. Only one companion. After the first summon, replacement is available upon finishing a Long Rest.')+'</p>';
+   }else if(mode==='hp'&&s&&q.status==='active'){
+     title=tr('Ενημέρωση HP συντρόφου','Update companion HP');fields='<label class="field">HP (0–'+s.maxHp+')<input name="hp" type="number" min="0" max="'+s.maxHp+'" step="1" value="'+s.hp+'" required></label><p class="muted small">'+tr('Εισήγαγε το τελικό HP. Τα 0 HP χρειάζονται επιβεβαίωση κατάστασης από τον DM.','Enter final HP. At 0 HP confirm the creature’s status with the DM.')+'</p>';
+   }else if(mode==='revive'&&s&&q.status==='dead'){
+     const slots=atlasPrimalSlots(ch);if(!slots.length)return toast(tr('Δεν υπάρχει διαθέσιμη θέση ξορκιού.','No spell slot available.'));
+     title=tr('Αναβίωση συντρόφου','Revive companion');fields='<label class="atlas-rest-check"><input type="checkbox" name="withinHour" required>'+tr('Επιβεβαιώνω ότι πέθανε την τελευταία ώρα και ο Ranger μπορεί να τον αγγίξει.','Confirm it died within the last hour and the Ranger can touch it.')+'</label><label class="field">'+tr('Θέση ξορκιού','Spell slot')+'<select name="slot">'+slots.map(([k,n])=>opt(k,n,'')).join('')+'</select></label><p>'+tr('Magic action και μία θέση ξορκιού. Η αναβίωση ολοκληρώνεται μετά από ένα λεπτό.','Magic action and one spell slot. Revival completes after one minute.')+'</p>';
+   }else return;
+   openModal(title,'<form id="atlas-primal-form" data-character="'+attr(ch.id)+'" data-mode="'+mode+'">'+fields+'</form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-primal-form">'+tr('Εφαρμογή','Apply')+'</button>');
+ }
+ function atlasPrimalAction(ch,action){
+   if(atlasPrimalLevel(ch)<3)return;
+   if(action==='detail')return atlasPrimalDetail(ch);
+   if(!canEditCharacter(ch)||atlasManualSaving)return;
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch);
+   if(['summon','hp','revive'].includes(action))return atlasPrimalForm(ch,action);
+   if(!s)return;
+   if(action==='vanish'&&q.status!=='vanished'&&Number(ch.hp?.current)===0&&confirm(tr('Επιβεβαιώνεις ότι ο Ranger πέθανε; Το θηρίο εξαφανίζεται.','Confirm the Ranger died? The beast vanishes.'))){q.status='vanished';q.damage=s.maxHp;q.replaceReady=false;}
+   else if(action==='dead'&&q.status==='active'&&s.hp===0&&confirm(tr('Επιβεβαίωση θανάτου συντρόφου;','Confirm companion death?'))){q.status='dead';q.replaceReady=false;}
+   else if(action==='complete'&&q.status==='reviving'&&confirm(tr('Πέρασε ένα λεπτό από την αναβίωση;','Has one minute passed since revival?'))){q.status='active';q.damage=0;}
+   else if(action==='command'&&q.status==='active'&&s.hp>0){
+     const canPropose=atlasProposalContext(ch)&&atlasPublicBattle?.currentCharacterId===ch.id;
+     return openModal(tr('Εντολές συντρόφου','Companion commands'),'<p>'+tr('Στη σειρά σου κινείται και αντιδρά ανεξάρτητα. Χωρίς εντολή χρησιμοποιεί Dodge. Με Bonus Action δίνεις εντολή για ενέργεια ή θυσιάζεις μία επίθεσή σου κατά το Attack action για Beast’s Strike. Αν είσαι Incapacitated, ενεργεί ανεξάρτητα.','On your turn it moves and reacts independently. Without a command it Dodges. Use a Bonus Action to command an action, or forgo one attack during your Attack action for Beast’s Strike. If you are Incapacitated, it acts independently.')+'</p><p>Beast’s Strike · 1d20'+signed(s.attack)+' · '+esc(s.damage)+' · '+s.strikes+' '+tr('χτυπήματα','strikes')+'</p><p class="muted small">'+tr('Η χρήση Action/Bonus Action καταγράφεται χειροκίνητα.','Action/Bonus Action use is tracked manually.')+'</p>',btn(tr('Κλείσιμο','Close'),'close-modal')+(canPropose?atlasPrimalButton(ch,'propose',tr('Πρόταση ενέργειας στον DM','Propose action to DM')):''),true);
+   }else if(action==='propose'&&q.status==='active'&&s.hp>0&&atlasProposalContext(ch)&&atlasPublicBattle?.currentCharacterId===ch.id){
+     atlasPlayerProposalOpen(ch);const f=document.getElementById('atlas-player-proposal');if(f){f.elements.kind.value='attack';f.elements.label.value=(q.name||atlasPrimalName(q.form))+' · Beast’s Strike';}return;
+   }else return;
+   closeModal();update();
+ }
+ document.addEventListener('click',e=>{const el=e.target.closest('[data-atlas-primal]');if(!el)return;e.preventDefault();e.stopImmediatePropagation();const ch=characters.find(x=>x.id===el.dataset.character);if(ch)atlasPrimalAction(ch,el.dataset.atlasPrimal);},true);
+ document.addEventListener('submit',e=>{
+   const f=e.target;if(f.id!=='atlas-primal-form')return;e.preventDefault();e.stopImmediatePropagation();
+   const ch=characters.find(x=>x.id===f.dataset.character);if(!ch||!canEditCharacter(ch)||atlasManualSaving||atlasPrimalLevel(ch)<3)return;
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch),fd=new FormData(f),mode=f.dataset.mode;
+   if(mode==='summon'){
+     if(s&&!q.replaceReady)return;const form=String(fd.get('form')),def=ATLAS_PRIMAL_FORMS[form];if(!def)return;
+     const name=String(fd.get('name')||'').trim(),appearance=String(fd.get('appearance')||'').trim(),damageType=String(fd.get('damageType'));
+     if(name.length>100||appearance.length>160)return;
+     ch.primalCompanion={form,name,appearance,damageType:def.damageTypes.includes(damageType)?damageType:def.damageTypes[0],damage:0,status:'active',replaceReady:false};
+   }else if(mode==='hp'&&s&&q.status==='active'){
+     const raw=fd.get('hp'),hp=Number(raw);if(raw===null||String(raw).trim()===''||!Number.isInteger(hp)||hp<0||hp>s.maxHp)return;q.damage=s.maxHp-hp;
+   }else if(mode==='revive'&&s&&q.status==='dead'){
+     if(!fd.get('withinHour'))return;const slot=String(fd.get('slot'));if(!atlasPrimalSlots(ch).some(x=>x[0]===slot))return;
+     const source=slot==='pact'?ch.pact:ch.slots[slot.slice(5)];source.used=Number(source.used||0)+1;q.status='reviving';q.replaceReady=false;
+   }else return;
+   closeModal();update();
+ },true);
+
+
+ // Spell companions: one character-owned record per category; no encounter HP copies.
+ const ATLAS_LINKED_SPELLS={'Find Familiar':{key:'familiar',level:1},'Find Steed':{key:'steed',level:2},'Summon Beast':{key:'summon',level:2,forms:['Air','Land','Water']},'Summon Fey':{key:'summon',level:3,forms:['Fuming','Mirthful','Tricksy']}};
+ const atlasLinkedMethodKey=x=>[x.mode,x.level,x.resourceId||''].join('|');
+ const ATLAS_CHAIN_FORMS=['Imp','Pseudodragon','Quasit','Skeleton','Slaad Tadpole','Sphinx of Wonder','Sprite','Venomous Snake'];
+ const atlasLinkedClass=(ch,name)=>Math.max(0,...(ch.classes||[]).filter(x=>x.name===name).map(x=>Number(x.level)||0));
+ function atlasLinkedFeature(ch,name){return [...(ch.features||[]),...(ch.invocations||[]),...(ch.feats||[])].some(x=>String(typeof x==='string'?(findReference(x)?.name||x):x.name||'').trim().toLowerCase()===name.toLowerCase());}
+ function atlasLinkedChain(ch){return atlasLinkedClass(ch,'Warlock')>=1&&atlasLinkedFeature(ch,'Pact of the Chain');}
+ function atlasLinkedInvestment(ch){return atlasLinkedChain(ch)&&atlasLinkedClass(ch,'Warlock')>=5&&atlasLinkedFeature(ch,'Investment of the Chain Master');}
+ function atlasLinkedCatalog(chain=false){
+   const all=window.ATLAS_MONSTERS_2024||[];
+   const tadpole={id:'phb-slaad-tadpole',name:'Slaad Tadpole',hp:7,ac:12,type:'Aberration',cr:'1/8',detail:'PHB 2024 · Slaad Tadpole: see the official reference for actions and traits.'};
+   return [...all.filter(m=>m.type==='Beast'&&m.cr==='0'||chain&&ATLAS_CHAIN_FORMS.includes(m.name)),...(chain?[tadpole]:[])].sort((a,b)=>a.name.localeCompare(b.name));
+ }
+ function atlasLinkedOptions(ch){
+   const out=[];
+   const slots=(min)=>[...Object.entries(ch.slots||{}).filter(([k,v])=>Number(k)>=min&&Number(k)<=9&&Number(v.max)>Number(v.used||0)).map(([k,v])=>({mode:'slot',level:Number(k),label:'Spell Slot '+k})),...(Number(ch.pact?.level)>=min&&Number(ch.pact?.max)>Number(ch.pact?.used||0)?[{mode:'pact',level:Number(ch.pact.level),label:'Pact Magic '+ch.pact.level}]:[])];
+   const add=(spell,source,options,ability,ownedId='')=>out.push({spell,source,options,ability,ownedId});
+   for(const spell of Object.keys(ATLAS_LINKED_SPELLS)){
+     const def=ATLAS_LINKED_SPELLS[spell];
+     for(const owned of (ch.spellbook||[]).filter(x=>x.name===spell||findReference(x.ref)?.name===spell)){
+       const x=atlasSpellInfo(ch,owned,findReference(owned.ref)),src=String(owned.spellSource||''),ability=({Wizard:'INT',Artificer:'INT',Druid:'WIS',Ranger:'WIS',Cleric:'WIS',Paladin:'CHA',Warlock:'CHA',Bard:'CHA',Sorcerer:'CHA'})[src]||ch.spellAbility||'INT';
+       const options=[...(x.prepared?slots(def.level):[]),...((x.canRitual||x.ritual&&spell==='Find Familiar'&&!src&&atlasLinkedClass(ch,'Wizard')>=1&&(ch.classes||[]).length===1)&&spell==='Find Familiar'?[{mode:'ritual',level:1,label:tr('Τελετουργία','Ritual')}]:[]),...(x.canFree&&!(spell==='Find Steed'&&atlasLinkedClass(ch,'Paladin')>=5&&/faithful steed/i.test(x.resource.name))?[{mode:'resource',resourceId:x.resource.id,level:def.level,label:x.resource.name}]:[])];
+       add(spell,src||tr('Βιβλίο ξορκιών','Spellbook'),options,ability,owned.id);
+     }
+   }
+   if(atlasLinkedChain(ch))add('Find Familiar','Pact of the Chain',[{mode:'chain',level:1,label:tr('Magic action · χωρίς slot','Magic action · no slot')}],'CHA');
+   if(atlasLinkedClass(ch,'Druid')>=2){
+     const wild=(ch.resources||[]).find(x=>String(x.name).trim().toLowerCase()==='wild shape'&&Number(x.current)>0);
+     add('Find Familiar','Wild Companion',[...slots(1),...(wild?[{mode:'resource',resourceId:wild.id,level:1,label:'Wild Shape'}]:[])],'WIS');
+   }
+   if(atlasLinkedClass(ch,'Paladin')>=5){const resource=(ch.resources||[]).find(r=>/faithful steed/i.test(r.name));add('Find Steed','Faithful Steed',[...slots(2),...(!ch.faithfulSteedUsed&&(!resource||resource.current>0)?[{mode:'faithful',resourceId:resource?.id,level:2,label:tr('Δωρεάν χρήση / Long Rest','Free cast / Long Rest')}]:[])],'CHA');}
+   return out;
+ }
+ function atlasLinkedStats(ch,q){
+   if(!q||!['familiar','steed','summon'].includes(q.key))return null;
+   const level=Number(q.level),attack=prof(ch)+ability(ch,['STR','DEX','CON','INT','WIS','CHA'].includes(q.ability)?q.ability:'INT'),dc=8+attack;
+   let maxHp,ac,damage='',speed='',name='',detail='',strikes=1;
+   if(q.key==='familiar'){
+     const m=atlasLinkedCatalog(q.source==='Pact of the Chain').find(x=>x.id===q.form);if(!m)return null;
+     maxHp=m.hp;ac=m.ac;name=m.name;detail=m.detail;
+   }else if(q.key==='steed'&&['Celestial','Fey','Fiend'].includes(q.form)&&Number.isInteger(level)&&level>=2&&level<=9){
+     maxHp=5+10*level;ac=10+level;name='Otherworldly Steed';damage='1d8+'+level+' '+({Celestial:'Radiant',Fey:'Psychic',Fiend:'Necrotic'})[q.form];speed=level>=4?'60 ft. / Fly 60 ft.':'60 ft.';
+   }else if(q.key==='summon'&&q.spell==='Summon Beast'&&['Air','Land','Water'].includes(q.form)&&Number.isInteger(level)&&level>=2&&level<=9){
+     maxHp=(q.form==='Air'?20:30)+5*(level-2);ac=11+level;name='Bestial Spirit';damage='1d8+'+(4+level)+' Piercing';speed=q.form==='Air'?'30 ft. / Fly 60 ft.':q.form==='Land'?'30 ft. / Climb 30 ft.':'30 ft. / Swim 30 ft.';strikes=Math.floor(level/2);
+   }else if(q.key==='summon'&&q.spell==='Summon Fey'&&['Fuming','Mirthful','Tricksy'].includes(q.form)&&Number.isInteger(level)&&level>=3&&level<=9){
+     maxHp=30+10*(level-3);ac=12+level;name='Fey Spirit';damage='2d6+'+(3+level)+' Force';speed='30 ft. / Fly 30 ft.';strikes=Math.floor(level/2);
+   }else return null;
+   const hp=Math.max(0,Math.min(maxHp,Math.trunc(Number(q.hp)||0))),active=q.status==='active'&&hp>0&&(q.key!=='summon'||ch.concentrating===q.spell);
+   return {maxHp,hp,ac,damage,speed,name,detail,strikes,attack,dc,active};
+ }
+ function atlasLinkedTurnText(q){
+   return q.key==='familiar'?tr('Δικό του Initiative και turn.','Own initiative and turn.'):q.key==='steed'?tr('Κοινό Initiative · κανόνες ελεγχόμενου mount όταν το ιππεύεις.','Shared initiative · controlled-mount rules while ridden.'):tr('Κοινό Initiative · δικό του turn αμέσως μετά τον caster.','Shared initiative · its own turn immediately after the caster.');
+ }
+ function atlasLinkedButton(ch,action,key,label){return '<button type="button" class="btn sm" data-atlas-linked="'+action+'" data-linked-key="'+attr(key)+'" data-character="'+attr(ch.id)+'">'+label+'</button>';}
+ function atlasLinkedPanel(ch,compact=false){
+   const sources=atlasLinkedOptions(ch),records=Object.values(ch.linkedCompanions||{}).filter(q=>atlasLinkedStats(ch,q));
+   const warlockHint=atlasLinkedClass(ch,'Warlock')>=1&&!atlasLinkedChain(ch);
+   if(!sources.length&&!records.length&&!warlockHint)return '';
+   const edit=canEditCharacter(ch)&&!atlasManualSaving,b=(a,k,l)=>atlasLinkedButton(ch,a,k,l);
+   return '<section class="atlas-dm-card"><h3>'+tr('Σύντροφοι από ξόρκια & ικανότητες','Spell & feature companions')+'</h3>'+records.map(q=>{
+     const v=atlasLinkedStats(ch,q),status=v.active?tr('Ενεργό','Active'):q.status==='dismissed'?tr('Σε άλλη διάσταση','Dismissed'):tr('Ανενεργό','Inactive');
+     return '<div class="tile"><div style="min-width:0;flex:1"><strong>'+esc(q.name||v.name)+'</strong><small class="desc">'+esc(q.source)+' · '+esc(q.spell)+' · '+esc(q.formLabel||q.form)+(q.appearance?' · '+esc(q.appearance):'')+(q.spirit?' · '+esc(q.spirit):'')+' · '+status+'</small><p>HP '+v.hp+'/'+v.maxHp+' · AC '+v.ac+(v.damage?' · '+esc(v.damage):'')+'</p><small>'+atlasLinkedTurnText(q)+'</small></div><div class="actions-inline">'+b('detail',q.key,tr('Στατιστικά','Stats'))+(edit&&v.active?b('hp',q.key,tr('HP','HP'))+b('end',q.key,q.key==='familiar'?tr('Προσωρινή απόσυρση','Dismiss'):tr('Λήξη','End')):'')+(edit&&q.key==='familiar'&&q.status==='dismissed'&&v.hp>0?b('return',q.key,tr('Επιστροφή','Return')):'')+(edit&&q.key==='familiar'&&['active','dismissed'].includes(q.status)?b('release',q.key,tr('Οριστική απόλυση','Release')):'')+'</div></div>';
+   }).join('')+(edit&&!compact?'<div class="actions-inline">'+sources.map((x,i)=>b('cast',String(i),esc(x.spell+' · '+x.source))).join('')+'</div>':'')+(warlockHint&&!compact?'<p class="muted small">'+tr('Για Pact of the Chain καταχώρισε το επιλεγμένο invocation στα Features του χαρακτήρα.','For Pact of the Chain, record your selected invocation in the character’s Features.')+'</p>':'')+'</section>';
+ }
+ function atlasLinkedDetail(ch,q){
+   const v=atlasLinkedStats(ch,q);if(!v)return;
+   let text='';
+   if(q.key==='familiar'){
+     text=tr('Δεν επιτίθεται κανονικά. Τηλεπάθεια και μεταφορά touch spell εντός 100 ft. με Reaction του familiar. Bonus Action για χρήση των αισθήσεών του.','Normally cannot attack. Telepathy and touch-spell delivery within 100 ft. using the familiar’s Reaction. Bonus Action to use its senses.');
+     if(q.source==='Pact of the Chain')text+=' '+tr('Θυσίασε μία δική σου επίθεση για μία επίθεση του familiar με Reaction.','Forgo one of your attacks for one familiar attack using its Reaction.');
+     if(q.investment)text+=' '+tr('Investment: κίνηση '+q.investment+' 40 ft., εντολή Attack ως Bonus Action, αλλαγή φυσικής ζημιάς σε Radiant/Necrotic, δικό σου spell DC '+v.dc+', Reaction για Resistance.','Investment: '+q.investment+' speed 40 ft., Bonus Action Attack command, physical damage may become Radiant/Necrotic, your spell DC '+v.dc+', Reaction to grant Resistance.');
+   }else if(q.key==='steed'){
+     text=tr('Life Bond: όταν θεραπεύεσαι από ξόρκι επιπέδου 1+ εντός 5 ft., θεραπεύεται ισόποσα. Ελεγχόμενο mount: Dash, Disengage, Dodge.','Life Bond: when a level 1+ spell heals you within 5 ft., it regains the same HP. Controlled mount: Dash, Disengage, Dodge.');
+     text+=' '+({Celestial:tr('Healing Touch: 2d8 + επίπεδο ξορκιού HP, μία χρήση ανά Long Rest του steed.','Healing Touch: 2d8 + spell level HP, once per steed Long Rest.'),Fey:tr('Fey Step: τηλεμεταφορά έως 60 ft. μαζί με τον αναβάτη, μία χρήση ανά Long Rest του steed.','Fey Step: teleport up to 60 ft. with rider, once per steed Long Rest.'),Fiend:tr('Fell Glare: Frightened μετά από αποτυχημένο Wisdom save, μία χρήση ανά Long Rest του steed.','Fell Glare: Frightened on failed Wisdom save, once per steed Long Rest.')})[q.form];
+   }else{
+     text=tr('Λεκτικές εντολές χωρίς κόστος ενέργειας. Χωρίς εντολή: Dodge και αποφυγή κινδύνου. Concentration έως μία ώρα· τερμάτισε τη χρήση όταν περάσει η διάρκεια.','Verbal commands require no action. Without commands: Dodge and avoid danger. Concentration up to one hour; end the summon when duration expires.');
+     if(q.spell==='Summon Beast')text+=' '+(q.form==='Air'?'Flyby':q.form==='Water'?'Pack Tactics · Water Breathing':'Pack Tactics');
+     else text+=' '+tr('Fey Step: τηλεμεταφορά 30 ft. και αποτέλεσμα ανά διάθεση. Fuming: Advantage στην επόμενη επίθεση. Mirthful: Charm (Wisdom save). Tricksy: μαγικό Darkness σε κύβο 10 ft.','Fey Step: teleport 30 ft. plus mood effect. Fuming: Advantage on next attack. Mirthful: Charm (Wisdom save). Tricksy: magical Darkness in a 10-ft cube.');
+   }
+   openModal(q.name||v.name,'<div class="detail-meta"><span class="chip gold">HP '+v.hp+'/'+v.maxHp+'</span><span class="chip">AC '+v.ac+'</span><span class="chip">'+esc(v.speed)+'</span></div><p>'+atlasLinkedTurnText(q)+'</p><p>'+esc(text)+'</p>'+(v.damage?'<p>'+tr('Επίθεση','Attack')+' 1d20'+signed(v.attack)+' · '+esc(v.damage)+' · '+v.strikes+' '+tr('χτυπήματα','strikes')+'</p>':'')+(v.detail?'<div style="white-space:pre-wrap">'+esc(v.detail)+'</div>':'')+(q.form==='phb-slaad-tadpole'?'<p><a href="https://www.dndbeyond.com/monsters/4775842-slaad-tadpole" target="_blank" rel="noopener noreferrer">Slaad Tadpole · PHB 2024</a></p>':'')+'<p class="muted small">'+tr('Καταχώρισε τα αποτελέσματα από πραγματικά ζάρια.','Record results from physical dice.')+'</p>',btn(tr('Κλείσιμο','Close'),'close-modal'),true);
+ }
+ function atlasLinkedOpen(ch,index,preferred){
+   const source=atlasLinkedOptions(ch)[index];if(!source||!source.options.length)return toast(tr('Δεν υπάρχει διαθέσιμος τρόπος χρήσης.','No available casting method.'));
+   const def=ATLAS_LINKED_SPELLS[source.spell],chain=source.source==='Pact of the Chain',wild=source.source==='Wild Companion',investment=chain&&atlasLinkedInvestment(ch);
+   const choices=def.key==='familiar'?atlasLinkedCatalog(chain).map(m=>[m.id,m.name]):(def.forms||['Celestial','Fey','Fiend']).map(x=>[x,x]);
+   if(!choices.length)return toast(tr('Η βιβλιοθήκη πλασμάτων δεν έχει φορτωθεί.','Creature library is unavailable.'));
+   const options=items=>items.map(([v,n,sel])=>'<option value="'+attr(v)+'" '+(sel?'selected':'')+'>'+esc(n)+'</option>').join('');
+   const old=ch.linkedCompanions?.[def.key],selected=preferred?source.options.findIndex(x=>x.mode===preferred.mode&&x.level===preferred.level):-1;
+   const fields='<label class="field">'+tr('Τρόπος χρήσης','Casting method')+'<select name="method">'+options(source.options.map((x,i)=>[atlasLinkedMethodKey(x),x.label,i===selected]))+'</select></label><label class="field">'+tr('Μορφή','Form')+'<select name="form">'+options(choices.map(([k,n])=>[k,n,k===old?.form]))+'</select></label>'+(def.key==='familiar'&&!wild?'<label class="field">'+tr('Τύπος πνεύματος','Spirit type')+'<select name="spirit">'+options(['Celestial','Fey','Fiend'].map(x=>[x,x,false]))+'</select></label>':'')+(investment?'<label class="field">Investment of the Chain Master<select name="investment">'+options(['Fly','Swim'].map(x=>[x,x,false]))+'</select></label>':'')+(def.key==='steed'?'<label class="field">'+tr('Εμφάνιση υποζυγίου','Steed appearance')+'<input name="appearance" maxlength="100" value="'+attr(old?.appearance||'')+'"></label>':'')+'<label class="field">'+tr('Όνομα (προαιρετικό)','Name (optional)')+'<input name="name" maxlength="100" value="'+attr(old?.name||'')+'"></label><label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω την ολοκλήρωση του casting, τον χρόνο και τα απαιτούμενα υλικά.','Confirm casting completed, required time and components met.')+'</label><p class="muted small">'+tr('Η νέα επίκληση αντικαθιστά τον υπάρχοντα σύντροφο της ίδιας κατηγορίας.','The new cast replaces the existing companion in this category.')+'</p>';
+   openModal(source.spell,'<form id="atlas-linked-form" data-character="'+attr(ch.id)+'" data-source="'+index+'" data-spell="'+attr(source.spell)+'" data-origin="'+attr(source.source)+'" data-owned="'+attr(source.ownedId)+'">'+fields+'</form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-linked-form">'+tr('Επίκληση','Summon')+'</button>',true);
+ }
+ function atlasLinkedRest(ch,isLong,endConcentration){
+   if(isLong){if(atlasLinkedClass(ch,'Paladin')>=5)ch.faithfulSteedUsed=false;if(ch.linkedCompanions?.familiar?.source==='Wild Companion')delete ch.linkedCompanions.familiar;}
+   if(ch.linkedCompanions?.summon&&(isLong||endConcentration||ch.concentrating!==ch.linkedCompanions.summon.spell)){if(ch.concentrating===ch.linkedCompanions.summon.spell)ch.concentrating='';delete ch.linkedCompanions.summon;}
+ }
+ function atlasLinkedAction(ch,action,key){
+   const q=ch.linkedCompanions?.[key],v=atlasLinkedStats(ch,q);
+   if(action==='detail'&&v)return atlasLinkedDetail(ch,q);
+   if(!canEditCharacter(ch)||atlasManualSaving)return;
+   if(action==='cast')return atlasLinkedOpen(ch,Number(key));
+   if(!v)return;
+   if(action==='hp'&&v.active){openModal(tr('HP συντρόφου','Companion HP'),'<form id="atlas-linked-hp" data-character="'+attr(ch.id)+'" data-key="'+attr(key)+'" data-cast="'+attr(q.castId)+'"><label class="field">HP (0–'+v.maxHp+')<input type="number" name="hp" min="0" max="'+v.maxHp+'" value="'+v.hp+'" step="1" required></label></form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-linked-hp">'+tr('Εφαρμογή','Apply')+'</button>');return;}
+   if(action==='end'&&v.active&&confirm(tr('Τερματισμός ή προσωρινή απόσυρση;','End or temporarily dismiss?'))){if(key==='familiar')q.status='dismissed';else{q.status='ended';if(key==='summon'&&ch.concentrating===q.spell)ch.concentrating='';}}
+   else if(action==='return'&&key==='familiar'&&q.status==='dismissed'&&v.hp>0)q.status='active';else if(action==='release'&&key==='familiar'&&['active','dismissed'].includes(q.status)&&confirm(tr('Οριστική απόλυση familiar;','Dismiss familiar permanently?'))){q.status='ended';}else return;
+   if(key==='familiar'&&['end','return','release'].includes(action)){const turn=atlasTurnState(ch);if(turn.active&&!turn.other)turn.action=true;}
+   closeModal();update();
+ }
+ document.addEventListener('click',e=>{const el=e.target.closest('[data-atlas-linked]');if(!el)return;e.preventDefault();e.stopImmediatePropagation();const ch=characters.find(x=>x.id===el.dataset.character);if(ch)atlasLinkedAction(ch,el.dataset.atlasLinked,el.dataset.linkedKey);},true);
+ document.addEventListener('submit',e=>{
+   const f=e.target;if(!['atlas-linked-form','atlas-linked-hp'].includes(f.id))return;e.preventDefault();e.stopImmediatePropagation();
+   const ch=characters.find(x=>x.id===f.dataset.character);if(!ch||!canEditCharacter(ch)||atlasManualSaving)return;
+   const fd=new FormData(f);
+   if(f.id==='atlas-linked-hp'){const q=ch.linkedCompanions?.[f.dataset.key],v=atlasLinkedStats(ch,q),raw=fd.get('hp'),hp=Number(raw);if(!v?.active||q.castId!==f.dataset.cast||raw===null||String(raw).trim()===''||!Number.isInteger(hp)||hp<0||hp>v.maxHp)return;q.hp=hp;if(!hp){q.status='ended';if(q.key==='summon'&&ch.concentrating===q.spell)ch.concentrating='';}closeModal();update();return;}
+   const src=atlasLinkedOptions(ch)[Number(f.dataset.source)],opt=src?.options.find(x=>atlasLinkedMethodKey(x)===String(fd.get('method')));if(!src||src.spell!==f.dataset.spell||src.source!==f.dataset.origin||src.ownedId!==f.dataset.owned||!opt||!fd.get('confirm'))return toast(tr('Οι επιλογές άλλαξαν. Άνοιξε ξανά την ενέργεια.','Options changed. Reopen the action.'));
+   const def=ATLAS_LINKED_SPELLS[src.spell],form=String(fd.get('form')),chain=src.source==='Pact of the Chain',wild=src.source==='Wild Companion',name=String(fd.get('name')||'').trim();
+   const m=def.key==='familiar'?atlasLinkedCatalog(chain).find(x=>x.id===form):null;
+   if(name.length>100||def.key==='familiar'&&!m||def.key!=='familiar'&&!(def.forms||['Celestial','Fey','Fiend']).includes(form))return;
+   const spirit=wild?'Fey':String(fd.get('spirit')||''),investment=chain&&atlasLinkedInvestment(ch)?String(fd.get('investment')||''):'';
+   if(def.key==='familiar'&&!['Celestial','Fey','Fiend'].includes(spirit)||investment&&!['Fly','Swim'].includes(investment))return;
+   const q={key:def.key,spell:src.spell,source:src.source,form,formLabel:m?.name||form,name,appearance:def.key==='steed'?String(fd.get('appearance')||'').trim().slice(0,100):'',spirit,investment,ability:src.ability,level:opt.level,hp:0,status:'active',castId:crypto.randomUUID()};
+   const stats=atlasLinkedStats(ch,q);if(!stats)return;q.hp=stats.maxHp;
+   const turn=atlasTurnState(ch),spends=opt.mode==='slot'||opt.mode==='pact',longCast=def.key==='familiar'&&!chain&&!wild;
+   if(spends&&turn.active&&turn.slot&&!confirm(tr('Έχει ήδη χρησιμοποιηθεί spell slot στον γύρο. Επιβεβαίωσε νόμιμη διόρθωση.','A spell slot is already marked this turn. Confirm a legal correction.')))return;
+   if(ch.concentrating&&(def.key==='summon'||longCast)&&!confirm(tr('Η επίκληση τερματίζει την υπάρχουσα συγκέντρωση. Συνέχεια;','Casting ends the current concentration. Continue?')))return;
+   if(opt.mode==='slot')ch.slots[opt.level].used=Number(ch.slots[opt.level].used||0)+1;
+   else if(opt.mode==='pact')ch.pact.used=Number(ch.pact.used||0)+1;
+   else if(opt.mode==='resource'){const resource=(ch.resources||[]).find(x=>x.id===opt.resourceId);if(!resource||resource.current<=0)return;resource.current--;}
+   else if(opt.mode==='faithful'){const resource=opt.resourceId&&(ch.resources||[]).find(x=>x.id===opt.resourceId);if(opt.resourceId&&(!resource||resource.current<=0))return;if(resource)resource.current--;ch.faithfulSteedUsed=true;}
+   ch.linkedCompanions=ch.linkedCompanions||{};if(def.key==='summon')ch.concentrating=src.spell;else if(longCast)ch.concentrating='';
+   atlasLinkedRest(ch,false,false);ch.linkedCompanions[def.key]=q;
+   if(turn.active){if(spends)turn.slot=true;if(!longCast&&!turn.other)turn.action=true;}
+   closeModal();update();
+ },true);
+
+ function renderCompanions(ch){const list=ch.companions||[];return list.length?'<div class="tile-list">'+list.map(p=>'<div class="tile"><button class="linklike" style="text-align:left;min-width:0;flex:1" data-companion-detail="'+attr(p.id)+'"><span class="name">'+esc(p.name)+' · HP '+esc(p.hp)+'/'+esc(p.maxHp)+'</span><span class="desc">'+esc(p.type||tr('Σύντροφος','Companion'))+' · AC '+esc(p.ac)+' · '+tr('Ταχύτητα','Speed')+' '+esc(p.speed)+' ft</span></button>'+(canEditCharacter(ch)?'<button class="btn sm" data-edit-companion="'+attr(p.id)+'">'+tr('Επεξεργασία','Edit')+'</button>':'')+'</div>').join('')+'</div>':'<div class="empty">'+tr('Πρόσθεσε γενικούς συντρόφους, familiars, mounts ή summons εδώ. Οι ειδικοί σύντροφοι κλάσης εμφανίζονται ξεχωριστά.','Add generic companions, familiars, mounts or summons here. Class-specific companions appear separately.')+'</div>';}
  function renderSurvival(ch){const d=ch.death||{success:0,fail:0};const h=ch.hitDice||{max:totalLevel(ch),used:0};return `<div class="rowline"><span class="name">Death saves · Success</span><div class="dots">${[0,1,2].map(i=>`<button class="dot ${i<d.success?'filled':''}" data-death="success:${i}">${i<d.success?'✓':'·'}</button>`).join('')}</div></div><div class="rowline"><span class="name">Death saves · Failure</span><div class="dots">${[0,1,2].map(i=>`<button class="dot ${i<d.fail?'filled':''}" style="${i<d.fail?'background:#a85d61':''}" data-death="fail:${i}">${i<d.fail?'✕':'·'}</button>`).join('')}</div></div><div class="rowline"><div><span class="name">Hit Dice</span><small>${h.max-h.used} / ${h.max} ${tr('διαθέσιμα','remaining')} · ${h.used} ${tr('χρησιμοποιημένα','spent')}</small></div><div class="actions-inline"><button class="btn sm" data-action="spend-hitdie">Mark used</button><button class="btn sm" data-action="edit-hitdice">Edit</button></div></div><div class="rowline"><span class="name">Exhaustion</span><div class="counter"><button class="btn sm" data-action="exhaust-down">−</button><span class="counter-val">${ch.exhaustion||0} / 6</span><button class="btn sm" data-action="exhaust-up">+</button></div></div>`;}
 const ATLAS_SKILL_RULES_2024={classes:{"Barbarian":[2,"Animal Handling,Athletics,Intimidation,Nature,Perception,Survival"],"Bard":[3,"*"],"Cleric":[2,"History,Insight,Medicine,Persuasion,Religion"],"Druid":[2,"Arcana,Animal Handling,Insight,Medicine,Nature,Perception,Religion,Survival"],"Fighter":[2,"Acrobatics,Animal Handling,Athletics,History,Insight,Intimidation,Perception,Persuasion,Survival"],"Monk":[2,"Acrobatics,Athletics,History,Insight,Religion,Stealth"],"Paladin":[2,"Athletics,Insight,Intimidation,Medicine,Persuasion,Religion"],"Ranger":[3,"Animal Handling,Athletics,Insight,Investigation,Nature,Perception,Stealth,Survival"],"Rogue":[4,"Acrobatics,Athletics,Deception,Insight,Intimidation,Investigation,Perception,Performance,Persuasion,Sleight of Hand,Stealth"],"Sorcerer":[2,"Arcana,Deception,Insight,Intimidation,Persuasion,Religion"],"Warlock":[2,"Arcana,Deception,History,Intimidation,Investigation,Nature,Religion"],"Wizard":[2,"Arcana,History,Insight,Investigation,Medicine,Religion"]},backgrounds:{"Acolyte":"Insight,Religion","Artisan":"Investigation,Persuasion","Charlatan":"Deception,Sleight of Hand","Criminal":"Sleight of Hand,Stealth","Entertainer":"Acrobatics,Performance","Farmer":"Animal Handling,Nature","Guard":"Athletics,Perception","Guide":"Stealth,Survival","Hermit":"Medicine,Religion","Merchant":"Animal Handling,Persuasion","Noble":"History,Persuasion","Sage":"Arcana,History","Sailor":"Acrobatics,Perception","Scribe":"Investigation,Perception","Soldier":"Athletics,Intimidation","Wayfarer":"Insight,Stealth"}};
 
@@ -1197,7 +1958,7 @@ document.addEventListener('submit',e=>{
  function atlasSpellInfo(ch,s,ref){
    const level=Number(ref?.level??s.level??0),cast=String(ref?.cast||s.cast||''),kind=/bonus action/i.test(cast)?'bonus':/reaction/i.test(cast)?'reaction':/^(?:1\s*)?action$/i.test(cast.trim())?'action':'other';
    const source=String(s.spellSource||'').trim(),resource=(ch.resources||[]).find(r=>r.id===s.freeResourceId);
-   const prepared=level===0||s.prepared!==false,ritual=ref?!!ref.ritual:!!s.ritual,wizardRitual=ritual&&source.toLowerCase()==='wizard'&&(ch.classes||[]).some(x=>x.name==='Wizard');
+   const prepared=level===0||s.alwaysPrepared===true||s.prepared!==false,ritual=ref?!!ref.ritual:!!s.ritual,wizardRitual=ritual&&source.toLowerCase()==='wizard'&&(ch.classes||[]).some(x=>x.name==='Wizard');
    const slots=level>0&&prepared?Object.entries(ch.slots||{}).filter(([k,r])=>Number(k)>=level&&r.max>r.used).map(([k])=>Number(k)):[];
    const pact=level>0&&prepared&&Number(ch.pact?.level)>=level&&ch.pact.max>ch.pact.used;
    return {level,cast,kind,source,resource,prepared,ritual,wizardRitual,slots,pact,canFree:level>0&&!!resource&&Number(resource.current)>0,canRitual:ritual&&(prepared||wizardRitual)};
@@ -1514,6 +2275,7 @@ document.addEventListener('submit',e=>{
    }
    if(next.pact?.max&&next.pact.used>0){changes.push('Pact Magic: +'+next.pact.used);next.pact.used=0;}
    if(next.concentrating&&endConcentration){next.concentrating='';changes.push(tr('Συγκέντρωση τερματίστηκε','Concentration ended'));}
+   const beforeLinked=JSON.stringify(next.linkedCompanions||{});atlasLinkedRest(next,isLong,endConcentration||type==='short');if(beforeLinked!==JSON.stringify(next.linkedCompanions||{}))changes.push(tr('Λήξη προσωρινών συντρόφων','Temporary companions expired'));
    return {next,changes,allowed:true};
  }
  function atlasRestPreview(ch,type){
@@ -1789,7 +2551,7 @@ document.addEventListener('submit',e=>{
   case 'level-up':levelUp();break;case 'open-roller':toast(tr('Δεν υπάρχουν ψηφιακές ζαριές. Χρησιμοποίησε πραγματικά ζάρια.','Digital dice are disabled. Use physical dice.'));break;case 'conditions':conditionsModal();break;
   case 'change-loadout':ch.activeLoadout=((ch.activeLoadout||0)+1)%ch.loadouts.length;update();break;
   case 'inspiration':ch.inspiration=!ch.inspiration;update();break;
-  case 'end-concentration':ch.concentrating='';update();break;
+  case 'end-concentration':ch.concentrating='';atlasLinkedRest(ch,false,true);update();break;
   case 'save-notes':ch.notes=document.getElementById('notes-editor')?.value||'';update();toast('Notes saved.');break;
   case 'save-plan':ch.plan=document.getElementById('plan-editor')?.value||'';update();toast('Plan saved.');break;
   case 'spend-superiority':{let r=ch.resources.find(x=>x.name==='Superiority Dice');if(!r)return toast('Add Superiority Dice resource first.');if(!r.current)return toast('No superiority dice remain.');r.current--;update();toast(`${r.current}/${r.max} Superiority Dice remain`);break;}
@@ -1803,6 +2565,7 @@ document.addEventListener('submit',e=>{
    const plan=atlasRestPlan(ch,id,!!document.getElementById('atlas-rest-end-concentration')?.checked);
    if(!plan.allowed)return toast(tr('Χρειάζεσαι τουλάχιστον 1 HP για να αρχίσεις Rest.','You need at least 1 HP to begin a Rest.'));
    if(id==='short'){const count=document.getElementById('atlas-rest-dice-count'),mode=document.getElementById('atlas-rest-dice-mode');if(count&&count.closest('[data-character]')?.dataset.character!==ch.id)return;try{const result=atlasRestDiceApply(plan.next,count?.value??0,mode?.value??'manual',[...document.querySelectorAll('[data-rest-die-result]')].map(x=>x.value),atlasRestDieTypes(ch));if(result.spent)plan.changes.push(tr('Χρησιμοποιήθηκαν Hit Dice: ','Hit Dice spent: ')+result.spent+(mode?.value==='manual'?' · '+tr('Ενημέρωσε τα HP χειροκίνητα.','Update HP manually.'):' · +'+result.healed+' HP'));}catch(err){return toast(err.message);}}
+   if(id==='long'&&atlasPrimalLevel(ch)>=3&&plan.next.primalCompanion){plan.next.primalCompanion.replaceReady=true;plan.changes.push(tr('Primal Companion: μπορείς να επιλέξεις νέο θηρίο.','Primal Companion: you may replace your beast.'));}
    Object.assign(ch,plan.next);closeModal();update();restReport(id,plan.changes);break;}
   case 'remove-custom-feat':ch.customFeats=(ch.customFeats||[]).filter(x=>x.id!==id);closeModal();update();break;
   case 'close-modal':closeModal();break;
@@ -1819,6 +2582,7 @@ document.addEventListener('submit',e=>{
    const s=(ch.spellbook||[]).find(x=>x.id===id);if(!s)return;const ref=findReference(s.ref),x=atlasSpellInfo(ch,s,ref),n=Number(level),turn=atlasTurnState(ch);
    const allowed=type==='slot'?x.slots.includes(n):type==='pact'?x.pact&&n===Number(ch.pact.level):type==='cantrip'?x.level===0:type==='free'?x.canFree:type==='ritual'?x.canRitual:false;
    if(!allowed)return toast(tr('Ο τρόπος χρήσης δεν είναι διαθέσιμος.','Casting method is not available.'));
+   const linkedOptions=atlasLinkedOptions(ch),linkedIndex=linkedOptions.findIndex(o=>o.ownedId===s.id);if(linkedIndex>=0){const faithful=type==='free'&&linkedOptions[linkedIndex].spell==='Find Steed'&&/faithful steed/i.test(x.resource?.name||'')?linkedOptions.findIndex(o=>o.source==='Faithful Steed'):-1;return atlasLinkedOpen(ch,faithful>=0?faithful:linkedIndex,{mode:faithful>=0?'faithful':type==='free'?'resource':type,level:type==='pact'?Number(ch.pact.level):type==='slot'?n:x.level});}
    const spendsSlot=type==='slot'||type==='pact';
    if(spendsSlot&&turn.active&&turn.slot&&!confirm(tr('Έχει ήδη σημειωθεί spell slot στον τρέχοντα γύρο. Οι κανόνες 2024 επιτρέπουν ένα spell slot ανά γύρο πλάσματος. Συνέχεια μόνο αν διορθώνεις την καταγραφή ή υπάρχει ειδική εξαίρεση;','A spell slot is already marked this turn. 2024 rules allow one spell slot per creature’s turn. Continue only to correct tracking or for a specific exception?')))return;
    if((type==='free'||type==='ritual')&&!confirm(type==='free'?tr('Επιβεβαίωσε ότι η πηγή επιτρέπει τη δωρεάν χρήση.','Confirm this source grants a free casting.'):tr('Επιβεβαίωσε ότι ολοκληρώθηκε η τελετουργική χρήση με τα απαιτούμενα υλικά και χρόνο.','Confirm ritual casting was completed with required time and components.')))return;
@@ -1826,6 +2590,7 @@ document.addEventListener('submit',e=>{
    if(ch.concentrating&&(concentration||longCasting)&&!confirm(tr('Η νέα χρήση τερματίζει την υπάρχουσα συγκέντρωση. Συνέχεια;','This casting ends existing concentration. Continue?')))return;
    if(type==='slot')ch.slots[n].used++;else if(type==='pact')ch.pact.used++;else if(type==='free')x.resource.current--;
    if(concentration)ch.concentrating=s.name;else if(longCasting)ch.concentrating='';
+   atlasLinkedRest(ch,false,false);
    if(turn.active){if(spendsSlot)turn.slot=true;if(type!=='ritual'&&x.kind==='reaction')turn.reaction=true;else if(!turn.other&&type!=='ritual'&&['action','bonus'].includes(x.kind))turn[x.kind]=true;}
    closeModal();update();toast(tr('Καταχωρίστηκε χρήση: ','Cast recorded: ')+s.name);
  }
@@ -2114,6 +2879,7 @@ document.addEventListener('submit',e=>{
     const group=ch.classes.map(x=>`${esc(pairedTerm(x.name))} ${x.level}${x.subclass?' · '+esc(pairedTerm(x.subclass)):''}`).join(' / ');
     return `<div class="page-title"><div><h2>${tr('Χαρακτήρας','Character')}</h2><p>${tr('Στοιχεία χαρακτήρα και εξέλιξη από το επίπεδο 1 έως το 20.','Character details and level progression from 1 to 20.')}</p></div>${btn(tr('Επεξεργασία','Edit'),'edit-character','sm')}</div>
     <div class="grid two">${section('Ταυτότητα','Identity',`<div class="rowline"><span>${tr('Όνομα','Name')}</span><strong>${esc(ch.name)}</strong></div><div class="rowline"><span>${tr('Είδος','Species')}</span><strong>${esc(ch.species)}</strong></div><div class="rowline"><span>${tr('Υπόβαθρο','Background')}</span><strong>${esc(ch.background||'—')}</strong></div><div class="rowline"><span>${tr('Κλάση / Υποκλάση','Class / Subclass')}</span><strong>${group}</strong></div><div class="rowline"><span>${tr('Ευθυγράμμιση','Alignment')}</span><strong>${esc(ch.alignment||'—')}</strong></div>`)}${section('Εκπαίδευση & επάρκειες','Equipment Training & Proficiencies',atlasProfPanel(ch),atlasProfCanManage(ch)?btn(tr('Επεξεργασία','Edit'),'edit-proficiencies','sm'):'')}</div>
+    ${atlasPrimalPanel(ch)}${atlasLinkedPanel(ch)}${section('Σύντροφοι & επικλήσεις','Companions & Summons',renderCompanions(ch),canEditCharacter(ch)?btn(tr('+ Σύντροφος','+ Companion'),'add-companion','sm'):'')}
     ${section('Εξέλιξη επιπέδων 1–20','Level progression 1–20',progression(ch),`<button class="btn sm" data-action="level-up">${tr('Αύξηση επιπέδου','Level Up')}</button>`)}
     ${section('Εξαγωγή και αντίγραφα','Export & backups',`<div class="actions-inline"><button class="btn sm primary" data-atlas-print>${tr('Εκτύπωση φύλλου χαρακτήρα 2024 / PDF','Print 2024 character sheet / PDF')}</button><button class="btn sm" data-action="download-character-docx">${tr('Εξαγωγή DOCX','Export DOCX')}</button><button class="btn sm" data-action="level-progression">${tr('Πίνακας όλων των κλάσεων','All classes reference')}</button></div><p class="muted small">${tr('Η εκτυπώσιμη μορφή ακολουθεί τα δεδομένα και τους υπολογισμούς του 2024. Δεν είναι το επίσημο PDF της Wizards.','This printable layout uses 2024 rules and values. It is not the Wizards official PDF template.')}</p>`)}`;
   };
@@ -2147,6 +2913,7 @@ document.addEventListener('submit',e=>{
     return `${atlasPublicBattleBanner(ch)}<div class="page-title"><div><h2>${tr('Μάχη','Combat')}</h2><p>${tr('Οι πραγματικές δυνατότητές σου και ο τρόπος χρήσης τους με ζάρια.','Your available abilities and how to use physical dice.')}</p></div></div>
       <div class="combat-status"><div><small>${tr('Ζωή','HP')}</small><b>${ch.hp?.current||0}/${ch.hp?.max||1}</b></div><div><small>${tr('Άμυνα','AC')}</small><b>${AC(ch)}</b></div><div><small>${tr('Πρωτοβουλία','Initiative')}</small><b>${signed(initMod(ch))}</b></div><div><small>${tr('Ταχύτητα','Speed')}</small><b>${ch.speed||30} ft</b></div>${ch.hp?.temp?`<div><small>${tr('Προσωρινή ζωή','Temp HP')}</small><b>${ch.hp.temp}</b></div>`:''}</div>
       ${atlasCombatTabBar(active)}${atlasTurnPanel(ch)}
+      ${atlasPrimalPanel(ch)}${atlasLinkedPanel(ch)}
       <div class="combat-columns atlas-combat-tab-layout">
       <div class="grid atlas-combat-primary">
       <div class="grid" role="tabpanel" id="atlas-combat-panel-attacks" aria-labelledby="atlas-combat-tab-attacks" ${active==='attacks'?'':'hidden'}>
@@ -2161,6 +2928,7 @@ document.addEventListener('submit',e=>{
       </div>
       ${classFeatures?section('Ικανότητες μάχης','Combat abilities',classFeatures):''}
       </div><div class="grid atlas-combat-shared">
+      ${section('Σύντροφοι & επικλήσεις','Companions & Summons',renderCompanions(ch),canEditCharacter(ch)?btn(tr('+ Σύντροφος','+ Companion'),'add-companion','sm'):'')}
       ${res?section('Διαθέσιμοι πόροι','Available resources',res):''}
       ${section('Ζαριές σωτηρίας','Saving Throws',`<div class="combat-saves">${saves}</div><p class="muted small">${tr('● Επάρκεια: προστίθεται το μπόνους επάρκειας.','● Proficient: add Proficiency Bonus.')}</p>`)}
       ${section('Ενεργές καταστάσεις','Active Conditions',conditionPills(ch),`<button class="btn sm" data-action="conditions">${tr('Διαχείριση','Manage')}</button>`)}
@@ -2515,9 +3283,9 @@ document.addEventListener('submit',e=>{
       }
       if(atlasBattleDirty){
         if(!atlasDmAllowed()||atlasBattleOwner()!==atlasBattleAccount)throw Error('Encounter access changed');
-        const data=await cloudRequest('/encounter','PUT',{revision:atlasBattleRevision,encounter:atlasBattle,history:atlasBattleHistory});
+        const data=await cloudRequest('/encounter','PUT',{revision:atlasBattleRevision,encounter:atlasBattle,history:atlasBattleHistory,companions:atlasCompanionRoster,monsterPlan:atlasMonsterPlan});
         if(cloud.token!==session)throw Error('Session changed');
-        atlasBattle=data.encounter;atlasBattleHistory=data.history||[];atlasBattleRevision=data.revision;atlasBattleBaseline=JSON.stringify(atlasBattle);atlasBattleHistoryBaseline=JSON.stringify(atlasBattleHistory);atlasBattleDirty=false;atlasCombatUndo=null;
+        atlasBattle=data.encounter;atlasBattleHistory=data.history||[];atlasCompanionRoster=data.companions||[];atlasCompanionBaseline=JSON.stringify(atlasCompanionRoster);atlasMonsterPlan=data.monsterPlan||{custom:[],templates:[]};atlasMonsterBaseline=JSON.stringify(atlasMonsterPlan);atlasBattleRevision=data.revision;atlasBattleBaseline=JSON.stringify(atlasBattle);atlasBattleHistoryBaseline=JSON.stringify(atlasBattleHistory);atlasBattleDirty=false;atlasCombatUndo=null;
       }
       if(atlasPlayerDrafts.length){const batch=structuredClone(atlasPlayerDrafts);const result=await cloudRequest('/encounter?inbox=1','POST',{items:batch});if(cloud.token!==session)throw Error('Session changed');const accepted=new Set(result.accepted||[]);atlasPlayerDrafts=atlasPlayerDrafts.filter(x=>!accepted.has(x.id));if(atlasPlayerDrafts.length)throw Error('Some proposals were not accepted');await atlasReadInbox();}
       let reloadSessions=false;
@@ -2807,12 +3575,18 @@ document.addEventListener('submit',e=>{
   document.addEventListener('change',e=>{if(e.target.matches('[data-atlas-session-filter]')){campaignTagFilter=e.target.value;renderApp();return;}if(e.target.matches('[data-atlas-other-tag-filter]')){campaignOtherTagFilter=e.target.value;renderApp();}},true);
   document.addEventListener('submit',async e=>{
    if(e.target.id==='atlas-pending-choice-form'){
-    e.preventDefault();const index=Number(e.target.dataset.choiceIndex),ch=c(),p=(ch.pendingChoices2024||[])[index];
-    const value=String(new FormData(e.target).get('pendingValue')||'').trim();
-    if(!p||!value)return toast(tr('Συμπλήρωσε την επιλογή.','Choose a value.'));
-    if(cloud.enabled&&!canEditCharacter(ch))return toast(tr('Δεν έχεις δικαίωμα επεξεργασίας.','Permission denied.'));
-    p.value=value;p.status='resolved';p.resolvedAt=new Date().toISOString();
-    update();showPendingChoices();return;
+    e.preventDefault();e.stopImmediatePropagation();
+    const ch=c(),p=ch&&atlasPendingEntries(ch).find(x=>x.choiceKey===e.target.dataset.choiceKey),fd=new FormData(e.target);
+    if(!ch||!p||ch.id!==e.target.dataset.character||!canEditCharacter(ch)||atlasManualSaving)return;
+    try{
+      const draft=structuredClone(ch);
+      if(p.kind==='review'){if(!atlasCanDmOverride()||!fd.get('confirm'))return;}
+      else{atlasPendingApply(draft,p.kind,fd,atlasCanDmOverride());if(!atlasPendingResolved(draft,p,p.kind))throw Error(tr('Η επιλογή δεν ολοκλήρωσε τις απαιτήσεις.','The choice did not satisfy the requirements.'));}
+      const stored=(draft.pendingChoices2024||[]).find((q,i)=>String(q.key||'legacy-'+i)===p.choiceKey);
+      if(stored){stored.status='resolved';stored.resolutionMode=p.kind==='review'?'dm-review':'typed';stored.resolvedAt=new Date().toISOString();delete stored.value;}
+      Object.assign(ch,draft);update();showPendingChoices();
+    }catch(err){toast(err.message);}
+    return;
    }
 
    if(e.target.id==='atlas-image-tags-form'){
@@ -2882,7 +3656,7 @@ document.addEventListener('submit',e=>{
   if(el.dataset.slot){let [type,lvl,dir]=el.dataset.slot.split(':'),x=type==='pact'?c().pact:c().slots?.[lvl];if(x){x.used=clamp(x.used+(dir==='spend'?1:-1),0,x.max);update();}return;}
   if(el.dataset.death){let [k,i]=el.dataset.death.split(':'),d=c().death;d[k]=Number(i)<d[k]?Number(i):Number(i)+1;update();return;}
   if(el.dataset.ownedSpell){ownedSpell(el.dataset.ownedSpell);return;}
-  if(el.dataset.togglePrepared){let x=c().spellbook.find(z=>z.id===el.dataset.togglePrepared);if(x){x.prepared=x.prepared===false;update();}return;}
+  if(el.dataset.togglePrepared){let x=c().spellbook.find(z=>z.id===el.dataset.togglePrepared);if(x){if(x.alwaysPrepared===true)return toast(tr('Αυτό το ξόρκι είναι πάντα προετοιμασμένο.','This spell is always prepared.'));x.prepared=x.prepared===false;update();}return;}
   if(el.dataset.editOwnedSpell){editOwnedSpell(el.dataset.editOwnedSpell);return;}
   if(el.dataset.featureDetail){featureDetail(el.dataset.featureDetail);return;}
   if(el.dataset.customFeatDetail){customFeatDetail(el.dataset.customFeatDetail);return;}

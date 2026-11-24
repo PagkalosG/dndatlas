@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.12\.0'/);
+ assert.match(app,/APP_VERSION='3\.18\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.12.0');
+ assert.equal(version.version,'3.18.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.12.0'));
-  assert.ok(sw.includes(asset+'?v=3.12.0'));
+  assert.ok(index.includes(asset+'?v=3.18.0'));
+  assert.ok(sw.includes(asset+'?v=3.18.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.12\.0/);
+ assert.match(sw,/dndatlas-shell-v3\.18\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -271,7 +271,7 @@ test('search index includes only catalog, navigation and current character item 
 });
 test('rest preview is pure, restores only tracked resources, and preserves concentration unless explicitly ended',()=>{
  const src=extract('function atlasRestPlan(ch,type,endConcentration=false){','function atlasRestPreview(');
- const plan=vm.runInNewContext(src+';atlasRestPlan',{tr:t,totalLevel:()=>3});
+ const linked=extract('function atlasLinkedRest(ch,isLong,endConcentration){','function atlasLinkedAction(');const plan=vm.runInNewContext(linked+src+';atlasRestPlan',{tr:t,totalLevel:()=>3,atlasLinkedClass:()=>0});
  const ch={hp:{current:10,max:31,temp:4},hitDice:{max:3,used:2},species:'Human',inspiration:false,exhaustion:2,death:{success:1,fail:0},slots:{1:{max:2,used:1}},pact:{max:2,used:1},concentrating:'Hex',resources:[{name:'Second Wind',current:0,max:2,recharge:'short1'},{name:'Manual',current:0,max:1,recharge:'manual'}]};
  const before=JSON.stringify(ch),short=plan(ch,'short'),long=plan(ch,'long',true);
  assert.equal(JSON.stringify(ch),before);assert.equal(short.next.resources[0].current,1);assert.equal(short.next.hp.temp,4);assert.equal(short.next.concentrating,'Hex');assert.equal(short.next.slots[1].used,1);
@@ -501,7 +501,7 @@ test('ending an encounter clears initiative and temporary participants without m
  const state={name:'Fight',phase:'active',round:5,activeId:'e',participants:[{id:'p',type:'player',characterId:'borruk',initiative:19,out:true},{id:'e',type:'enemy',initiative:8,hp:0},{id:'a',type:'ally',initiative:10,hp:5}]};
  const ended=finish(state);
  assert.equal(ended.phase,'ended');assert.equal(ended.round,1);assert.equal(ended.activeId,null);assert.equal(ended.participants.length,1);assert.equal(ended.participants[0].initiative,null);assert.equal(ended.participants[0].out,false);assert.equal(state.participants.length,3);assert.equal(state.participants[0].initiative,19);
- assert.match(src,/JSON.stringify\(\{encounter:null,history\}\)/);assert.match(app,/atlasBattleSave\(null,'DELETE'\)/);
+ assert.match(src,/JSON.stringify\(\{encounter:null,history,companions:envelope\.companions,monsterPlan:envelope\.monsterPlan\}\)/);assert.match(app,/atlasBattleSave\(null,'DELETE'\)/);
 });
 
 test('manual Save compares acknowledged sheet snapshots and does not auto write',()=>{
@@ -528,3 +528,16 @@ test('player proposals are staged locally and approval does not apply unverified
  const save=extract('async function cloudSaveNow(){','async function cloudSecureBackup(){');
  assert.match(save,/cloudRequest\('\/encounter\?inbox=1','POST'/);
 });
+
+// Include the encounter effects suite in the existing quality CI command.
+require('./conditions-effects.test.cjs');
+
+require('./companions.test.cjs');
+
+require('./monsters.test.cjs');
+
+require('./primal-companion.test.cjs');
+
+require('./spell-companions.test.cjs');
+
+require('./dynamic-choices.test.cjs');
