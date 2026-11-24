@@ -4,7 +4,7 @@ function atlasEncounterValidate(input,err){
  const keys=(o,allowed)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).every(k=>allowed.includes(k));
  const str=(v,max)=>typeof v==='string'&&v.trim().length>0&&v.length<=max;
  const int=(v,min,max)=>Number.isInteger(v)&&v>=min&&v<=max;
- if(!keys(input,['name','phase','round','activeId','participants','events','archiveId','fightId','turnKey','reviews'])||!str(input.name,120)||!['setup','active','paused','ended'].includes(input.phase)||!int(input.round,1,99999)||!Array.isArray(input.participants)||input.participants.length>60)bad();
+ if(!keys(input,['name','phase','round','activeId','participants','events','archiveId','fightId','turnKey','reviews','effects'])||!str(input.name,120)||!['setup','active','paused','ended'].includes(input.phase)||!int(input.round,1,99999)||!Array.isArray(input.participants)||input.participants.length>60)bad();
  const ids=new Set(),players=new Set();
  for(const p of input.participants){
   if(!keys(p,['id','type','characterId','name','initiative','hp','maxHp','ac','out'])||!str(p.id,80)||!/^[\w-]+$/.test(p.id)||ids.has(p.id)||!['player','enemy','ally'].includes(p.type)||!str(p.name,160)||typeof p.out!=='boolean'||!(p.initiative===null||int(p.initiative,-100,200)))bad();
@@ -17,10 +17,43 @@ function atlasEncounterValidate(input,err){
  if(['active','paused'].includes(input.phase)&&(!input.activeId||input.participants.some(p=>p.initiative===null)))bad();
  if(input.archiveId!==undefined&&!str(input.archiveId,80))bad();
  if(input.events!==undefined)atlasEncounterEvents(input.events,err);
+ if(input.effects!==undefined){atlasEncounterEffects(input.effects,input.participants,err);if(['setup','ended'].includes(input.phase)&&input.effects.length)bad();}
  if(input.fightId!==undefined&&!str(input.fightId,80)||input.turnKey!==undefined&&!str(input.turnKey,80))bad();
  if(input.reviews!==undefined){if(!Array.isArray(input.reviews)||input.reviews.length>200)bad();const reviewed=new Set();for(const r of input.reviews){if(!keys(r,['id','status'])||!str(r.id,80)||reviewed.has(r.id)||!['approved','rejected'].includes(r.status))bad();reviewed.add(r.id);}}
  return input;
 }
+
+// v3.13.0: strictly bounded private encounter effects; older snapshots may omit effects.
+function atlasEncounterEffects(effects,participants,err){
+ const bad=()=>{throw err(400,'Invalid encounter effects');};
+ if(!Array.isArray(effects)||effects.length>200)bad();
+ const ids=new Set(participants.map(p=>p.id)),seen=new Set(),concentrators=new Set();
+ const conditions=['Blinded','Charmed','Deafened','Exhaustion','Frightened','Grappled','Incapacitated','Invisible','Paralyzed','Petrified','Poisoned','Prone','Restrained','Stunned','Unconscious'];
+ const incap=['Incapacitated','Paralyzed','Petrified','Stunned','Unconscious'];
+ const keys=['id','kind','targetId','label','parent','mode','round','boundary','turnId','ability','dc','note'];
+ for(const e of effects){
+   if(!e||typeof e!=='object'||Array.isArray(e)||Object.keys(e).some(k=>!keys.includes(k))||typeof e.id!=='string'||!/^[\w-]{1,80}$/.test(e.id)||seen.has(e.id)||!ids.has(e.targetId)||!ids.has(e.turnId)||!['condition','temporary','concentration','check'].includes(e.kind)||typeof e.label!=='string'||!e.label.trim()||e.label.length>160||typeof e.note!=='string'||e.note.length>500||typeof e.parent!=='string'||e.parent.length>80||!['manual','expire','save'].includes(e.mode)||!['start','end'].includes(e.boundary)||!Number.isInteger(e.round)||e.round<1||e.round>99999||!['STR','DEX','CON','INT','WIS','CHA'].includes(e.ability)||!Number.isInteger(e.dc))bad();
+   if(e.kind==='condition'&&!conditions.includes(e.label))bad();
+   if(e.kind==='concentration'){
+      if(e.parent||concentrators.has(e.targetId))bad();
+      concentrators.add(e.targetId);
+   }
+   if(e.kind==='check'){
+     const damage=Number(e.note);
+     if(!/^\d+$/.test(e.note)||!Number.isInteger(damage)||damage<1||damage>99999||e.mode!=='manual'||e.ability!=='CON'||e.dc!==Math.min(30,Math.max(10,Math.floor(damage/2)))||!e.parent||e.turnId!==e.targetId)bad();
+   }else if(e.mode==='save'?(e.dc<1||e.dc>99):e.dc!==0)bad();
+   seen.add(e.id);
+ }
+ for(const e of effects){
+   if(e.kind==='condition'&&incap.includes(e.label)&&concentrators.has(e.targetId))bad();
+   if(e.parent){
+     const p=effects.find(p=>p.id===e.parent&&p.kind==='concentration');
+     if(!p||e.kind==='check'&&(p.targetId!==e.targetId||p.label!==e.label))bad();
+   }
+ }
+ return effects;
+}
+
 function atlasEncounterEvents(events,err){
  const bad=()=>{throw err(400,'Invalid combat log');};
  if(!Array.isArray(events)||events.length>500)bad();
@@ -51,7 +84,7 @@ function atlasEncounterPublic(state){
 }
 // Encounter-local allies are temporary; future permanent companions must have a separate persistent identity.
 function atlasEncounterFinish(state){
- return {...state,phase:'ended',round:1,activeId:null,participants:state.participants.filter(p=>p.type==='player').map(p=>({...p,initiative:null,out:false}))};
+ return {...state,phase:'ended',round:1,activeId:null,effects:[],participants:state.participants.filter(p=>p.type==='player').map(p=>({...p,initiative:null,out:false}))};
 }
 
 // One independent inbox; player submissions never mutate sheets or the encounter revision.

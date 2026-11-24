@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.12.0';
+ const APP_VERSION='3.13.0';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -459,7 +459,7 @@
      if(atlasBattleHistory.length>=20||(atlasBattleHistory.reduce((n,h)=>n+(h.events||[]).length,0)+(next.events||[]).length)>1500)return toast(tr('Το ιστορικό είναι πλήρες. Εξήγαγε και διέγραψε μία μάχη πρώτα.','History is full. Export and delete an encounter first.'));
      const archiveId=uid(),archive={archiveId,name:next.name,round:next.round,participants:structuredClone(next.participants),events:structuredClone(next.events||[]),endedAt:new Date().toISOString()};
      atlasBattleHistory=[archive,...atlasBattleHistory];
-     next={...next,archiveId,phase:'ended',round:1,activeId:null,events:[],participants:next.participants.filter(p=>p.type==='player').map(p=>({...p,initiative:null,out:false}))};
+     next={...next,archiveId,phase:'ended',round:1,activeId:null,events:[],effects:[],participants:next.participants.filter(p=>p.type==='player').map(p=>({...p,initiative:null,out:false}))};
    }
    atlasBattle=next;atlasBattleMark();if(modalOpen)closeModal();renderApp();
  }
@@ -499,6 +499,7 @@
    if(action==='copy'){const field=document.getElementById('atlas-recap');if(field)navigator.clipboard.writeText(field.value).then(()=>toast(tr('Αντιγράφηκε.','Copied.'))).catch(()=>{field.select();});return;}
    if(action==='reload'){if(atlasBattleDirty)return atlasPendingToast();atlasBattleLoad();return;}
    if(!atlasBattleLoaded||atlasBattleBusy||atlasManualSaving)return;
+   if(action.startsWith('effect-'))return atlasEffectAction(action.slice(7),id);
    if(action==='inbox-refresh'){atlasReadInbox(true);return;}
    if(action==='enable-submissions'){if(atlasBattle&&['active','paused'].includes(atlasBattle.phase))atlasBattleSave(structuredClone(atlasBattle));return;}
    if(action==='approve'||action==='reject'){atlasReviewProposal(id,action);return;}
@@ -536,9 +537,106 @@
      if(id){const ch=characters.find(ch=>ch.id===id);if(!ch||next.participants.some(p=>p.characterId===id))return;next.participants.push({...atlasBattleParticipant(ch),initiative});}
      else{const name=String(fd.get('name')||'').trim(),type=String(fd.get('type')),maxHp=integer('maxHp',1,99999);if(!name||!['enemy','ally'].includes(type))throw Error(tr('Συμπλήρωσε όνομα.','Enter a name.'));next.participants.push({id:uid(),type,name,initiative,maxHp,hp:maxHp,ac:integer('ac',0,99),out:false});}
     }else if(mode==='initiative'&&p){p.initiative=integer('initiative',-100,200);}
-    else if(p&&p.type!=='player'&&['damage','heal'].includes(mode)){const amount=integer('amount',1,99999);const before=p.hp;p.hp=mode==='damage'?Math.max(0,p.hp-amount):Math.min(p.maxHp,p.hp+amount);if(next.phase==='active'||next.phase==='paused')atlasBattleAppend(next,{actor:'',actorName:'',target:p.id,targetName:p.name,kind:mode==='damage'?'damage':'heal',label:mode==='damage'?'HP adjustment':'Healing adjustment',outcome:'',amount:Math.abs(p.hp-before),note:''});}
+    else if(p&&p.type!=='player'&&['damage','heal'].includes(mode)){const amount=integer('amount',1,99999);const before=p.hp;p.hp=mode==='damage'?Math.max(0,p.hp-amount):Math.min(p.maxHp,p.hp+amount);if(next.phase==='active'||next.phase==='paused')atlasBattleAppend(next,{actor:'',actorName:'',target:p.id,targetName:p.name,kind:mode==='damage'?'damage':'heal',label:mode==='damage'?'HP adjustment':'Healing adjustment',outcome:'',amount:Math.abs(p.hp-before),note:''});if(mode==='damage')atlasEffectDamage(next,p.id,amount);}
     else return;
     atlasBattleSave(next);
+   }catch(err){toast(err.message);}
+ },true);
+
+
+ // v3.13.0: encounter-local effects. No network calls, dice or sheet mutations.
+ const ATLAS_EFFECT_CONDITIONS=[['Blinded','Τυφλωμένος'],['Charmed','Γοητευμένος'],['Deafened','Κωφός'],['Exhaustion','Εξάντληση'],['Frightened','Φοβισμένος'],['Grappled','Ακινητοποιημένος με λαβή'],['Incapacitated','Ανίκανος για ενέργεια'],['Invisible','Αόρατος'],['Paralyzed','Παραλυμένος'],['Petrified','Απολιθωμένος'],['Poisoned','Δηλητηριασμένος'],['Prone','Πρηνής'],['Restrained','Περιορισμένος'],['Stunned','Ζαλισμένος'],['Unconscious','Αναίσθητος']];
+ function atlasEffectDC(damage){return Math.min(30,Math.max(10,Math.floor(damage/2)));}
+ function atlasEffectDue(state,e){
+   if(e.mode==='manual'||!state.activeId)return false;
+   if(state.round!==e.round)return state.round>e.round;
+   const current=state.participants.findIndex(p=>p.id===state.activeId),target=state.participants.findIndex(p=>p.id===e.turnId);
+   return current>=0&&target>=0&&(e.boundary==='start'?current>=target:current>target);
+ }
+ function atlasEffectRemove(state,id){state.effects=(state.effects||[]).filter(e=>e.id!==id&&e.parent!==id);}
+ function atlasEffectConcentration(state,target){return (state.effects||[]).find(e=>e.kind==='concentration'&&e.targetId===target);}
+ function atlasEffectDamage(state,target,damage){
+   const concentration=atlasEffectConcentration(state,target);
+   if(!concentration||!Number.isInteger(damage)||damage<=0)return;
+   if((state.effects||[]).length>=200)throw Error(tr('Επίλυσε πρώτα τις εκκρεμείς καταστάσεις.','Resolve pending effects first.'));
+   state.effects=[...(state.effects||[]),{id:uid(),kind:'check',targetId:target,label:concentration.label,parent:concentration.id,mode:'manual',round:state.round,boundary:'start',turnId:target,ability:'CON',dc:atlasEffectDC(damage),note:String(damage)}];
+ }
+ function atlasEffectName(e){const item=ATLAS_EFFECT_CONDITIONS.find(x=>x[0]===e.label);return e.kind==='condition'&&item?tr(item[1]+' ('+item[0]+')',item[0]):e.label;}
+ function atlasEffectPanel(b){
+   if(!['active','paused'].includes(b.phase))return '';
+   const button=(label,action,id='')=>'<button class="btn sm" data-action="atlas-battle-effect-'+action+(id?':'+attr(id):'')+'" '+(atlasBattleBusy||atlasManualSaving?'disabled':'')+'>'+label+'</button>';
+   const name=id=>b.participants.find(p=>p.id===id)?.name||'—';
+   const effects=b.effects||[],due=effects.filter(e=>e.kind==='check'||atlasEffectDue(b,e)).length;
+   return '<section class="atlas-dm-card"><div class="page-title"><div><h3>'+tr('Καταστάσεις και επιδράσεις','Conditions & Effects')+'</h3><small>'+tr('Μόνο για τη συγκεκριμένη μάχη · ','Encounter only · ')+due+' '+tr('υπενθυμίσεις','reminders')+'</small></div>'+button(tr('+ Επίδραση','+ Effect'),'add')+'</div>'+
+   (effects.length?effects.map(e=>{
+     const ready=e.kind==='check'||atlasEffectDue(b,e),linked=effects.find(x=>x.id===e.parent);
+     const title=e.kind==='check'?tr('Έλεγχος συγκέντρωσης','Concentration check')+' · '+e.label:atlasEffectName(e);
+     const when=e.mode==='manual'?'':tr('Γύρος','Round')+' '+e.round+' · '+(e.boundary==='start'?tr('Αρχή σειράς','Start of turn'):tr('Τέλος σειράς','End of turn'))+' · '+name(e.turnId);
+     const details=[e.kind==='concentration'?tr('Συγκέντρωση','Concentration'):'',when,e.dc?'DC '+e.dc+' '+e.ability:'',linked&&e.kind!=='check'?tr('Συνδέεται με ','Linked to ')+linked.label:'',e.kind==='check'?tr('Ζημιά','Damage')+' '+e.note:e.note].filter(Boolean).join(' · ');
+     const actions=e.kind==='check'?button(tr('Επιτυχία','Success'),'pass',e.id)+button(tr('Αποτυχία','Failure'),'fail',e.id):button(tr('Λήξη','End'),'end',e.id)+(ready&&e.mode==='save'?button(tr('Επόμενος γύρος','Next round'),'repeat',e.id):'')+(e.kind==='concentration'?button(tr('Έλεγχος ζημιάς','Damage check'),'check',e.id):'');
+     return '<div class="tile"><div style="flex:1;min-width:0"><strong>'+esc(name(e.targetId))+' · '+esc(title)+'</strong><small class="desc">'+esc(details)+'</small>'+(ready?'<span class="notice">'+(e.kind==='check'?tr('Απαιτείται δοκιμασία σωτηρίας','Saving throw required'):e.mode==='save'?tr('Έλεγχος δοκιμασίας σωτηρίας','Review saving throw'):tr('Έλεγχος λήξης','Review expiration'))+'</span>':'')+'</div><div class="actions-inline">'+actions+'</div></div>';
+   }).join(''):'<p class="muted small">'+tr('Δεν υπάρχουν ενεργές επιδράσεις.','No active effects.')+'</p>')+
+   '<p class="muted small">'+tr('Η λήξη και οι δοκιμασίες επιβεβαιώνονται από τον DM. Δεν αλλάζουν αυτόματα τα φύλλα ή τις ζαριές.','Expiration and saves are confirmed by the DM. Sheets and dice are not changed automatically.')+'</p></section>';
+ }
+ function atlasEffectOpen(b){
+   const opts=(items)=>items.map(([v,n])=>'<option value="'+attr(v)+'">'+esc(n)+'</option>').join('');
+   const ps=b.participants.map(p=>[p.id,p.name]);
+   const select=(key,label,items)=>'<label class="field">'+label+'<select name="'+key+'">'+opts(items)+'</select></label>';
+   const input=(key,label,type,value,extra='')=>'<label class="field">'+label+'<input name="'+key+'" type="'+type+'" value="'+attr(value)+'" '+extra+'></label>';
+   const form='<form id="atlas-effect-form" data-revision="'+atlasBattleRevision+'" data-fight="'+attr(b.fightId||'')+'"><div class="form-grid">'+
+   select('targetId',tr('Στόχος','Target'),ps)+select('kind',tr('Τύπος','Type'),[['condition',tr('Κατάσταση','Condition')],['temporary',tr('Προσωρινή επίδραση','Temporary effect')],['concentration',tr('Συγκέντρωση','Concentration')]])+
+   select('condition',tr('Κατάσταση 2024','2024 condition'),ATLAS_EFFECT_CONDITIONS.map(([en,el])=>[en,tr(el+' ('+en+')',en)]))+
+   input('label',tr('Όνομα ξορκιού / προσωρινής επίδρασης','Spell / temporary effect name'),'text','','maxlength="160"')+
+   select('mode',tr('Λήξη / υπενθύμιση','Expiration / reminder'),[['manual',tr('Χειροκίνητη λήξη','Manual end')],['expire',tr('Υπενθύμιση λήξης','Expiration reminder')],['save',tr('Επαναληπτική δοκιμασία σωτηρίας','Recurring saving throw')]])+
+   select('turnId',tr('Σειρά συμμετέχοντα','Combatant turn'),ps)+select('boundary',tr('Χρονικό σημείο','Timing'),[['start',tr('Αρχή σειράς','Start of turn')],['end',tr('Τέλος σειράς','End of turn')]])+
+   input('round',tr('Πρώτος γύρος υπενθύμισης','First reminder round'),'number',b.round,'min="'+b.round+'" max="99999" step="1" required')+
+   select('ability',tr('Δοκιμασία σωτηρίας','Saving throw'),['STR','DEX','CON','INT','WIS','CHA'].map(x=>[x,x]))+
+   input('dc','DC','number',10,'min="1" max="99" step="1" required')+
+   select('parent',tr('Σύνδεση με συγκέντρωση (προαιρετική)','Link to concentration (optional)'),[['','—'],...(b.effects||[]).filter(e=>e.kind==='concentration').map(e=>[e.id,(b.participants.find(p=>p.id===e.targetId)?.name||'')+' · '+e.label])])+
+   input('note',tr('Σημειώσεις / επίπεδο εξάντλησης','Notes / exhaustion level'),'text','','maxlength="500"')+
+   '</div><p class="muted small">'+tr('Για συγκέντρωση, στόχος είναι ο caster. Διάλεξε πρώτα τη συγκέντρωση και μετά πρόσθεσε συνδεδεμένες επιδράσεις. Για καταστάσεις χρησιμοποίησε το πεδίο Κατάσταση 2024.','For concentration, target the caster. Add concentration first, then linked effects. For conditions use the 2024 condition field.')+'</p></form>';
+   openModal(tr('Προσθήκη επίδρασης','Add effect'),form,btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-effect-form">'+tr('Εφαρμογή','Apply')+'</button>',true);
+ }
+ function atlasEffectAction(action,id){
+   if(!atlasDmAllowed()||!atlasBattleLoaded||atlasBattleBusy||atlasManualSaving||!['active','paused'].includes(atlasBattle?.phase))return;
+   const next=structuredClone(atlasBattle);
+   if(action==='add')return atlasEffectOpen(next);
+   const e=(next.effects||[]).find(x=>x.id===id);if(!e)return;
+   try{
+     if(action==='check'&&e.kind==='concentration'){
+       openModal(tr('Έλεγχος συγκέντρωσης','Concentration check'),'<form id="atlas-effect-damage-form" data-id="'+attr(id)+'" data-revision="'+atlasBattleRevision+'" data-fight="'+attr(next.fightId||'')+'"><label class="field">'+tr('Τελική ζημιά μετά από αντιστάσεις','Final damage after resistances')+'<input name="damage" type="number" min="1" max="99999" step="1" required></label></form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-effect-damage-form">'+tr('Καταγραφή','Record')+'</button>');return;
+     }
+     if(action==='repeat'&&e.mode==='save'&&atlasEffectDue(next,e)){const round=Math.max(e.round+1,next.round);e.round=round;if(atlasEffectDue(next,e))e.round++;if(e.round>99999)throw Error(tr('Έφτασες στο όριο γύρων.','Round limit reached.'));}
+     else if(action==='pass'&&e.kind==='check')atlasEffectRemove(next,id);
+     else if(action==='fail'&&e.kind==='check')atlasEffectRemove(next,e.parent);
+     else if(action==='end'&&e.kind!=='check')atlasEffectRemove(next,id);
+     else return;
+     const p=next.participants.find(p=>p.id===e.targetId);
+     atlasBattleAppend(next,{kind:e.kind==='check'||e.kind==='concentration'?'concentration':'condition',label:(action==='repeat'?tr('Επόμενη υπενθύμιση: ','Next reminder: '):action==='pass'?tr('Επιτυχής δοκιμασία: ','Save passed: '):action==='fail'?tr('Απώλεια συγκέντρωσης: ','Concentration lost: '):tr('Έληξε: ','Ended: '))+e.label.slice(0,120),target:p.id,targetName:p.name,amount:0,outcome:action==='pass'?'success':action==='fail'?'failure':'',note:''});
+     atlasBattleSave(next);
+   }catch(err){toast(err.message);}
+ }
+ document.addEventListener('submit',ev=>{
+   const f=ev.target;if(!['atlas-effect-form','atlas-effect-damage-form'].includes(f.id))return;ev.preventDefault();ev.stopImmediatePropagation();
+   if(!atlasDmAllowed()||atlasManualSaving||atlasBattleBusy||!atlasBattleLoaded||!['active','paused'].includes(atlasBattle?.phase)||Number(f.dataset.revision)!==atlasBattleRevision||f.dataset.fight!==(atlasBattle.fightId||''))return;
+   const b=structuredClone(atlasBattle),fd=new FormData(f);
+   try{
+     if(f.id==='atlas-effect-damage-form'){
+       const e=(b.effects||[]).find(x=>x.id===f.dataset.id&&x.kind==='concentration'),damage=Number(fd.get('damage'));
+       if(!e||!Number.isInteger(damage)||damage<1||damage>99999)return;
+       atlasEffectDamage(b,e.targetId,damage);return atlasBattleSave(b);
+     }
+     const kind=String(fd.get('kind')),targetId=String(fd.get('targetId')),p=b.participants.find(p=>p.id===targetId),mode=String(fd.get('mode')),turnId=String(fd.get('turnId')),boundary=String(fd.get('boundary')),round=Number(fd.get('round')),ability=String(fd.get('ability')),dc=mode==='save'?Number(fd.get('dc')):0,note=String(fd.get('note')||'').trim(),parent=String(fd.get('parent')||''),label=String(fd.get(kind==='condition'?'condition':'label')||'').trim();
+     if(!p||!['condition','temporary','concentration'].includes(kind)||!['manual','expire','save'].includes(mode)||!b.participants.some(p=>p.id===turnId)||!['start','end'].includes(boundary)||!Number.isInteger(round)||round<b.round||round>99999||!['STR','DEX','CON','INT','WIS','CHA'].includes(ability)||mode==='save'&&(!Number.isInteger(dc)||dc<1||dc>99)||!label||label.length>160||note.length>500||kind==='condition'&&!ATLAS_EFFECT_CONDITIONS.some(x=>x[0]===label)||kind==='concentration'&&parent||parent&&!(b.effects||[]).some(e=>e.id===parent&&e.kind==='concentration'))throw Error(tr('Μη έγκυρη επίδραση.','Invalid effect.'));
+     const prior=atlasEffectConcentration(b,targetId);
+     const incap=['Incapacitated','Paralyzed','Petrified','Stunned','Unconscious'];
+     if(kind==='concentration'&&(b.effects||[]).some(e=>e.targetId===targetId&&e.kind==='condition'&&incap.includes(e.label)))throw Error(tr('Ο στόχος δεν μπορεί να συγκεντρωθεί.','Target cannot concentrate.'));
+     if(prior&&(kind==='concentration'||kind==='condition'&&incap.includes(label)))atlasEffectRemove(b,prior.id);
+     if(parent&&!(b.effects||[]).some(e=>e.id===parent))throw Error(tr('Η συνδεδεμένη συγκέντρωση έληξε.','Linked concentration ended.'));
+     if((b.effects||[]).length>=200)throw Error(tr('Μέγιστο 200 επιδράσεις.','Maximum 200 effects.'));
+     b.effects=[...(b.effects||[]),{id:uid(),kind,targetId,label,parent,mode,round,boundary,turnId,ability,dc,note}];
+     atlasBattleAppend(b,{kind:kind==='concentration'?'concentration':'condition',label:tr('Προστέθηκε: ','Added: ')+label.slice(0,120),target:p.id,targetName:p.name,amount:0,outcome:'',note:''});
+     atlasBattleSave(b);
    }catch(err){toast(err.message);}
  },true);
 
@@ -547,10 +645,10 @@
    const events=state.events||[];if(events.length>=500)throw Error(tr('Μέγιστο 500 εγγραφές ανά μάχη.','Maximum 500 events per encounter.'));
    state.events=[...events,{id:uid(),round:state.round,turn:state.activeId||'',at:new Date().toISOString(),...event}];
  }
- function atlasBattleQuickHp(characterId,mode,before,after){
+ function atlasBattleQuickHp(characterId,mode,before,after,damage=0){
    if(!atlasBattleLoaded||!atlasBattle||!['active','paused'].includes(atlasBattle.phase)||!atlasDmAllowed())return;
    const p=atlasBattle.participants.find(p=>p.characterId===characterId);if(!p)return;
-   try{atlasBattleAppend(atlasBattle,{actor:'',actorName:'',target:p.id,targetName:p.name,kind:mode==='damage'?'damage':'heal',label:mode==='damage'?'HP adjustment':'Healing adjustment',outcome:'',amount:mode==='damage'?Math.max(0,(before.current+(before.temp||0))-(after.current+(after.temp||0))):Math.max(0,after.current-before.current),note:''});atlasBattleMark();}catch(e){toast(e.message);}
+   try{atlasBattleAppend(atlasBattle,{actor:'',actorName:'',target:p.id,targetName:p.name,kind:mode==='damage'?'damage':'heal',label:mode==='damage'?'HP adjustment':'Healing adjustment',outcome:'',amount:mode==='damage'?Math.max(0,(before.current+(before.temp||0))-(after.current+(after.temp||0))):Math.max(0,after.current-before.current),note:''});if(mode==='damage')atlasEffectDamage(atlasBattle,p.id,damage);atlasBattleMark();}catch(e){toast(e.message);}
  }
  function atlasBattleLogOpen(proposal=null){
    const b=atlasBattle;if(!b||!['active','paused'].includes(b.phase))return;
@@ -585,6 +683,7 @@
     let effective=0,spent='';
     if(mode!=='none'){if(target.type==='player'){const ch=getSheet(target.characterId),before=ch.hp,after=atlasDmHpChange(before,mode,amount);ch.hp=after;effective=mode==='damage'?before.current+(before.temp||0)-after.current-after.temp:after.current-before.current;}
      else{const before=target.hp;target.hp=mode==='damage'?Math.max(0,before-amount):Math.min(target.maxHp,before+amount);effective=Math.abs(target.hp-before);}}
+    if(mode==='damage')atlasEffectDamage(next,target.id,amount);
     const resource=String(fd.get('resource')||'');
     if(resource){if(actor.type!=='player')throw Error('No sheet resource');const ch=getSheet(actor.characterId),[type,key]=resource.split(':');
       if(type==='resource'){const r=ch.resources.find(r=>r.id===key);if(!r||Number(r.current)<1)throw Error('Resource unavailable');r.current--;spent=r.name;}
@@ -719,7 +818,7 @@
      const hpActions=ended||missing?'':ch?'<button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="damage">− HP</button><button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="heal">+ HP</button>':button('− HP','damage',p.id)+button('+ HP','heal',p.id);
      return '<article class="atlas-battle-row '+(p.id===b.activeId?'active ':'')+(p.out?'out':'')+'"><div class="atlas-battle-init"><strong>'+esc(p.initiative??'—')+'</strong>'+(!ended?button(tr('Αλλαγή','Edit'),'initiative',p.id):'')+'</div><div class="atlas-battle-name"><strong>'+esc(name)+'</strong><small>'+esc(missing?tr('Λείπει το φύλλο','Missing sheet'):p.type==='player'?tr('Παίκτης','Player'):p.type==='enemy'?tr('Εχθρός','Enemy'):tr('Σύμμαχος','Ally'))+(p.id===b.activeId?' · '+tr('Ενεργό turn','Current turn'):'')+(p.out?' · '+tr('Εκτός μάχης','Out'):'')+'</small>'+(!missing?'<span>HP '+esc(hp.current??'—')+'/'+esc(hp.max??'—')+' · AC '+esc(ac??'—')+(hp.temp?' · Temp '+esc(hp.temp):'')+'</span>':'')+(ch?atlasDmStatus(ch,atlasDmStats(ch)):'')+'</div><div class="atlas-battle-controls">'+hpActions+(!ended?button('↑','up',p.id,i===0)+button('↓','down',p.id,i===b.participants.length-1)+button(p.out?tr('Επαναφορά','Restore'):tr('Εκτός','Out'),'out',p.id,p.id===b.activeId)+(setup?button(tr('Αφαίρεση','Remove'),'remove',p.id):button(tr('Μετάβαση','Jump'),'jump',p.id,p.out)):'')+'</div></article>';
    }).join('');
-   return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+(ended?'':' · '+tr('Γύρος','Round')+' '+b.round)+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'<button class="btn sm warn" data-action="atlas-battle-delete" '+(atlasBattleBusy?'disabled':'')+'>'+tr('Διαγραφή μάχης','Delete Encounter')+'</button></div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div><div class="atlas-battle-workspace"><div class="atlas-battle-order">'+rows+'</div><aside class="atlas-dm-card"><h3>'+tr('Καταγραφή μάχης','Combat Log')+'</h3>'+(!ended&&!setup?button(tr('+ Καταγραφή ενέργειας','+ Log Action'),'log')+(atlasCombatUndo&&atlasBattleDirty?button(tr('Αναίρεση τελευταίας μη αποθηκευμένης ενέργειας','Undo last unsaved action'),'undo-log'):''):'')+atlasBattleLogMarkup(b.events||[])+atlasInboxMarkup()+'</aside></div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
+   return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+(ended?'':' · '+tr('Γύρος','Round')+' '+b.round)+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'<button class="btn sm warn" data-action="atlas-battle-delete" '+(atlasBattleBusy?'disabled':'')+'>'+tr('Διαγραφή μάχης','Delete Encounter')+'</button></div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div>'+atlasEffectPanel(b)+'<div class="atlas-battle-workspace"><div class="atlas-battle-order">'+rows+'</div><aside class="atlas-dm-card"><h3>'+tr('Καταγραφή μάχης','Combat Log')+'</h3>'+(!ended&&!setup?button(tr('+ Καταγραφή ενέργειας','+ Log Action'),'log')+(atlasCombatUndo&&atlasBattleDirty?button(tr('Αναίρεση τελευταίας μη αποθηκευμένης ενέργειας','Undo last unsaved action'),'undo-log'):''):'')+atlasBattleLogMarkup(b.events||[])+atlasInboxMarkup()+'</aside></div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
  }
 
  function renderDmMultiview(){
@@ -748,7 +847,8 @@
    if(!ch||String(cloud.user.id)!==account||String(cloud.revisions[id])!==revision||cloud.pendingWrites||cloud.polling||cloud.syncBlocked||atlasDmSaving)return toast(tr('Τα δεδομένα άλλαξαν ή συγχρονίζονται. Άνοιξε ξανά την ενέργεια.','Data changed or is syncing. Reopen the action.'));
    let next;try{next=atlasDmHpChange(ch.hp,mode,Number(new FormData(form).get('amount')));}catch(e){return toast(e.message);}
    if(atlasManualSaving)return;
-   const before=ch.hp;if(atlasBattleLoaded&&['active','paused'].includes(atlasBattle?.phase)&&atlasBattle.participants.some(p=>p.characterId===id)&&(atlasBattle.events||[]).length>=500)return toast(tr('Το Combat Log είναι γεμάτο.','Combat Log is full.'));ch.hp=next;atlasBattleQuickHp(id,mode,before,next);closeModal();save();renderApp();atlasPendingToast();
+   const battleTarget=atlasBattle?.participants.find(p=>p.characterId===id);if(mode==='damage'&&battleTarget&&atlasEffectConcentration(atlasBattle,battleTarget.id)&&(atlasBattle.effects||[]).length>=200)return toast(tr('Επίλυσε πρώτα τις εκκρεμείς καταστάσεις.','Resolve pending effects first.'));
+   const before=ch.hp;if(atlasBattleLoaded&&['active','paused'].includes(atlasBattle?.phase)&&atlasBattle.participants.some(p=>p.characterId===id)&&(atlasBattle.events||[]).length>=500)return toast(tr('Το Combat Log είναι γεμάτο.','Combat Log is full.'));ch.hp=next;atlasBattleQuickHp(id,mode,before,next,Number(new FormData(form).get('amount')));closeModal();save();renderApp();atlasPendingToast();
  }
  document.addEventListener('click',e=>{
    const el=e.target.closest('[data-atlas-dm-layout],[data-atlas-dm-sheet],[data-atlas-dm-hp]');if(!el)return;e.preventDefault();e.stopImmediatePropagation();if(!atlasDmAllowed())return;
