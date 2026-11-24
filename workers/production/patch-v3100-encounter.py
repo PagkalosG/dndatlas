@@ -20,7 +20,8 @@ def patch(raw,extension):
         return source.replace(ANCHOR,extra+ANCHOR+HOOK).encode('utf-8')
     legacy=Path(__file__).with_name('encounter-extension-v3100.js').read_text().rstrip()+'\n\n'
     if source.count(ANCHOR+HOOK)!=1:raise ValueError('Unknown production module')
-    for known in (extra,legacy):
+    legacy2=Path(__file__).with_name('encounter-extension-v3101.js').read_text().rstrip()+'\n\n'
+    for known in (extra,legacy,legacy2):
         if source.count(known)!=1:continue
         restored=source.replace(known,'',1).replace(ANCHOR+HOOK,ANCHOR,1).encode('utf-8')
         if hashlib.sha256(restored).hexdigest()!=BASE:raise ValueError('Production base differs from reviewed hash')

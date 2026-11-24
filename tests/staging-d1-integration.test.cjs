@@ -255,6 +255,14 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
    assert.equal((await req(mf,'/encounter',2,'PUT',{revision:4,encounter:state})).status,200);
    assert.equal((await req(mf,'/encounter',1,'DELETE',{revision:5})).status,200);
    assert.deepEqual((await req(mf,'/characters/borruk',2)).body,sheetBefore);
+   const event={id:'evt',round:1,turn:'a',at:'2026-11-24T10:00:00Z',actor:'a',actorName:'Borruk',target:'b',targetName:'Secret enemy',kind:'attack',label:'Spear',outcome:'hit',amount:4,hpMode:'damage',note:'private note'};
+   const archive={archiveId:'arch',name:'Secret encounter',round:1,participants:[p,enemy],events:[event],endedAt:'2026-11-24T10:01:00Z'};
+   const batch=await req(mf,'/encounter',2,'PUT',{revision:6,encounter:{...state,events:[event]},history:[archive]});
+   assert.equal(batch.status,200,JSON.stringify(batch.body));assert.equal(batch.body.history.length,1);
+   const projection=await req(mf,'/encounter?public=1',3);assert.equal(projection.status,200);assert.equal(projection.body.encounter.currentCharacterId,'borruk');assert.ok(!JSON.stringify(projection.body).includes('Secret'));assert.ok(!JSON.stringify(projection.body).includes('private note'));assert.equal(projection.body.history,undefined);
+   assert.equal((await req(mf,'/encounter?public=1',3,'PUT',{revision:7,encounter:null,history:[]})).status,403);
+   assert.equal((await req(mf,'/encounter',2,'PUT',{revision:7,encounter:null,history:[archive]})).status,200);
+   assert.equal((await req(mf,'/encounter',2)).body.history.length,1);
   });
   await t.test('direct Drive API remains forbidden or disabled',async()=>{
    assert.equal((await req(mf,'/sync/drive/publish',1,'POST',{})).status,410);

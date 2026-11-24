@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.10\.1'/);
+ assert.match(app,/APP_VERSION='3\.11\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.10.1');
+ assert.equal(version.version,'3.11.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.10.1'));
-  assert.ok(sw.includes(asset+'?v=3.10.1'));
+  assert.ok(index.includes(asset+'?v=3.11.0'));
+  assert.ok(sw.includes(asset+'?v=3.11.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.10\.1/);
+ assert.match(sw,/dndatlas-shell-v3\.11\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -323,7 +323,7 @@ test('canonical ritual flag cannot be overridden by a custom spell field',()=>{
 test('release check compares semantic versions and update guards unsaved changes',()=>{
  const src=extract('function atlasVersionCompare(a,b){','function atlasUpdateBusy(');
  const cmp=vm.runInNewContext(src+';atlasVersionCompare',{});
- assert.equal(cmp('3.10.1','3.8.0'),1);assert.equal(cmp('3.8.0','3.8.0'),0);assert.equal(cmp('3.7.0','3.8.0'),-1);assert.throws(()=>cmp('broken','3.8.0'));
+ assert.equal(cmp('3.11.0','3.8.0'),1);assert.equal(cmp('3.8.0','3.8.0'),0);assert.equal(cmp('3.7.0','3.8.0'),-1);assert.throws(()=>cmp('broken','3.8.0'));
  const refresh=extract('async function refreshApp(clearCache=false){','function resetLocalData(){');
  assert.match(refresh,/cloud\.failedWrites\.size/);assert.match(refresh,/await atlasAwaitWorker\(reg,remote\)/);assert.match(refresh,/atlasUpdateBusy\(false\)/);
 });
@@ -436,7 +436,7 @@ test('header save is outside menu and settings is inside',()=>{
  const line=app.split('\n').find(x=>x.includes('atlas-header-calculator')&&x.includes('atlasHeaderMenu'));
  assert.ok(line.indexOf('data-action="settings"')<line.indexOf('atlas-header-calculator'));
  assert.ok(line.indexOf('atlasHeaderSave(ch)')>line.indexOf('atlas-header-calculator'));
- assert.match(app,/finally\{atlasManualSaving=false;setBusy\(\);\}/);
+ assert.match(app,/finally\{atlasManualSaving=false;setBusy\(\);renderApp\(\);\}/);
  assert.match(css,/\.top-actions \.atlas-header-save/);
 });
 
@@ -462,7 +462,7 @@ test('DM quick HP mutation is pure, consumes temporary HP, caps healing and reje
  assert.equal(change(hp,'damage',3).temp,2);assert.equal(change(hp,'damage',9).current,16);assert.equal(change(hp,'damage',50).current,0);assert.equal(change(hp,'heal',50).current,30);assert.equal(hp.current,20);assert.equal(hp.temp,5);
  assert.throws(()=>change(hp,'damage',-1));assert.throws(()=>change(hp,'heal',1.5));assert.throws(()=>change(hp,'unknown',1));
  const submit=extract('async function atlasDmSubmitHp(form){'," document.addEventListener('click',e=>{");
- assert.match(submit,/atlasDmTarget\(id\)/);assert.match(submit,/String\(cloud\.revisions\[id\]\)!==revision/);assert.match(submit,/cloudPush\(ch\)/);assert.doesNotMatch(submit,/selectedId\s*=/);
+ assert.match(submit,/atlasDmTarget\(id\)/);assert.match(submit,/String\(cloud\.revisions\[id\]\)!==revision/);assert.match(submit,/ch.hp=next/);assert.doesNotMatch(submit,/cloudPush\(ch\)/);assert.doesNotMatch(submit,/selectedId\s*=/);
 });
 
 test('DM card controls do not stay disabled after transient revision polling',()=>{
@@ -491,7 +491,7 @@ test('encounter API validates allowlisted state and rejects duplicate players or
  assert.throws(()=>validate({...state,participants:[{...p,hp:10}]},err));
  assert.throws(()=>validate({...state,activeId:'missing'},err));
  assert.throws(()=>validate({...state,participants:[{...p,initiative:null}]},err));
- assert.match(src,/if\(!\['creator','dm'\]\.includes\(actor.role\)\)throw err\(403/);
+ assert.match(src,/if\(!\['creator','dm'\]\.includes\(actor.role\)&&!publicView\)throw err\(403/);
  assert.match(src,/WHERE id=1 AND revision=\?/);
 });
 
@@ -501,5 +501,21 @@ test('ending an encounter clears initiative and temporary participants without m
  const state={name:'Fight',phase:'active',round:5,activeId:'e',participants:[{id:'p',type:'player',characterId:'borruk',initiative:19,out:true},{id:'e',type:'enemy',initiative:8,hp:0},{id:'a',type:'ally',initiative:10,hp:5}]};
  const ended=finish(state);
  assert.equal(ended.phase,'ended');assert.equal(ended.round,1);assert.equal(ended.activeId,null);assert.equal(ended.participants.length,1);assert.equal(ended.participants[0].initiative,null);assert.equal(ended.participants[0].out,false);assert.equal(state.participants.length,3);assert.equal(state.participants[0].initiative,19);
- assert.match(src,/data_json='null'/);assert.match(app,/atlasBattleSave\(null,'DELETE'\)/);
+ assert.match(src,/JSON.stringify\(\{encounter:null,history\}\)/);assert.match(app,/atlasBattleSave\(null,'DELETE'\)/);
+});
+
+test('manual Save compares acknowledged sheet snapshots and does not auto write',()=>{
+ const src=extract('function atlasSheetSnapshot(ch){','function atlasSaveUi(){');
+ const ch={id:'a',hp:{current:10},_ownerId:3};const cloud={enabled:true,ready:true,user:{id:3}},atlasSavedSheets=new Map(),atlasPendingOps=new Map();
+ const api=vm.runInNewContext(src+';({atlasSheetSnapshot,atlasDirtySheets,atlasHasPending})',{cloud,characters:[ch],atlasSavedSheets,atlasPendingOps,atlasBattleDirty:false,canEditCharacter:()=>true,structuredClone});
+ atlasSavedSheets.set('a',api.atlasSheetSnapshot(ch));assert.equal(api.atlasHasPending(),false);ch.hp.current=9;assert.equal(api.atlasDirtySheets().length,1);ch.hp.current=10;assert.equal(api.atlasHasPending(),false);
+ const save=extract('function save(){','function saveView(){');assert.doesNotMatch(save,/cloudPush|cloudRequest/);
+ assert.match(app,/if\(!atlasManualSaving\)return;\s*if\(!cloud.enabled/);
+ const battle=extract("function atlasBattleSave(next,method='PUT'){",'function atlasBattleStep');assert.doesNotMatch(battle,/cloudRequest/);
+});
+test('combat log report uses effective amounts and does not invent an actor for quick HP adjustments',()=>{
+ const src=extract('function atlasBattleStats(events){','function atlasBattleReport(h){');
+ const stats=vm.runInNewContext(src+';atlasBattleStats',{});
+ const rows=stats([{actor:'a',actorName:'A',target:'b',targetName:'B',kind:'attack',outcome:'critical',hpMode:'damage',amount:5},{actor:'',target:'a',targetName:'A',kind:'damage',amount:3},{actor:'a',actorName:'A',kind:'attack',outcome:'miss',amount:0}]);
+ assert.equal(rows.find(r=>r.name==='A').damage,5);assert.equal(rows.find(r=>r.name==='A').taken,3);assert.equal(rows.find(r=>r.name==='A').crit,1);assert.equal(rows.find(r=>r.name==='A').misses,1);assert.equal(rows.find(r=>r.name==='B').taken,5);
 });
