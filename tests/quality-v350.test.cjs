@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.9\.1'/);
+ assert.match(app,/APP_VERSION='3\.9\.2'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.9.1');
+ assert.equal(version.version,'3.9.2');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.9.1'));
-  assert.ok(sw.includes(asset+'?v=3.9.1'));
+  assert.ok(index.includes(asset+'?v=3.9.2'));
+  assert.ok(sw.includes(asset+'?v=3.9.2'));
  }
- assert.match(sw,/dndatlas-shell-v3\.9\.1/);
+ assert.match(sw,/dndatlas-shell-v3\.9\.2/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -416,4 +416,26 @@ test('soldier gaming choice is scoped to one identifiable legacy grant',()=>{
  assert.equal(grant({background:'Soldier',proficiencies:'Gaming Set: Dice Set; Smith’s Tools'}).value,'Dice Set');
  assert.equal(grant({background:'Soldier',proficiencies:'Gaming Set: Dice Set; Gaming Set: Playing Card Set'}),null);
  assert.equal(grant({background:'Sage',proficiencies:'Gaming Set: Dice Set'}),null);
+});
+
+test('short rest spending tracks cumulative hit dice and rejects overspending',()=>{
+ const source=extract('function atlasRestDicePool(ch){','function atlasRestDiceFields(ch){');
+ const api=vm.runInNewContext(source+';({atlasRestDicePool,atlasRestDiceApply,atlasRestDieTypes})',{tr:t,totalLevel:()=>4,D:{classes:{Fighter:{die:10},Wizard:{die:6}}}});
+ const ch={classes:[{name:'Fighter',level:4}],hp:{current:10,max:31,temp:2},abilities:{CON:13},hitDice:{max:4,used:1}};
+ assert.equal(api.atlasRestDieTypes(ch),10);
+ assert.equal(api.atlasRestDiceApply(ch,2,'results',['4','6'],10).healed,12);assert.equal(ch.hp.current,22);assert.equal(ch.hitDice.used,3);assert.equal(ch.hp.temp,2);
+ assert.throws(()=>api.atlasRestDiceApply(ch,2,'manual',[],10));
+ assert.throws(()=>api.atlasRestDiceApply(ch,1,'results',[''],10));assert.equal(ch.hitDice.used,3);
+ assert.equal(api.atlasRestDiceApply(ch,1,'manual',[],10).healed,0);assert.equal(ch.hitDice.used,4);assert.equal(ch.hp.current,22);
+ assert.equal(api.atlasRestDiceApply(ch,0,'manual',[],10).spent,0);
+ assert.equal(api.atlasRestDieTypes({classes:[{name:'Fighter',level:2},{name:'Wizard',level:2}]}),0);
+ const full={hp:{current:30,max:31},abilities:{CON:8},hitDice:{max:4,used:0}};assert.throws(()=>api.atlasRestDiceApply(full,2,'results',[1,1],10));assert.equal(full.hitDice.used,0);
+ assert.equal(api.atlasRestDiceApply(full,1,'results',[1],10).healed,1);assert.equal(full.hp.current,31);
+});
+test('header save is outside menu and settings is inside',()=>{
+ const line=app.split('\n').find(x=>x.includes('atlas-header-calculator')&&x.includes('atlasHeaderMenu'));
+ assert.ok(line.indexOf('data-action="settings"')<line.indexOf('atlas-header-calculator'));
+ assert.ok(line.indexOf('atlasHeaderSave(ch)')>line.indexOf('atlas-header-calculator'));
+ assert.match(app,/finally\{atlasManualSaving=false;setBusy\(\);\}/);
+ assert.match(css,/\.top-actions \.atlas-header-save/);
 });
