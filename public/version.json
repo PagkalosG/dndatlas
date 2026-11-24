@@ -1,6 +1,6 @@
 {
-  "version": "3.15.0",
+  "version": "3.16.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "SRD 5.2.1 monster library, custom stat blocks, 2024 XP budget and reusable encounter templates"
+  "notes": "Restored character companions, class-linked Beast Master Primal Companion, shared player/DM sheet state"
 }
