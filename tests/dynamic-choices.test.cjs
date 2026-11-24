@@ -58,3 +58,23 @@ test('unknown pending records are never auto-confirmed by legacy free text; manu
  assert.doesNotMatch(block,/cloudRequest|cloudPush|fetch\(/);assert.match(app,/Object\.assign\(ch,draft\);update\(\);showPendingChoices\(\)/);
  assert.doesNotMatch(app,/name="pendingValue"/);
 });
+test('pending checkbox rows use scoped compact CSS rather than generic full-width tile inputs',()=>{
+ const css=fs.readFileSync('src/style.css','utf8');
+ assert.match(block,/class="atlas-pending-option"/);
+ assert.match(css,/#atlas-pending-choice-form \.atlas-pending-option\{[^}]*grid-template-columns:20px minmax\(0,1fr\)/);
+ assert.match(css,/#atlas-pending-choice-form input\[type="checkbox"\]\{width:16px/);
+ assert.match(css,/#atlas-pending-choice-form \.atlas-pending-option\[hidden\][^{]*\{display:none\}/);
+ assert.match(block,/retainOptions=plan\.all\.filter\(x=>Number\(ch\.skills\?\.\[x\]\)>=1&&!fixed\.has\(x\)/);
+});
+test('skill dropdowns disable duplicates and DM retention hides assigned skills',()=>{
+ const source=app.slice(app.indexOf(' function atlasPendingRefreshSkills(form)'),app.indexOf(" document.addEventListener('change',e=>{const form=e.target.closest?.('#atlas-pending-choice-form')"));
+ const refresh=vm.runInNewContext(source+';atlasPendingRefreshSkills',{});
+ const select=(value)=>({value,options:['','Perception','Survival','Stealth'].map(value=>({value,disabled:false}))});
+ const a=select('Perception'),b=select('Survival'),label={hidden:false},other={hidden:false};
+ const checkbox={value:'Perception',checked:true,disabled:false,closest:()=>label};
+ const form={querySelectorAll:q=>q.startsWith('select')?[a,b]:[checkbox],querySelector:()=>other};
+ refresh(form);assert.equal(checkbox.checked,false);assert.equal(checkbox.disabled,true);assert.equal(label.hidden,true);assert.equal(other.hidden,true);
+ assert.equal(a.options.find(x=>x.value==='Survival').disabled,true);assert.equal(b.options.find(x=>x.value==='Perception').disabled,true);
+ b.value='Stealth';refresh(form);assert.equal(a.options.find(x=>x.value==='Survival').disabled,false);
+ a.value='';refresh(form);assert.equal(label.hidden,false);assert.equal(other.hidden,false);assert.equal(checkbox.disabled,false);
+});
