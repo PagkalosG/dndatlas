@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.14\.0'/);
+ assert.match(app,/APP_VERSION='3\.15\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.14.0');
+ assert.equal(version.version,'3.15.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.14.0'));
-  assert.ok(sw.includes(asset+'?v=3.14.0'));
+  assert.ok(index.includes(asset+'?v=3.15.0'));
+  assert.ok(sw.includes(asset+'?v=3.15.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.14\.0/);
+ assert.match(sw,/dndatlas-shell-v3\.15\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -501,7 +501,7 @@ test('ending an encounter clears initiative and temporary participants without m
  const state={name:'Fight',phase:'active',round:5,activeId:'e',participants:[{id:'p',type:'player',characterId:'borruk',initiative:19,out:true},{id:'e',type:'enemy',initiative:8,hp:0},{id:'a',type:'ally',initiative:10,hp:5}]};
  const ended=finish(state);
  assert.equal(ended.phase,'ended');assert.equal(ended.round,1);assert.equal(ended.activeId,null);assert.equal(ended.participants.length,1);assert.equal(ended.participants[0].initiative,null);assert.equal(ended.participants[0].out,false);assert.equal(state.participants.length,3);assert.equal(state.participants[0].initiative,19);
- assert.match(src,/JSON.stringify\(\{encounter:null,history,companions:envelope\.companions\}\)/);assert.match(app,/atlasBattleSave\(null,'DELETE'\)/);
+ assert.match(src,/JSON.stringify\(\{encounter:null,history,companions:envelope\.companions,monsterPlan:envelope\.monsterPlan\}\)/);assert.match(app,/atlasBattleSave\(null,'DELETE'\)/);
 });
 
 test('manual Save compares acknowledged sheet snapshots and does not auto write',()=>{
@@ -533,3 +533,5 @@ test('player proposals are staged locally and approval does not apply unverified
 require('./conditions-effects.test.cjs');
 
 require('./companions.test.cjs');
+
+require('./monsters.test.cjs');
