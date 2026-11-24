@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.12\.0'/);
+ assert.match(app,/APP_VERSION='3\.13\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -192,7 +192,7 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
   assert.ok(index.includes(asset+'?v=3.13.0'));
   assert.ok(sw.includes(asset+'?v=3.13.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.12\.0/);
+ assert.match(sw,/dndatlas-shell-v3\.13\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -528,3 +528,6 @@ test('player proposals are staged locally and approval does not apply unverified
  const save=extract('async function cloudSaveNow(){','async function cloudSecureBackup(){');
  assert.match(save,/cloudRequest\('\/encounter\?inbox=1','POST'/);
 });
+
+// Include the encounter effects suite in the existing quality CI command.
+require('./conditions-effects.test.cjs');
