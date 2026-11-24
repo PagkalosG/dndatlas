@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.17\.0'/);
+ assert.match(app,/APP_VERSION='3\.18\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.17.0');
+ assert.equal(version.version,'3.18.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.17.0'));
-  assert.ok(sw.includes(asset+'?v=3.17.0'));
+  assert.ok(index.includes(asset+'?v=3.18.0'));
+  assert.ok(sw.includes(asset+'?v=3.18.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.17\.0/);
+ assert.match(sw,/dndatlas-shell-v3\.18\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -539,3 +539,5 @@ require('./monsters.test.cjs');
 require('./primal-companion.test.cjs');
 
 require('./spell-companions.test.cjs');
+
+require('./dynamic-choices.test.cjs');
