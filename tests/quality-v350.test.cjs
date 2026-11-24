@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.8\.1'/);
+ assert.match(app,/APP_VERSION='3\.9\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.8.1');
+ assert.equal(version.version,'3.9.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.8.1'));
-  assert.ok(sw.includes(asset+'?v=3.8.1'));
+  assert.ok(index.includes(asset+'?v=3.9.0'));
+  assert.ok(sw.includes(asset+'?v=3.9.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.8\.1/);
+ assert.match(sw,/dndatlas-shell-v3\.9\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -361,4 +361,30 @@ test('active combat renderer separates spell slots from weapons and retains shar
  assert.match(src,/atlas-combat-shared[\s\S]*Available resources[\s\S]*Saving Throws[\s\S]*Active Conditions[\s\S]*Concentration/);
  assert.doesNotMatch(extract('function combatResources(ch){','function combatFeatures(ch){'),/renderSlots\(ch\)/);
  assert.match(css,/\.atlas-combat-tab-layout \[hidden\]\{display:none!important\}/);
+});
+
+test('builder equipment uses independent class/background choices, bundle quantities and integer copper',()=>{
+ const source=extract('const B_GOLD_2024=','function bEquipmentFields(b){');
+ const api=vm.runInNewContext(source+';({bEquipmentPlan,bEquipmentAC,bCoins})',{});
+ const b={class:'Fighter',background:'Soldier',classPackage:'fighter-a',backgroundPackage:'gold',equipmentMode:'structured',purchases:{Shield:1,Javelin:2,Arrows:1},armorChoice:'Chain Mail',shieldChoice:true,fightingStyle:'Defense'};
+ const plan=api.bEquipmentPlan(b);assert.equal(plan.grant,5400);assert.equal(plan.cost,1200);assert.equal(plan.remaining,4200);assert.equal(plan.items.find(x=>x.name==='Javelin').qty,10);assert.equal(plan.items.find(x=>x.name==='Arrows').qty,20);assert.equal(api.bEquipmentAC(b,plan,{DEX:14}).ac,19);
+ assert.ok(api.bEquipmentPlan({...b,purchases:{Greatsword:99}}).errors.length);
+ assert.ok(api.bEquipmentPlan({...b,class:'Wizard'}).errors.length);
+ assert.equal(api.bEquipmentPlan({...b,classPackage:'gold',backgroundPackage:'gold',purchases:{}}).grant,20500);
+});
+test('draft snapshot excludes private narrative and privileged fields',()=>{
+ const src=extract('function bDraftSnapshot(b){','function bDraftRestore(doc){');
+ const snap=vm.runInNewContext(src+';bDraftSnapshot',{});
+ const b={name:'Hero',story:'private',portrait:'data:image/jpeg;base64,private',player:'private',dmReason:'private',dmOverride:true,passiveOverride:'10',purchases:{Spear:1}};
+ const doc=snap(b);assert.equal(doc.schema,1);assert.equal(doc.state.name,'Hero');assert.equal(doc.state.purchases.Spear,1);assert.doesNotMatch(JSON.stringify(doc),/private|dmOverride|passiveOverride/);
+ assert.match(app,/data-bgo="save"/);assert.match(app,/b-live-preview-slot/);assert.match(css,/\.atlas-builder \.b-workspace/);
+});
+
+test('standard array exchanges scores without introducing duplicates',()=>{
+ const src=extract('function bStandardArrayAssign(base,key,value){','function bAbilityInput(b,k){');
+ const api=vm.runInNewContext(src+';({bStandardArrayAssign,bPointBuyCost})',{});
+ const base={STR:15,DEX:14,CON:13,INT:8,WIS:10,CHA:12};
+ assert.equal(api.bStandardArrayAssign(base,'STR',14),true);assert.equal(base.STR,14);assert.equal(base.DEX,15);assert.equal(new Set(Object.values(base)).size,6);
+ assert.equal(api.bStandardArrayAssign(base,'STR',20),false);assert.equal(api.bPointBuyCost({STR:15,DEX:15,CON:15,INT:8,WIS:8,CHA:8}),27);
+ assert.match(app,/builder-art\//);assert.match(fs.readFileSync('public/sw.js','utf8'),/builder-art\//);
 });

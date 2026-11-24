@@ -1,0 +1,8 @@
+# v3.9 — Character Builder 2.0 (first production iteration)
+- Existing 2024 rule validation and player draft export preserved; no simulated role switching or approvals.
+- Searchable class/species/background cards (original staging SVG illustrations with monogram fallback), persistent header, step navigation and footer, live core HP/PB/skill count; AC preview for structured Fighter equipment only.
+- Explicit account-scoped local draft save/resume; excludes story, portrait, player name and DM override fields. Not a secure storage boundary. No D1 sync.
+- Independent class/background gold options for 12 core classes and standard backgrounds, Fighter A/B and Soldier A packages, partial curated shop in integer copper with ammo bundle accounting. Manual equipment option still available, subject to DM review. Catalog subset checked against D&D 2024 Basic Rules; no reuse of unverified staging prices. Purchased items/currency populate new inventory; Fighter armor/shield loadouts and attack entries generated. Other classes remain subject to DM review; not full equipment/feature/proficiency automation. No special higher-level starting grants.
+- Existing DOCX flow retained. No Worker migration, role changes or dice UI.
+Sources: https://www.dndbeyond.com/sources/dnd/br-2024/character-classes ; https://www.dndbeyond.com/sources/dnd/br-2024/character-origins ; https://www.dndbeyond.com/sources/dnd/br-2024/equipment
+- Standard Array swaps scores automatically; Point Buy shows the budget. Original non-official SVG illustrations reused from atlas-2.0, included in the offline shell as optional assets.
