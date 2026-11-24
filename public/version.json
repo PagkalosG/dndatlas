@@ -1,6 +1,6 @@
 {
-  "version": "3.8.1",
+  "version": "3.9.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Combat attacks and spells tabs with shared resources and turn state"
+  "notes": "Character Builder visual choices, saved local drafts, live preview, verified starting gold and equipment shop"
 }
