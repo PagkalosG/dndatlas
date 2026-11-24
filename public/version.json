@@ -1,6 +1,6 @@
 {
-  "version": "3.6.0",
+  "version": "3.7.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Guided and advanced presentation, scoped search, local favorites, calculation inspector and rest preview"
+  "notes": "Compact header, partial character validation, manual combat turn tracker, spell source and casting options"
 }
