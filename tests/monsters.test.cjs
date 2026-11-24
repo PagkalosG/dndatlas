@@ -33,5 +33,5 @@ test('monster planner draft uses central Save and static catalog is cached',()=>
  const ui=app.slice(app.indexOf(' // v3.15.0 Monster library'),app.indexOf(' function atlasBattleNew'));
  assert.doesNotMatch(ui,/cloudRequest|cloudPush|fetch\(/);
  assert.match(ui,/atlasBattleSave/);assert.match(app,/monsterPlan:atlasMonsterPlan/);
- for(const file of ['public/index.html','public/sw.js'])assert.match(fs.readFileSync(file,'utf8'),/monsters-2024\.js\?v=3\.16\.0/);
+ for(const file of ['public/index.html','public/sw.js'])assert.match(fs.readFileSync(file,'utf8'),/monsters-2024\.js\?v=3\.17\.0/);
 });
