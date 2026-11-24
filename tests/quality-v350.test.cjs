@@ -121,7 +121,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.5\.1'/);
+ assert.match(app,/APP_VERSION='3\.5\.2'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -201,12 +201,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.5.1');
+ assert.equal(version.version,'3.5.2');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.5.1'));
-  assert.ok(sw.includes(asset+'?v=3.5.1'));
+  assert.ok(index.includes(asset+'?v=3.5.2'));
+  assert.ok(sw.includes(asset+'?v=3.5.2'));
  }
- assert.match(sw,/dndatlas-shell-v3\.5\.1/);
+ assert.match(sw,/dndatlas-shell-v3\.5\.2/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -239,4 +239,28 @@ test('header menu preserves controls and closes on selection, outside click and 
  click(['[data-atlas-header-toggle]']);
  let prevented=false;handlers.keydown({key:'Escape',preventDefault:()=>prevented=true,stopImmediatePropagation:()=>{}});
  assert.equal(expanded,'false');assert.equal(prevented,true);assert.ok(focused>=3);
+});
+
+
+test('unified header has accessible offline language flags and no language dropdown',()=>{
+ const source=extract('function atlasLanguageButtons(){','function atlasHeaderMenu(controls){');
+ let lang='en',rendered=0,focused=0,messages=[];
+ const L={getLanguage:()=>lang,setLanguage:x=>lang=x};
+ const context={L,tr:t,attr:String,renderApp:()=>rendered++,document:{querySelector:()=>({focus:()=>focused++})},toast:x=>messages.push(x)};
+ const api=vm.runInNewContext(source+';({atlasLanguageButtons,atlasChangeLanguage})',context);
+ let html=api.atlasLanguageButtons();
+ assert.match(html,/data-atlas-language="en" aria-pressed="true" aria-label="English"/);
+ assert.match(html,/data-atlas-language="el" aria-pressed="false" aria-label="Ελληνικά"/);
+ assert.equal((html.match(/<svg /g)||[]).length,2);
+ api.atlasChangeLanguage('el');
+ assert.equal(lang,'el');assert.equal(rendered,1);assert.equal(focused,1);
+ assert.match(api.atlasLanguageButtons(),/data-atlas-language="el" aria-pressed="true"/);
+ api.atlasChangeLanguage('el');api.atlasChangeLanguage('invalid');
+ assert.equal(rendered,1);assert.equal(messages.length,1);
+ assert.doesNotMatch(app,/data-language-select/);
+ assert.match(app,/data-atlas-account-label/);
+ assert.match(app,/data-action="cloud-save-now"/);
+ assert.match(css,/\.atlas-language-flag\[aria-pressed="true"\]/);
+ assert.match(css,/\/\* v3\.5\.2 — unified header controls/);
+ assert.match(css,/\.atlas-header-toggle,\.top-actions \.atlas-header-settings\{display:inline-flex/);
 });

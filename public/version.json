@@ -1,6 +1,6 @@
 {
-  "version": "3.5.1",
+  "version": "3.5.2",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Persistent mobile navigation, compact accessible header menu, non-sticky character quick stats"
+  "notes": "Unified desktop and mobile header, accessible flag language switch, consistent navigation controls"
 }
