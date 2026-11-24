@@ -453,7 +453,6 @@
  }
  function atlasBattleSave(next,method='PUT'){
    if(!atlasDmAllowed()||atlasBattleBusy||atlasManualSaving||!atlasBattleLoaded||atlasBattleOwner()!==atlasBattleAccount)return;
-   if(next)atlasCompanionRoster=atlasCompanionSync(atlasCompanionRoster,next);
    if(method==='DELETE'){if(atlasBattle?.archiveId)atlasBattleHistory=atlasBattleHistory.filter(h=>h.archiveId!==atlasBattle.archiveId);next=null;}
    if(next&&['active','paused'].includes(next.phase)){if(!next.fightId)next.fightId=crypto.randomUUID();if(!next.turnKey||next.round!==atlasBattle?.round||next.activeId!==atlasBattle?.activeId)next.turnKey=crypto.randomUUID();}
    if(next?.phase==='ended'&&atlasBattle?.phase!=='ended'){
@@ -462,6 +461,7 @@
      atlasBattleHistory=[archive,...atlasBattleHistory];
      next={...next,archiveId,phase:'ended',round:1,activeId:null,events:[],effects:[],participants:next.participants.filter(p=>p.type==='player'||p.rosterId).map(p=>({...p,initiative:null,out:false}))};
    }
+   if(next)atlasCompanionRoster=atlasCompanionSync(atlasCompanionRoster,next);
    atlasBattle=next;atlasBattleMark();if(modalOpen)closeModal();renderApp();
  }
  function atlasBattleStep(state,direction){
@@ -488,7 +488,7 @@
    const button=(label,action,id='',disabled=false)=>'<button class="btn sm" data-action="atlas-battle-companion-'+action+(id?':'+attr(id):'')+'" '+(!editable||disabled?'disabled':'')+'>'+label+'</button>';
    const rows=atlasCompanionRoster.map(q=>{
      const joined=b?.participants.some(p=>p.rosterId===q.id)&&b.phase!=='ended',owner=characters.find(ch=>ch.id===q.ownerId);
-     return '<div class="tile"><div style="min-width:0;flex:1"><strong>'+esc(q.name)+'</strong><small class="desc">'+esc(atlasCompanionKind(q.kind))+' · '+esc(owner?.name||tr('Παρέα','Party'))+' · HP '+q.hp+'/'+q.maxHp+' · AC '+q.ac+' · '+q.speed+' ft</small></div><div class="actions-inline">'+(b&&b.phase!=='ended'&&!joined?button(tr('Στη μάχη','Join battle'),'join',q.id):'')+button(tr('Επεξεργασία','Edit'),'edit',q.id,joined)+button(tr('Διαγραφή','Delete'),'delete',q.id,joined)+'</div></div>';
+     return '<div class="tile"><div style="min-width:0;flex:1"><strong>'+esc(q.name)+'</strong><small class="desc">'+esc(atlasCompanionKind(q.kind))+' · '+esc(owner?.name||(q.ownerId?tr('Λείπει ο ιδιοκτήτης','Missing owner'):tr('Παρέα','Party')))+' · HP '+q.hp+'/'+q.maxHp+' · AC '+q.ac+' · '+q.speed+' ft</small></div><div class="actions-inline">'+(b&&b.phase!=='ended'&&!joined?button(tr('Στη μάχη','Join battle'),'join',q.id):'')+button(tr('Επεξεργασία','Edit'),'edit',q.id,joined)+button(tr('Διαγραφή','Delete'),'delete',q.id,joined)+'</div></div>';
    }).join('');
    return '<section class="atlas-dm-card"><div class="page-title"><div><h3>'+tr('Σύντροφοι παρέας','Party companions')+'</h3><small>'+tr('Μόνιμη βιβλιοθήκη · παραμένει μετά τη μάχη','Persistent library · survives encounters')+'</small></div><div class="actions-inline">'+button(tr('+ Σύντροφος','+ Companion'),'new')+button(tr('Εισαγωγή από φύλλο','Import from sheet'),'import')+(b&&b.phase!=='ended'?button(tr('+ Επίκληση','+ Summon'),'summon'):'')+'</div></div>'+(rows||'<p class="muted small">'+tr('Δεν υπάρχουν σύντροφοι.','No companions yet.')+'</p>')+'<p class="muted small">'+tr('Οι εισαγωγές είναι ανεξάρτητα αντίγραφα για τον DM. Τα HP μάχης ενημερώνουν τη βιβλιοθήκη, όχι το αρχικό φύλλο.','Imports are independent DM copies. Battle HP updates this library, not the original character sheet.')+'</p></section>';
  }
@@ -499,7 +499,7 @@
    const input=(key,label,type,value,extra='')=>'<label class="field">'+label+'<input name="'+key+'" type="'+type+'" value="'+attr(value??'')+'" '+extra+'></label>';
    let fields='';
    if(mode==='import'){
-     const sources=characters.flatMap(ch=>(ch.companions||[]).map((p,i)=>[ch.id+'|'+i,ch.name+' · '+p.name]));
+     const sources=characters.flatMap(ch=>(ch.companions||[]).map((p,i)=>[JSON.stringify([ch.id,p.id]),ch.name+' · '+p.name]));
      if(!sources.length)return toast(tr('Δεν υπάρχουν σύντροφοι στα φύλλα.','No sheet companions available.'));
      fields=select('source',tr('Σύντροφος φύλλου','Sheet companion'),sources,'')+'<p class="muted">'+tr('Δημιουργεί ανεξάρτητο αντίγραφο στη βιβλιοθήκη DM.','Creates an independent copy in the DM library.')+'</p>';
    }else if(join){
@@ -528,8 +528,8 @@
    if(action==='dismiss'&&p?.companionKind==='summon'&&!p.rosterId&&b.phase!=='ended'){
      if(p.id===b.activeId)return toast(tr('Προχώρησε πρώτα στο επόμενο turn.','Advance to the next turn first.'));
      const next=structuredClone(b),x=next.participants.find(x=>x.id===id);
-     if(x.out)return;
-     x.out=true;delete x.expiresRound;
+     if(x.dismissed)return;
+     x.out=true;x.dismissed=true;delete x.expiresRound;
      const removed=new Set((next.effects||[]).filter(e=>e.targetId===id||e.turnId===id).map(e=>e.id));next.effects=(next.effects||[]).filter(e=>!removed.has(e.id)&&!removed.has(e.parent));
      try{if(next.phase!=='setup')atlasBattleAppend(next,{kind:'other',label:tr('Λήξη επίκλησης','Summon dismissed'),target:x.id,targetName:x.name,amount:0,note:'',outcome:''});atlasBattleSave(next);}catch(e){toast(e.message);}return;
    }
@@ -552,7 +552,7 @@
      }
      let q;
      if(mode==='import'){
-       const [ownerId,index]=String(fd.get('source')||'').split('|'),ch=characters.find(ch=>ch.id===ownerId),source=ch?.companions?.[Number(index)];
+       const [ownerId,sourceId]=JSON.parse(String(fd.get('source')||'[]')),ch=characters.find(ch=>ch.id===ownerId),source=ch?.companions?.find(p=>p.id===sourceId);
        if(!source||!source.id||roster.some(q=>q.ownerId===ownerId&&q.sourceId===source.id))throw Error(tr('Ο σύντροφος έχει ήδη εισαχθεί ή λείπει.','Companion already imported or unavailable.'));
        const maxHp=Math.max(1,Math.min(99999,Math.trunc(Number(source.maxHp)||1)));
        const type=String(source.type||'').toLowerCase();
@@ -624,7 +624,7 @@
    if(action==='sort'&&next.phase==='setup'){if(ps.some(p=>p.initiative===null))return toast(tr('Συμπλήρωσε όλα τα Initiative.','Enter all Initiative totals.'));ps.sort((a,b)=>b.initiative-a.initiative);}
    else if(['up','down'].includes(action)&&p){const j=i+(action==='up'?-1:1);if(j<0||j>=ps.length)return;if(next.phase!=='setup'&&!confirm(tr('Διόρθωση σειράς στη διάρκεια μάχης;','Correct order during combat?')))return;[ps[i],ps[j]]=[ps[j],ps[i]];}
    else if(action==='remove'&&p&&next.phase==='setup'){ps.splice(i,1);}
-   else if(action==='out'&&p){if(p.id===next.activeId)return toast(tr('Προχώρησε πρώτα στο επόμενο turn.','Advance to the next turn first.'));p.out=!p.out;}
+   else if(action==='out'&&p&&!p.dismissed){if(p.id===next.activeId)return toast(tr('Προχώρησε πρώτα στο επόμενο turn.','Advance to the next turn first.'));p.out=!p.out;}
    else if(action==='start'&&next.phase==='setup'){if(!ps.length||ps.some(p=>p.initiative===null)||!ps.some(p=>!p.out))return toast(tr('Απαιτούνται συμμετέχοντες και Initiative.','Participants and Initiative required.'));if(!confirm(tr('Έναρξη με την εμφανιζόμενη σειρά;','Start with the displayed order?')))return;next.phase='active';next.round=1;next.activeId=ps.find(p=>!p.out).id;}
    else if(action==='next'||action==='prev'){const stepped=atlasBattleStep(next,action==='next'?1:-1);if(stepped.activeId===next.activeId&&stepped.round===next.round)return;return atlasBattleSave(stepped);}
    else if(action==='jump'&&p&&!p.out&&['active','paused'].includes(next.phase)){if(!confirm(tr('Μετάβαση στο συγκεκριμένο turn;','Jump to this turn?')))return;next.activeId=p.id;}
@@ -926,7 +926,7 @@
    const rows=b.participants.map((p,i)=>{
      const ch=p.type==='player'?characters.find(x=>x.id===p.characterId):null,hp=ch?.hp||{current:p.hp,max:p.maxHp,temp:0},name=ch?.name||p.name,ac=ch?AC(ch):p.ac,missing=p.type==='player'&&!ch;
      const hpActions=ended||missing?'':ch?'<button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="damage">− HP</button><button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="heal">+ HP</button>':button('− HP','damage',p.id)+button('+ HP','heal',p.id);
-     return '<article class="atlas-battle-row '+(p.id===b.activeId?'active ':'')+(p.out?'out':'')+'"><div class="atlas-battle-init"><strong>'+esc(p.initiative??'—')+'</strong>'+(!ended?button(tr('Αλλαγή','Edit'),'initiative',p.id):'')+'</div><div class="atlas-battle-name"><strong>'+esc(name)+'</strong><small>'+esc(missing?tr('Λείπει το φύλλο','Missing sheet'):p.type==='player'?tr('Παίκτης','Player'):p.type==='enemy'?tr('Εχθρός','Enemy'):p.companionKind?atlasCompanionKind(p.companionKind):tr('Σύμμαχος','Ally'))+(p.id===b.activeId?' · '+tr('Ενεργό turn','Current turn'):'')+(p.out?' · '+tr('Εκτός μάχης','Out'):'')+'</small>'+(!missing?'<span>HP '+esc(hp.current??'—')+'/'+esc(hp.max??'—')+' · AC '+esc(ac??'—')+(hp.temp?' · Temp '+esc(hp.temp):'')+'</span>':'')+(ch?atlasDmStatus(ch,atlasDmStats(ch)):'')+(p.companionKind?'<small>'+esc(characters.find(ch=>ch.id===p.ownerId)?.name||tr('Παρέα / DM','Party / DM'))+' · '+p.speed+' ft</small>':'')+(p.expiresRound&&b.round>=p.expiresRound&&!p.out?'<span class="notice">'+tr('Έλεγχος λήξης επίκλησης','Review summon expiration')+'</span>':'')+'</div><div class="atlas-battle-controls">'+hpActions+(p.companionKind?button(tr('Ικανότητες','Abilities'),'companion-detail',p.id):'')+(!ended&&p.companionKind==='summon'&&!p.rosterId&&!p.out?button(tr('Λήξη','Dismiss'),'companion-dismiss',p.id,p.id===b.activeId):'')+(!ended?button('↑','up',p.id,i===0)+button('↓','down',p.id,i===b.participants.length-1)+button(p.out?tr('Επαναφορά','Restore'):tr('Εκτός','Out'),'out',p.id,p.id===b.activeId)+(setup?button(tr('Αφαίρεση','Remove'),'remove',p.id):button(tr('Μετάβαση','Jump'),'jump',p.id,p.out)):'')+'</div></article>';
+     return '<article class="atlas-battle-row '+(p.id===b.activeId?'active ':'')+(p.out?'out':'')+'"><div class="atlas-battle-init"><strong>'+esc(p.initiative??'—')+'</strong>'+(!ended?button(tr('Αλλαγή','Edit'),'initiative',p.id):'')+'</div><div class="atlas-battle-name"><strong>'+esc(name)+'</strong><small>'+esc(missing?tr('Λείπει το φύλλο','Missing sheet'):p.type==='player'?tr('Παίκτης','Player'):p.type==='enemy'?tr('Εχθρός','Enemy'):p.companionKind?atlasCompanionKind(p.companionKind):tr('Σύμμαχος','Ally'))+(p.id===b.activeId?' · '+tr('Ενεργό turn','Current turn'):'')+(p.dismissed?' · '+tr('Έληξε','Dismissed'):p.out?' · '+tr('Εκτός μάχης','Out'):'')+'</small>'+(!missing?'<span>HP '+esc(hp.current??'—')+'/'+esc(hp.max??'—')+' · AC '+esc(ac??'—')+(hp.temp?' · Temp '+esc(hp.temp):'')+'</span>':'')+(ch?atlasDmStatus(ch,atlasDmStats(ch)):'')+(p.companionKind?'<small>'+esc(characters.find(ch=>ch.id===p.ownerId)?.name||tr('Παρέα / DM','Party / DM'))+' · '+p.speed+' ft</small>':'')+(p.expiresRound&&b.round>=p.expiresRound&&!p.out?'<span class="notice">'+tr('Έλεγχος λήξης επίκλησης','Review summon expiration')+'</span>':'')+'</div><div class="atlas-battle-controls">'+hpActions+(p.companionKind?button(tr('Ικανότητες','Abilities'),'companion-detail',p.id):'')+(!ended&&p.companionKind==='summon'&&!p.rosterId&&!p.dismissed?button(tr('Λήξη','Dismiss'),'companion-dismiss',p.id,p.id===b.activeId):'')+(!ended?button('↑','up',p.id,i===0)+button('↓','down',p.id,i===b.participants.length-1)+(p.dismissed?'':button(p.out?tr('Επαναφορά','Restore'):tr('Εκτός','Out'),'out',p.id,p.id===b.activeId))+(setup?button(tr('Αφαίρεση','Remove'),'remove',p.id):button(tr('Μετάβαση','Jump'),'jump',p.id,p.out)):'')+'</div></article>';
    }).join('');
    return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+(ended?'':' · '+tr('Γύρος','Round')+' '+b.round)+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'<button class="btn sm warn" data-action="atlas-battle-delete" '+(atlasBattleBusy?'disabled':'')+'>'+tr('Διαγραφή μάχης','Delete Encounter')+'</button></div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div>'+atlasCompanionPanel()+atlasEffectPanel(b)+'<div class="atlas-battle-workspace"><div class="atlas-battle-order">'+rows+'</div><aside class="atlas-dm-card"><h3>'+tr('Καταγραφή μάχης','Combat Log')+'</h3>'+(!ended&&!setup?button(tr('+ Καταγραφή ενέργειας','+ Log Action'),'log')+(atlasCombatUndo&&atlasBattleDirty?button(tr('Αναίρεση τελευταίας μη αποθηκευμένης ενέργειας','Undo last unsaved action'),'undo-log'):''):'')+atlasBattleLogMarkup(b.events||[])+atlasInboxMarkup()+'</aside></div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
  }
