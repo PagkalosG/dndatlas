@@ -187,10 +187,10 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.12.0');
+ assert.equal(version.version,'3.13.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.12.0'));
-  assert.ok(sw.includes(asset+'?v=3.12.0'));
+  assert.ok(index.includes(asset+'?v=3.13.0'));
+  assert.ok(sw.includes(asset+'?v=3.13.0'));
  }
  assert.match(sw,/dndatlas-shell-v3\.12\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
