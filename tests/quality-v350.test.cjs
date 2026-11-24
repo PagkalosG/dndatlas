@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.9\.0'/);
+ assert.match(app,/APP_VERSION='3\.9\.1'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.9.0');
+ assert.equal(version.version,'3.9.1');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.9.0'));
-  assert.ok(sw.includes(asset+'?v=3.9.0'));
+  assert.ok(index.includes(asset+'?v=3.9.1'));
+  assert.ok(sw.includes(asset+'?v=3.9.1'));
  }
- assert.match(sw,/dndatlas-shell-v3\.9\.0/);
+ assert.match(sw,/dndatlas-shell-v3\.9\.1/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -387,4 +387,25 @@ test('standard array exchanges scores without introducing duplicates',()=>{
  assert.equal(api.bStandardArrayAssign(base,'STR',14),true);assert.equal(base.STR,14);assert.equal(base.DEX,15);assert.equal(new Set(Object.values(base)).size,6);
  assert.equal(api.bStandardArrayAssign(base,'STR',20),false);assert.equal(api.bPointBuyCost({STR:15,DEX:15,CON:15,INT:8,WIS:8,CHA:8}),27);
  assert.match(app,/builder-art\//);assert.match(fs.readFileSync('public/sw.js','utf8'),/builder-art\//);
+});
+
+test('proficiency parser preserves unknown and feature-specific records, and supports legacy labels',()=>{
+ const src=extract('const ATLAS_PROF_GROUPS=[','function atlasProfCanManage(ch){');
+ const api=vm.runInNewContext(src+';({atlasProfParse,atlasProfFixed,atlasProfSerialize})',{D:{weapons:[{name:'Spear'},{name:'Greatsword'}]},R:{ARTISAN_TOOLS:['Smith’s Tools','Calligrapher’s Supplies'],studentSelection:ch=>({tool:ch.studentOfWarTool})},B_GAMES:['Dice Set']});
+ const parsed=api.atlasProfParse("Armor: Light, Medium, Heavy, Shields. Weapons: Simple, Martial. Tools: Smith's Tools; Gaming Set: Dice Set; Student of War Tool: Smith’s Tools; Unmapped private note");
+ assert.equal(parsed.selected.armor.length,4);assert.equal(parsed.selected.weapons.length,2);assert.equal(parsed.selected.artisan[0],'Smith’s Tools');assert.equal(parsed.selected.games[0],'Dice Set');
+ assert.equal(parsed.legacy.length,2);const again=api.atlasProfParse(api.atlasProfSerialize(parsed.selected,parsed.legacy));assert.equal(JSON.stringify(again),JSON.stringify(parsed));
+ const unknown=api.atlasProfParse('Tools: Smith’s Tools, Unknown Custom Tool');assert.equal(unknown.legacy[0],'Tools: Smith’s Tools, Unknown Custom Tool');
+ const fixed=api.atlasProfFixed({classes:[{name:'Wizard',level:1},{name:'Fighter',level:3,subclass:'Battle Master'}],studentOfWarTool:'Smith’s Tools'});
+ assert.ok(fixed.armor['Light Armor']);assert.ok(!fixed.armor['Heavy Armor']);assert.ok(fixed.weapons['Martial Weapons']);assert.ok(fixed.artisan['Smith’s Tools']);
+ assert.throws(()=>api.atlasProfSerialize({armor:['Unknown']},[]));
+});
+test('proficiency editing has explicit role and ownership checks and profile cannot erase fields',()=>{
+ const src=extract('function atlasProfCanManage(ch){','function atlasProfLabel(key){');
+ const cloud={enabled:true,ready:true,user:{role:'player'}};
+ const api=vm.runInNewContext(src+';({atlasProfCanManage,atlasProfCanChooseLanguages})',{cloud,canEditCharacter:()=>true,languageList:s=>s.split(', '),B_LANGUAGES:['Elvish','Giant']});
+ assert.equal(api.atlasProfCanManage({}),false);assert.equal(api.atlasProfCanChooseLanguages({languages:'Common, Giant, Elvish'}),true);assert.equal(api.atlasProfCanChooseLanguages({languages:'Common, Giant, Elvish, Infernal'}),false);
+ cloud.user.role='dm';assert.equal(api.atlasProfCanManage({}),true);
+ assert.doesNotMatch(extract('function editChar(){','function editAbilities'),/field\('proficiencies'/);
+ assert.match(app,/if\(!atlasProfCanManage\(ch\)\|\|ch.id!==e.target.dataset.character\)/);
 });

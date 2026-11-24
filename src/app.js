@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.9.0';
+ const APP_VERSION='3.9.1';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -846,7 +846,111 @@ document.addEventListener('submit',e=>{
  }
  function pickerRows(list,owned,kind){return list.map(x=>`<div class="option-row" data-picker-row="${attr((x.name+' '+(x.summary||'')).toLowerCase())}"><div style="min-width:0;flex:1"><button class="linklike" data-picker-detail="${attr(x.id)}">${esc(x.name)}</button><div class="tiny muted">${esc(x.kind==='Spell'?formatLevel(x.level)+' · '+x.school:x.kind==='Feat'?x.tier:x.trigger)}</div>${x.kind==='Spell'?spellTag(x,c(),true):''}</div><button class="btn sm ${owned.includes(x.id)?'warn':'primary'}" data-picker-toggle="${attr(x.id)}">${owned.includes(x.id)?'Remove':'+ Add'}</button></div>`).join('');}
  function openNewCharacter(){formModal('Create a Character',field('name','Name','New Adventurer')+selectField('class','Main class','Fighter',Object.keys(D.classes)).replace('id="f-class"','id="f-class" data-class-name="0"')+subclassField(0,'Fighter','')+selectField('species','Species','Human',D.species)+selectField('background','Background','Custom',D.background)+field('player','Player (optional)',''), 'create-character',`<p class="hintnote">${uiText('Το subclass μπορεί να αποθηκευτεί ως μελλοντική επιλογή. Τα class features δεν ενεργοποιούνται αυτόματα: επιβεβαίωσε το level με τον DM.','Subclass can be saved as a planned choice. Class features are not granted automatically; confirm the required level with your DM.')}</p>`);}
- function editChar(){const ch=c();formModal('Edit Character Profile',field('name','Character name',ch.name)+field('player','Player',ch.player)+selectField('species','Species',ch.species,[...new Set([...D.species,ch.species])])+selectField('background','Background',ch.background,[...new Set([...D.background,ch.background])])+selectField('alignment','Alignment',ch.alignment,['',...ALIGNMENTS])+field('speed','Speed (ft)',ch.speed,'number')+field('initiativeBonus','Additional Initiative bonus',ch.initiativeBonus,'number')+field('proficiencyOverride','Override Proficiency Bonus (leave empty for auto)',ch.proficiencyOverride,'number')+field('passivePerceptionOverride','Passive Perception override (optional; DM house rule)',ch.passivePerceptionOverride??'','number')+selectField('rulesVersion','Rules version','2024',['2024'])+languagesField(ch.languages)+field('proficiencies','Other proficiencies',ch.proficiencies,'textarea','wide'),'save-profile',`<div class="actions-inline"><button type="button" class="btn" data-action="edit-json">${tr('Αντικατάσταση από JSON','Replace from JSON')}</button><button type="button" class="btn" data-action="download-character-docx">${tr('Εξαγωγή DOCX','Export DOCX')}</button></div>`,true);}
+
+ // Structured presentation over the existing proficiencies field. No schema migration.
+ const ATLAS_PROF_GROUPS=[
+  ['armor','Armor Training','Εκπαίδευση πανοπλίας',['Light Armor','Medium Armor','Heavy Armor','Shields']],
+  ['weapons','Weapon Proficiencies','Επάρκεια όπλων',['Simple Weapons','Martial Weapons',...D.weapons.map(x=>x.name),'Dart','Sling','Blowgun','Hand Crossbow','Net','Pistol','Musket']],
+  ['artisan','Artisan’s Tools','Εργαλεία τεχνίτη',R.ARTISAN_TOOLS],
+  ['tools','Other Tools','Άλλα εργαλεία',['Disguise Kit','Forgery Kit','Herbalism Kit','Navigator’s Tools','Poisoner’s Kit','Thieves’ Tools']],
+  ['games','Gaming Sets','Σετ παιχνιδιών',['Dice Set','Dragonchess Set','Playing Card Set','Three-Dragon Ante Set']],
+  ['music','Musical Instruments','Μουσικά όργανα',['Bagpipes','Drum','Dulcimer','Flute','Horn','Lute','Lyre','Pan Flute','Shawm','Viol']]
+ ];
+ const atlasProfNorm=s=>String(s||'').trim().replace(/[’‘]/g,"'").toLowerCase();
+ function atlasProfParse(raw){
+   const selected=Object.fromEntries(ATLAS_PROF_GROUPS.map(([k])=>[k,[]])),legacy=[];
+   const aliases={armor:['armor','armor training','armour','armour training'],weapons:['weapons','weapon proficiencies','weapon proficiency'],artisan:["artisan's tools","artisan tools"],tools:['tools','other tools','tool proficiencies','tool proficiency'],games:['gaming set','gaming sets'],music:['musical instrument','musical instruments']};
+   const short={light:'Light Armor',medium:'Medium Armor',heavy:'Heavy Armor',shield:'Shields',simple:'Simple Weapons',martial:'Martial Weapons',dice:'Dice Set',dragonchess:'Dragonchess Set','playing cards':'Playing Card Set','three-dragon ante':'Three-Dragon Ante Set'};
+   for(const part of String(raw||'').split(/;|\r?\n|\.\s+(?=(?:Armor|Armour|Weapons|Weapon Proficiencies|Tools|Other Tools|Gaming Sets?|Artisan[’']s Tools|Musical Instruments?|Student of War Tools?)\s*:)/i).map(x=>x.trim()).filter(Boolean)){
+     const match=part.match(/^([^:]+):\s*(.+)$/),label=atlasProfNorm(match?.[1]),group=Object.keys(aliases).find(k=>aliases[k].includes(label));
+     // Feature-specific labels must survive verbatim for existing rule helpers.
+     if(match&&!group){legacy.push(part);continue;}
+     const tokens=(match?match[2]:part).split(',').map(x=>x.trim().replace(/\.$/,'')).filter(Boolean),resolved=[];
+     for(const token of tokens){const name=short[atlasProfNorm(token)]||token,groups=group==='tools'?['artisan','tools','games','music']:group?[group]:ATLAS_PROF_GROUPS.map(x=>x[0]);
+       const hit=ATLAS_PROF_GROUPS.filter(x=>groups.includes(x[0])).flatMap(([key,,,opts])=>opts.filter(o=>atlasProfNorm(o)===atlasProfNorm(name)).map(o=>[key,o]));
+       if(hit.length!==1)break;resolved.push(hit[0]);
+     }
+     if(!tokens.length||resolved.length!==tokens.length){legacy.push(part);continue;}
+     for(const [key,name] of resolved)if(!selected[key].includes(name))selected[key].push(name);
+   }
+   return {selected,legacy};
+ }
+ function atlasProfFixed(ch){
+   const grants=Object.fromEntries(ATLAS_PROF_GROUPS.map(([k])=>[k,{}]));
+   const add=(key,name,source)=>{(grants[key][name]||(grants[key][name]=[])).push(source);};
+   const firstArmor={Barbarian:['Light Armor','Medium Armor','Shields'],Bard:['Light Armor'],Cleric:['Light Armor','Medium Armor','Shields'],Druid:['Light Armor','Shields'],Fighter:['Light Armor','Medium Armor','Heavy Armor','Shields'],Paladin:['Light Armor','Medium Armor','Heavy Armor','Shields'],Ranger:['Light Armor','Medium Armor','Shields'],Rogue:['Light Armor'],Warlock:['Light Armor']};
+   const multiArmor={...firstArmor,Barbarian:['Shields'],Fighter:['Light Armor','Medium Armor','Shields'],Paladin:['Light Armor','Medium Armor','Shields']};
+   const classes=(ch.classes||[]).filter(x=>Number(x.level)>0);
+   classes.forEach((cls,i)=>{
+     const source=cls.name,all=['Barbarian','Fighter','Paladin','Ranger'].includes(source),simple=['Bard','Cleric','Druid','Monk','Rogue','Sorcerer','Warlock','Wizard'].includes(source);
+     for(const a of (i?multiArmor:firstArmor)[source]||[])add('armor',a,source);
+     if(i===0&&(all||simple))add('weapons','Simple Weapons',source);
+     if(all)add('weapons','Martial Weapons',source);
+     if(i===0&&source==='Monk')for(const n of ['Scimitar','Shortsword'])add('weapons',n,source);
+     if(i===0&&source==='Rogue')for(const n of ['Rapier','Scimitar','Shortsword','Whip'])add('weapons',n,source);
+     if(source==='Rogue')add('tools','Thieves’ Tools',source);
+   });
+   if(['Acolyte','Sage'].includes(ch.background))add('artisan','Calligrapher’s Supplies',ch.background);
+   if(ch.background==='Criminal')add('tools','Thieves’ Tools',ch.background);
+   if((ch.classes||[]).some(x=>x.name==='Fighter'&&Number(x.level)>=3&&x.subclass==='Battle Master')){
+     const tool=R.studentSelection(ch).tool;if(R.ARTISAN_TOOLS.includes(tool))add('artisan',tool,'Student of War');
+   }
+   return grants;
+ }
+ function atlasProfSerialize(selected,legacy){
+   const labels={armor:'Armor Training',weapons:'Weapon Proficiencies',artisan:'Artisan’s Tools',tools:'Other Tools',games:'Gaming Set',music:'Musical Instruments'};
+   const parts=[];
+   for(const [key,,,opts] of ATLAS_PROF_GROUPS){
+     const values=selected[key]||[];
+     if(!Array.isArray(values)||values.some(x=>!opts.includes(x)))throw Error('Invalid proficiency option');
+     for(const name of new Set(values))parts.push(labels[key]+': '+name);
+   }
+   return [...parts,...legacy].join('; ');
+ }
+ function atlasProfCanManage(ch){return !!ch&&(!cloud.enabled||(cloud.ready&&['creator','dm'].includes(cloud.user?.role||'')&&canEditCharacter(ch)));}
+ function atlasProfCanChooseLanguages(ch){
+   if(!ch||!canEditCharacter(ch))return false;
+   if(atlasProfCanManage(ch))return true;
+   const langs=languageList(ch.languages);
+   return langs.length===3&&langs.includes('Common')&&langs.filter(x=>x!=='Common').every(x=>B_LANGUAGES.includes(x));
+ }
+ function atlasProfLabel(key){const g=ATLAS_PROF_GROUPS.find(x=>x[0]===key);return g?tr(g[2],g[1]):key;}
+ function atlasProfChips(names,fixed={}){
+   return names.length?'<div class="atlas-prof-chips">'+names.map(n=>'<span class="atlas-prof-chip '+(fixed[n]?'fixed':'')+'"'+(fixed[n]?' title="'+attr(fixed[n].join(', '))+'"':'')+'>'+esc(n)+(fixed[n]?'<small>'+esc(fixed[n].join(', '))+'</small>':'')+'</span>').join('')+'</div>':'<span class="muted small">'+tr('Δεν έχουν καταχωριστεί.','Not recorded.')+'</span>';
+ }
+ function atlasProfPanel(ch){
+   const {selected,legacy}=atlasProfParse(ch.proficiencies),fixed=atlasProfFixed(ch);
+   const rows=ATLAS_PROF_GROUPS.map(([k])=>'<div class="atlas-prof-section"><strong>'+atlasProfLabel(k)+'</strong>'+atlasProfChips([...new Set([...Object.keys(fixed[k]),...selected[k]])],fixed)+'</div>').join('');
+   const choice=canEditCharacter(ch)&&(ch.classes||[]).some(x=>x.name==='Fighter'&&Number(x.level)>=3&&x.subclass==='Battle Master')?'<button class="btn sm" data-atlas-student-edit>Student of War · '+tr('Επιλογές','Choices')+'</button>':'';
+   return rows+(legacy.length?'<details class="atlas-prof-section"><summary>'+tr('Πρόσθετες / παλιές καταχωρίσεις','Additional / legacy entries')+'</summary><div class="detail-description">'+esc(legacy.join('; '))+'</div></details>':'')+'<div class="atlas-prof-section"><strong>'+tr('Γλώσσες','Languages')+'</strong>'+atlasProfChips(languageList(ch.languages))+(atlasProfCanChooseLanguages(ch)?'<button class="btn sm" data-action="edit-prof-languages">'+tr('Επιλογή γλωσσών','Choose languages')+'</button>':'')+'</div>'+(choice?'<div class="actions-inline">'+choice+'</div>':'')+'<p class="muted small">'+tr('Οι αυτόματες επάρκειες εμφανίζουν την πηγή. Πρόσθετες εγγραφές είναι καταγεγραμμένες επιλογές, όχι αυτόματη αλλαγή των υπολογισμών μάχης.','Automatic grants show their source. Additional entries are recorded choices, not automatic combat calculation overrides.')+'</p>';
+ }
+ function atlasProfEditor(){
+   const ch=c();if(!atlasProfCanManage(ch))return;
+   const {selected,legacy}=atlasProfParse(ch.proficiencies),fixed=atlasProfFixed(ch);
+   const groups=ATLAS_PROF_GROUPS.map(([key,,,opts])=>'<details class="atlas-prof-picker" '+(key==='armor'?'open':'')+'><summary>'+atlasProfLabel(key)+' <span class="atlas-prof-count">'+new Set([...Object.keys(fixed[key]),...selected[key]]).size+'</span></summary><input type="search" data-prof-filter aria-label="'+attr(tr('Αναζήτηση','Search')+' '+atlasProfLabel(key))+'" placeholder="'+attr(tr('Αναζήτηση…','Search…'))+'"><div class="atlas-prof-options">'+opts.map(n=>'<label class="atlas-prof-option"><input type="checkbox" name="'+key+'" value="'+attr(n)+'" '+(selected[key].includes(n)||fixed[key][n]?'checked':'')+' '+(fixed[key][n]?'disabled':'')+'><span>'+esc(n)+(fixed[key][n]?'<small>'+esc(fixed[key][n].join(', '))+' · '+tr('Αυτόματο','Automatic')+'</small>':'')+'</span></label>').join('')+'</div></details>').join('');
+   openModal(tr('Εκπαίδευση & επάρκειες','Equipment Training & Proficiencies'),'<form id="atlas-prof-form" data-character="'+attr(ch.id)+'"><p class="muted small">'+tr('Επίλεξε μόνο επάρκειες που έχουν χορηγηθεί. Οι αυτόματες επιλογές είναι κλειδωμένες.','Select only granted proficiencies. Automatic choices are locked.')+'</p>'+groups+'<div class="field"><label>'+tr('Custom / παλιές καταχωρίσεις (διατηρούνται)','Custom / legacy entries (preserved)')+'<textarea name="legacy" rows="4">'+esc(legacy.join('\n'))+'</textarea></label></div></form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button type="submit" form="atlas-prof-form" class="btn primary">'+tr('Αποθήκευση','Save')+'</button>',true);
+ }
+ function atlasProfLanguages(){
+   const ch=c();if(!atlasProfCanChooseLanguages(ch))return;
+   if(atlasProfCanManage(ch)){formModal(tr('Γλώσσες','Languages'),languagesField(ch.languages),'save-prof-languages');return;}
+   const langs=languageList(ch.languages).filter(x=>x!=='Common');
+   formModal(tr('Γλώσσες','Languages'),'<div class="field wide"><label>Common · '+tr('Αυτόματο','Automatic')+'</label></div>'+selectField('lang1',tr('Πρώτη γλώσσα','First language'),langs[0],B_LANGUAGES)+selectField('lang2',tr('Δεύτερη γλώσσα','Second language'),langs[1],B_LANGUAGES),'save-prof-languages');
+ }
+ document.addEventListener('input',e=>{if(!e.target.matches('[data-prof-filter]'))return;const q=atlasProfNorm(e.target.value);for(const row of e.target.closest('details').querySelectorAll('.atlas-prof-option'))row.hidden=!atlasProfNorm(row.textContent).includes(q);});
+ document.addEventListener('change',e=>{if(!e.target.matches('#atlas-prof-form input[type=checkbox]'))return;const details=e.target.closest('details');details.querySelector('.atlas-prof-count').textContent=details.querySelectorAll('input[type=checkbox]:checked').length;});
+ document.addEventListener('submit',e=>{
+   if(e.target.id!=='atlas-prof-form')return;e.preventDefault();e.stopImmediatePropagation();
+   const ch=c();if(!atlasProfCanManage(ch)||ch.id!==e.target.dataset.character)return toast(tr('Δεν επιτρέπεται η αλλαγή.','Change not permitted.'));
+   const fd=new FormData(e.target),old=atlasProfParse(ch.proficiencies),fixed=atlasProfFixed(ch),selected={};
+   for(const [key] of ATLAS_PROF_GROUPS)selected[key]=[...new Set([...fd.getAll(key),...old.selected[key].filter(x=>fixed[key][x])])];
+   const custom=String(fd.get('legacy')||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+   // Never lose feature-specific source markers even if an editor removes their note.
+   for(const entry of old.legacy.filter(x=>/^Student of War Tools?:/i.test(x)))if(!custom.includes(entry))custom.push(entry);
+   try{ch.proficiencies=atlasProfSerialize(selected,custom);}catch(err){return toast(err.message);}
+   closeModal();update();
+ },true);
+
+ function editChar(){const ch=c();formModal('Edit Character Profile',field('name','Character name',ch.name)+field('player','Player',ch.player)+selectField('species','Species',ch.species,[...new Set([...D.species,ch.species])])+selectField('background','Background',ch.background,[...new Set([...D.background,ch.background])])+selectField('alignment','Alignment',ch.alignment,['',...ALIGNMENTS])+field('speed','Speed (ft)',ch.speed,'number')+field('initiativeBonus','Additional Initiative bonus',ch.initiativeBonus,'number')+field('proficiencyOverride','Override Proficiency Bonus (leave empty for auto)',ch.proficiencyOverride,'number')+field('passivePerceptionOverride','Passive Perception override (optional; DM house rule)',ch.passivePerceptionOverride??'','number')+selectField('rulesVersion','Rules version','2024',['2024']),'save-profile',`<div class="actions-inline"><button type="button" class="btn" data-action="edit-json">${tr('Αντικατάσταση από JSON','Replace from JSON')}</button><button type="button" class="btn" data-action="download-character-docx">${tr('Εξαγωγή DOCX','Export DOCX')}</button></div>`,true);}
  function editAbilities(){let ch=c();formModal('Ability Scores',Object.keys(D.abilities).map(k=>field(k,`${k} — ${D.abilities[k]}`,ch.abilities[k],'number')).join(''),'save-abilities');}
  function editClasses(){const ch=c();const options=Object.keys(D.classes);let inputs='';for(let i=0;i<3;i++){const x=ch.classes[i]||{name:'',level:0,subclass:''};inputs+=`<div class="form-section">${i===0?'PRIMARY CLASS':`MULTICLASS ${i}`} ${i?'(optional)':''}</div>`+selectField(`class${i}`,'Class',x.name||'',i?['',...options]:options).replace(`id="f-class${i}"`,`id="f-class${i}" data-class-name="${i}"`)+field(`level${i}`,'Class level (0 to remove)',x.level,'number')+subclassField(i,x.name||'Custom',x.subclass);}
  formModal('Classes & Multiclass',inputs,'save-classes',`<div class="hintnote">Σύνολο levels έως 20. Το Proficiency Bonus υπολογίζεται αυτόματα. Τα spell slots, HP, skill proficiencies και class resources παραμένουν πλήρως editable — για σωστούς multiclass κανόνες επιβεβαίωσε με τον DM.</div>`,true);}
@@ -1149,7 +1253,8 @@ document.addEventListener('submit',e=>{
    if(!v.name.trim())return toast('Το όνομα είναι υποχρεωτικό.');let q=defaultChar(v.name.trim(),v.class);q.classes[0].subclass=(v.subclass0||'').trim();q.species=v.species;q.background=v.background;q.player=v.player;characters.push(q);selectedId=q.id;view='overview';break;}
   case 'atlas-save-story':{ch.backgroundStory=v.story||'';ch.storyPublic=v.storyPublic==='true';break;}
   case 'save-profile':{
-   ch.name=v.name.trim()||ch.name;ch.player=v.player;ch.species=v.species;ch.background=v.background;ch.alignment=v.alignment;ch.speed=clamp(n('speed'),0,300);ch.initiativeBonus=n('initiativeBonus');ch.proficiencyOverride=v.proficiencyOverride;ch.passivePerceptionOverride=v.passivePerceptionOverride;ch.rulesVersion='2024';ch.languages=v.languages;ch.proficiencies=v.proficiencies;break;}
+   ch.name=v.name.trim()||ch.name;ch.player=v.player;ch.species=v.species;ch.background=v.background;ch.alignment=v.alignment;ch.speed=clamp(n('speed'),0,300);ch.initiativeBonus=n('initiativeBonus');ch.proficiencyOverride=v.proficiencyOverride;ch.passivePerceptionOverride=v.passivePerceptionOverride;ch.rulesVersion='2024';break;}
+  case 'save-prof-languages':{if(!atlasProfCanChooseLanguages(ch))return toast(tr('Δεν επιτρέπεται η αλλαγή.','Change not permitted.'));if(atlasProfCanManage(ch)){ch.languages=String(v.languages||'');}else{if(!B_LANGUAGES.includes(v.lang1)||!B_LANGUAGES.includes(v.lang2)||v.lang1===v.lang2)return toast(tr('Επίλεξε δύο διαφορετικές βασικές γλώσσες.','Choose two distinct standard languages.'));ch.languages=['Common',v.lang1,v.lang2].join(', ');}break;}
   case 'save-custom-feat':{if(!(v.name||'').trim())return toast(uiText('Δώσε όνομα feat.','Enter a feat name.'));ch.customFeats=ch.customFeats||[];ch.customFeats.push({id:uid(),name:v.name.trim(),tier:v.tier||'Custom',summary:v.summary||''});break;}
   case 'save-abilities':for(let k of Object.keys(D.abilities))ch.abilities[k]=clamp(n(k),1,30);break;
   case 'save-classes':{
@@ -1211,6 +1316,8 @@ document.addEventListener('submit',e=>{
   case 'atlas-edit-story':atlasEditStory();break;
   case 'atlas-toggle-story':atlasToggleStory();break;
   case 'new-character':atlasBuilderOpen();break;
+  case 'edit-proficiencies':atlasProfEditor();break;
+  case 'edit-prof-languages':atlasProfLanguages();break;
   case 'level-progression':showProgression();break;
   case 'atlas-build-planner':atlasBuildPlanner();break;
   case 'download-docx-template':window.ATLAS_DOCX?.template();break;
@@ -1557,7 +1664,7 @@ document.addEventListener('submit',e=>{
   renderCharacter=function(ch){
     const group=ch.classes.map(x=>`${esc(pairedTerm(x.name))} ${x.level}${x.subclass?' · '+esc(pairedTerm(x.subclass)):''}`).join(' / ');
     return `<div class="page-title"><div><h2>${tr('Χαρακτήρας','Character')}</h2><p>${tr('Στοιχεία χαρακτήρα και εξέλιξη από το επίπεδο 1 έως το 20.','Character details and level progression from 1 to 20.')}</p></div>${btn(tr('Επεξεργασία','Edit'),'edit-character','sm')}</div>
-    <div class="grid two">${section('Ταυτότητα','Identity',`<div class="rowline"><span>${tr('Όνομα','Name')}</span><strong>${esc(ch.name)}</strong></div><div class="rowline"><span>${tr('Είδος','Species')}</span><strong>${esc(ch.species)}</strong></div><div class="rowline"><span>${tr('Υπόβαθρο','Background')}</span><strong>${esc(ch.background||'—')}</strong></div><div class="rowline"><span>${tr('Κλάση / Υποκλάση','Class / Subclass')}</span><strong>${group}</strong></div><div class="rowline"><span>${tr('Ευθυγράμμιση','Alignment')}</span><strong>${esc(ch.alignment||'—')}</strong></div>`)}${section('Επάρκειες και γλώσσες','Proficiencies & languages',`<div class="detail-description">${esc(ch.proficiencies||tr('Δεν έχουν καταχωριστεί.','Not recorded.'))}</div><hr><div class="detail-description">${esc(ch.languages||tr('Δεν έχουν καταχωριστεί.','Not recorded.'))}</div>`)}</div>
+    <div class="grid two">${section('Ταυτότητα','Identity',`<div class="rowline"><span>${tr('Όνομα','Name')}</span><strong>${esc(ch.name)}</strong></div><div class="rowline"><span>${tr('Είδος','Species')}</span><strong>${esc(ch.species)}</strong></div><div class="rowline"><span>${tr('Υπόβαθρο','Background')}</span><strong>${esc(ch.background||'—')}</strong></div><div class="rowline"><span>${tr('Κλάση / Υποκλάση','Class / Subclass')}</span><strong>${group}</strong></div><div class="rowline"><span>${tr('Ευθυγράμμιση','Alignment')}</span><strong>${esc(ch.alignment||'—')}</strong></div>`)}${section('Εκπαίδευση & επάρκειες','Equipment Training & Proficiencies',atlasProfPanel(ch),atlasProfCanManage(ch)?btn(tr('Επεξεργασία','Edit'),'edit-proficiencies','sm'):'')}</div>
     ${section('Εξέλιξη επιπέδων 1–20','Level progression 1–20',progression(ch),`<button class="btn sm" data-action="level-up">${tr('Αύξηση επιπέδου','Level Up')}</button>`)}
     ${section('Εξαγωγή και αντίγραφα','Export & backups',`<div class="actions-inline"><button class="btn sm primary" data-atlas-print>${tr('Εκτύπωση φύλλου χαρακτήρα 2024 / PDF','Print 2024 character sheet / PDF')}</button><button class="btn sm" data-action="download-character-docx">${tr('Εξαγωγή DOCX','Export DOCX')}</button><button class="btn sm" data-action="level-progression">${tr('Πίνακας όλων των κλάσεων','All classes reference')}</button></div><p class="muted small">${tr('Η εκτυπώσιμη μορφή ακολουθεί τα δεδομένα και τους υπολογισμούς του 2024. Δεν είναι το επίσημο PDF της Wizards.','This printable layout uses 2024 rules and values. It is not the Wizards official PDF template.')}</p>`)}`;
   };
@@ -2155,12 +2262,12 @@ document.addEventListener('submit',e=>{
   return `<section class="panel atlas-student-panel"><div class="panel-title"><h3>STUDENT OF WAR</h3><button type="button" class="btn sm" data-atlas-student-edit>${tr('Επεξεργασία επιλογών','Edit choices')}</button></div><div class="panel-content">${missing?`<div class="atlas-mastery-alert" role="status">${tr('Επίλεξε ένα Artisan’s Tool ΚΑΙ μία επιπλέον Fighter skill proficiency.','Choose one Artisan’s Tool AND one additional Fighter skill proficiency.')}</div>`:''}<div class="atlas-feature-selected">${esc([tool,skill].filter(Boolean).join(' · ')||tr('Εκκρεμούν επιλογές','Selections pending'))}</div>${toolCard}</div></section>`;
  }
  function editStudentOfWar(){
-  const ch=c();if(!isBattleMaster(ch))return;
+  const ch=c();if(!isBattleMaster(ch)||!canEditCharacter(ch))return;
   const picked=studentSelection(ch);
   const tools=R.ARTISAN_TOOLS,skillChoices=R.FIGHTER_SKILLS;
   openModal('Student of War',`<form id="atlas-student-form"><p class="muted small">${tr('Οι κανόνες 2024 δίνουν και τις δύο επιλογές: 1 skill ΚΑΙ 1 Artisan’s Tool.','2024 rules grant both: 1 skill AND 1 Artisan’s Tool.')}</p><div class="field"><label>${tr('Artisan’s Tools επιλογή','Choose Artisan’s Tools')}<select name="tool" required><option value="">—</option>${tools.map(x=>`<option value="${attr(x)}" ${picked.tool===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label></div><div class="field"><label>${tr('Επιπλέον Fighter skill','Additional Fighter skill')}<select name="skill" required><option value="">—</option>${skillChoices.map(x=>`<option value="${attr(x)}" ${picked.skill===x?'selected':''} ${ch.skills?.[x]&&picked.skill!==x?'disabled':''}>${esc(x)}</option>`).join('')}</select></label></div><p class="muted small">${tr('Θα εμφανιστούν στο Inventory οι επίσημες δυνατότητες Utilize/Craft του εργαλείου. Δεν αποκτάς αυτόματα φυσικό σετ.','The selected tool’s official Utilize/Craft actions will appear in Inventory. You do not automatically receive a physical set.')}</p><button class="btn primary" type="submit">${tr('Αποθήκευση','Save')}</button></form>`,btn(tr('Άκυρο','Cancel'),'close-modal'));
  }
- document.addEventListener('submit',e=>{if(e.target.id!=='atlas-student-form')return;e.preventDefault();e.stopImmediatePropagation();const ch=c(),fd=new FormData(e.target),tool=String(fd.get('tool')||''),skill=String(fd.get('skill')||'');if(!tool||!skill)return;try{R.applyStudentSelection(ch,tool,skill);}catch(ex){toast(ex.message);return;}save();closeModal();renderApp();toast(tr('Οι επιλογές αποθηκεύτηκαν.','Choices saved.'));},true);
+ document.addEventListener('submit',e=>{if(e.target.id!=='atlas-student-form')return;e.preventDefault();e.stopImmediatePropagation();const ch=c(),fd=new FormData(e.target),tool=String(fd.get('tool')||''),skill=String(fd.get('skill')||'');if(!tool||!skill||!canEditCharacter(ch)||!isBattleMaster(ch))return;try{R.applyStudentSelection(ch,tool,skill);}catch(ex){toast(ex.message);return;}save();closeModal();renderApp();toast(tr('Οι επιλογές αποθηκεύτηκαν.','Choices saved.'));},true);
  document.addEventListener('click',e=>{const t=e.target.closest('[data-atlas-student-edit]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();editStudentOfWar();},true);
  function consumableRows(ch){const items=(ch.inventory||[]).filter(isConsumable);return items.length?items.map(i=>`<div class="rowline"><div><button type="button" class="linklike" data-atlas-consumable-detail="${attr(i.id)}"><b>${esc(i.name)}</b></button><small>${esc(i.description||'')}</small></div><div class="actions-inline"><b>×${Number(i.qty)||0}</b><button class="btn sm" data-atlas-use-consumable="${attr(i.id)}" ${!i.qty?'disabled':''}>${tr('Χρήση','Use')}</button></div></div>`).join(''):`<div class="empty">${tr('Δεν υπάρχουν αναλώσιμα.','No consumables.')}</div>`;}
   function useConsumable(id){const ch=c(),item=(ch.inventory||[]).find(i=>i.id===id);if(!item||!isConsumable(item)||Number(item.qty)<=0)return;
