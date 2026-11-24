@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.9\.2'/);
+ assert.match(app,/APP_VERSION='3\.9\.3'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.9.2');
+ assert.equal(version.version,'3.9.3');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.9.2'));
-  assert.ok(sw.includes(asset+'?v=3.9.2'));
+  assert.ok(index.includes(asset+'?v=3.9.3'));
+  assert.ok(sw.includes(asset+'?v=3.9.3'));
  }
- assert.match(sw,/dndatlas-shell-v3\.9\.2/);
+ assert.match(sw,/dndatlas-shell-v3\.9\.3/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -438,4 +438,37 @@ test('header save is outside menu and settings is inside',()=>{
  assert.ok(line.indexOf('atlasHeaderSave(ch)')>line.indexOf('atlas-header-calculator'));
  assert.match(app,/finally\{atlasManualSaving=false;setBusy\(\);\}/);
  assert.match(css,/\.top-actions \.atlas-header-save/);
+});
+
+test('DM multiview is limited to authenticated privileged roles and current roster targets',()=>{
+ const src=extract('function atlasDmAllowed(){','function atlasDmNav(){');
+ const cloud={enabled:true,ready:true,token:'test',user:{role:'player'}},characters=[{id:'a'},{id:'b'}];
+ const api=vm.runInNewContext(src+';({atlasDmAllowed,atlasDmTarget})',{cloud,characters,canEditCharacter:ch=>ch.id==='a'});
+ assert.equal(api.atlasDmAllowed(),false);assert.equal(api.atlasDmTarget('a'),undefined);
+ cloud.user.role='dm';assert.equal(api.atlasDmAllowed(),true);assert.equal(api.atlasDmTarget('a').id,'a');assert.equal(api.atlasDmTarget('b'),undefined);assert.equal(api.atlasDmTarget('missing'),undefined);
+ cloud.user.role='creator';assert.equal(api.atlasDmAllowed(),true);cloud.token='';assert.equal(api.atlasDmAllowed(),false);
+});
+test('DM multiview summary uses current engine values and supports missing HP filters',()=>{
+ const src=extract('function atlasDmStats(ch){','function atlasDmStatus(ch,s){');
+ const api=vm.runInNewContext(src+';({atlasDmStats,atlasDmRows})',{totalLevel:()=>3,skillMod:()=>5,AC:()=>16,initMod:()=>2});
+ const a={name:'A',hp:{max:30,current:15,temp:2},hitDice:{max:3,used:1},passivePerceptionOverride:10,slots:{1:{max:3,used:1}},pact:{max:1,used:1,level:2}},b={name:'B',hp:{max:20,current:0}};
+ const s=api.atlasDmStats(a);assert.equal(s.pp,10);assert.equal(s.ratio,.5);assert.equal(s.hdRemaining,2);assert.equal(s.slotRemaining,2);assert.equal(s.slotMax,4);
+ assert.equal(api.atlasDmRows([a,b],'zero','name')[0].ch.name,'B');assert.equal(api.atlasDmRows([a,b],'injured','health')[0].ch.name,'B');assert.equal(a.hp.current,15);
+});
+test('DM quick HP mutation is pure, consumes temporary HP, caps healing and rejects invalid inputs',()=>{
+ const src=extract('function atlasDmHpChange(hp,mode,amount){','function atlasDmHpOpen(');
+ const change=vm.runInNewContext(src+';atlasDmHpChange',{tr:t});
+ const hp={current:20,max:30,temp:5};
+ assert.equal(change(hp,'damage',3).temp,2);assert.equal(change(hp,'damage',9).current,16);assert.equal(change(hp,'damage',50).current,0);assert.equal(change(hp,'heal',50).current,30);assert.equal(hp.current,20);assert.equal(hp.temp,5);
+ assert.throws(()=>change(hp,'damage',-1));assert.throws(()=>change(hp,'heal',1.5));assert.throws(()=>change(hp,'unknown',1));
+ const submit=extract('async function atlasDmSubmitHp(form){'," document.addEventListener('click',e=>{");
+ assert.match(submit,/atlasDmTarget\(id\)/);assert.match(submit,/String\(cloud\.revisions\[id\]\)!==revision/);assert.match(submit,/cloudPush\(ch\)/);assert.doesNotMatch(submit,/selectedId\s*=/);
+});
+
+test('DM card controls do not stay disabled after transient revision polling',()=>{
+ const src=extract('function atlasDmActions(ch){','function atlasDmCard(ch,s){');
+ const cloud={polling:true,pendingWrites:0,syncBlocked:false,revisions:{a:1}};
+ const render=vm.runInNewContext(src+';atlasDmActions',{cloud,atlasDmSaving:false,tr:t,attr:String});
+ assert.doesNotMatch(render({id:'a'}),/\bdisabled\b/);
+ cloud.syncBlocked=true;assert.match(render({id:'a'}),/\bdisabled\b/);
 });
