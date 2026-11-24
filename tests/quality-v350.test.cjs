@@ -501,7 +501,7 @@ test('ending an encounter clears initiative and temporary participants without m
  const state={name:'Fight',phase:'active',round:5,activeId:'e',participants:[{id:'p',type:'player',characterId:'borruk',initiative:19,out:true},{id:'e',type:'enemy',initiative:8,hp:0},{id:'a',type:'ally',initiative:10,hp:5}]};
  const ended=finish(state);
  assert.equal(ended.phase,'ended');assert.equal(ended.round,1);assert.equal(ended.activeId,null);assert.equal(ended.participants.length,1);assert.equal(ended.participants[0].initiative,null);assert.equal(ended.participants[0].out,false);assert.equal(state.participants.length,3);assert.equal(state.participants[0].initiative,19);
- assert.match(src,/JSON.stringify\(\{encounter:null,history\}\)/);assert.match(app,/atlasBattleSave\(null,'DELETE'\)/);
+ assert.match(src,/JSON.stringify\(\{encounter:null,history,companions:envelope\.companions\}\)/);assert.match(app,/atlasBattleSave\(null,'DELETE'\)/);
 });
 
 test('manual Save compares acknowledged sheet snapshots and does not auto write',()=>{
