@@ -5,3 +5,5 @@
 - Spellbook: explicit optional source, existing resource link for free cast, ritual option, compatible slots, prepared status, concentration confirmation. No inferred free grants; set source and resource only when granted by actual feature; resource follows existing rest recharge. Wizard unprepared ritual requires explicit Wizard source. Slot rule warning when tracker active; no digital dice. Existing global spell ability remains; per-source ability calculation and comprehensive feature grant automation remain follow-up.
 - No Worker/D1 migration, permissions unchanged; full Admin migration still gated.
 Sources: https://www.dndbeyond.com/sources/dnd/br-2024/spells and https://www.dndbeyond.com/sources/dnd/br-2024/rules-glossary/
+
+Spellbook also filters cantrips, prepared/unprepared, linked free uses, rituals. Active navigation has aria-current and existing modals contain keyboard Tab focus.

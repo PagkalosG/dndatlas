@@ -310,3 +310,12 @@ test('turn tracker resets reaction only at own turn and clears slot marker for o
  const a=vm.runInNewContext(src+';({atlasTurnState,atlasTurnAction})',ctx);
  a.atlasTurnAction('start');a.atlasTurnAction('reaction');a.atlasTurnAction('slot');a.atlasTurnAction('other');assert.equal(a.atlasTurnState(ch).reaction,true);assert.equal(a.atlasTurnState(ch).slot,false);a.atlasTurnAction('start');assert.equal(a.atlasTurnState(ch).reaction,false);assert.equal(a.atlasTurnState(ch).turn,2);
 });
+
+test('canonical ritual flag cannot be overridden by a custom spell field',()=>{
+ const src=extract('function atlasSpellInfo(ch,s,ref){','function atlasSpellMeta(');
+ const info=vm.runInNewContext(src+';atlasSpellInfo',{});
+ assert.equal(info({}, {ritual:true}, {level:1,ritual:false}).canRitual,false);
+ assert.equal(info({}, {level:1,ritual:true}, null).canRitual,true);
+ assert.match(app,/data-atlas-spell-filter/);
+ assert.match(app,/aria-current="page"/);
+});
