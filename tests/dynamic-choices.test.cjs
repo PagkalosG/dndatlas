@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const app=fs.readFileSync('src/app.js','utf8'),ctx={window:{},tr:(el,en)=>en,document:{addEventListener(){}},attr:String,esc:String};
+const app=fs.readFileSync('src/app.js','utf8'),ctx={window:{},tr:(el,en)=>en,document:{addEventListener(){}},cloud:{enabled:false,ready:false,user:null},attr:String,esc:String};
 vm.runInNewContext(fs.readFileSync('src/data.js','utf8'),ctx);
 vm.runInNewContext(fs.readFileSync('src/rules-2024.js','utf8'),ctx);
 ctx.D=ctx.window.ATLAS_DATA;ctx.R=ctx.window.ATLAS_RULES_2024;
