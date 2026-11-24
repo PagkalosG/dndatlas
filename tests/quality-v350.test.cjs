@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.7\.0'/);
+ assert.match(app,/APP_VERSION='3\.8\.0'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.7.0');
+ assert.equal(version.version,'3.8.0');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.7.0'));
-  assert.ok(sw.includes(asset+'?v=3.7.0'));
+  assert.ok(index.includes(asset+'?v=3.8.0'));
+  assert.ok(sw.includes(asset+'?v=3.8.0'));
  }
- assert.match(sw,/dndatlas-shell-v3\.7\.0/);
+ assert.match(sw,/dndatlas-shell-v3\.8\.0/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -291,7 +291,7 @@ test('calculation inspector reuses current engine and labels stored/overridden v
 
 test('partial validation reports counters, pending choices and overrides without mutation',()=>{
  const src=extract('function atlasValidationIssues(ch){','function atlasValidationOpen(){');
- const check=vm.runInNewContext(src+';atlasValidationIssues',{tr:t,D:{abilities:{STR:'Strength'},skills:[['Athletics','STR']]},twoHandedShieldConflict:()=>true});
+ const check=vm.runInNewContext(src+';atlasValidationIssues',{tr:t,D:{abilities:{STR:'Strength'},skills:[['Athletics','STR']]},twoHandedShieldConflict:()=>true,atlasAttunementCount:()=>0,atlasContainerAllowed:()=>true});
  const ch={classes:[{level:3}],abilities:{STR:16},hp:{max:31,current:35},skills:{Athletics:2},attacks:[{name:'Greatsword'}],resources:[{name:'Wind',max:2,current:3}],spellbook:[{name:'Light',freeResourceId:'missing'}],pendingChoices2024:[{label:'Feat'}],passivePerceptionOverride:10};
  const before=JSON.stringify(ch),rows=check(ch);assert.equal(JSON.stringify(ch),before);assert.ok(rows.some(x=>x.title==='HP'&&x.kind==='error'));assert.ok(rows.some(x=>x.title==='Greatsword'&&x.kind==='warning'));assert.ok(rows.some(x=>x.title==='Passive Perception'&&x.kind==='override'));assert.ok(rows.some(x=>x.title==='Light'));
 });
@@ -318,4 +318,28 @@ test('canonical ritual flag cannot be overridden by a custom spell field',()=>{
  assert.equal(info({}, {level:1,ritual:true}, null).canRitual,true);
  assert.match(app,/data-atlas-spell-filter/);
  assert.match(app,/aria-current="page"/);
+});
+
+test('release check compares semantic versions and update guards unsaved changes',()=>{
+ const src=extract('function atlasVersionCompare(a,b){','function atlasUpdateBusy(');
+ const cmp=vm.runInNewContext(src+';atlasVersionCompare',{});
+ assert.equal(cmp('3.10.0','3.8.0'),1);assert.equal(cmp('3.8.0','3.8.0'),0);assert.equal(cmp('3.7.0','3.8.0'),-1);assert.throws(()=>cmp('broken','3.8.0'));
+ const refresh=extract('async function refreshApp(clearCache=false){','function resetLocalData(){');
+ assert.match(refresh,/cloud\.failedWrites\.size/);assert.match(refresh,/await atlasAwaitWorker\(reg,remote\)/);assert.match(refresh,/atlasUpdateBusy\(false\)/);
+});
+test('inventory metadata rejects self/nested containers, fourth attunement and invalid charges',()=>{
+ const src=extract('function atlasAttunementCount(ch){','function atlasInventoryMeta(')+extract('function atlasItemMetadata(ch,existing,v,qty){','function renderInventory(ch){');
+ const api=vm.runInNewContext(src+';({atlasContainerAllowed,atlasItemMetadata})',{tr:t});
+ const ch={inventory:[{id:'bag',category:'container',qty:1},{id:'nested',category:'container',containerId:'bag',qty:1},...['a','b','c'].map(id=>({id,attuned:true}))]};
+ assert.equal(api.atlasContainerAllowed(ch,'bag','bag'),false);assert.equal(api.atlasContainerAllowed(ch,'item','nested'),false);assert.equal(api.atlasContainerAllowed(ch,'item','bag'),true);
+ assert.throws(()=>api.atlasItemMetadata(ch,null,{attuned:'true',requiresAttunement:'true'},1));assert.throws(()=>api.atlasItemMetadata(ch,null,{chargesMax:2,chargesCurrent:3},1));
+ assert.equal(api.atlasItemMetadata(ch,null,{containerId:'bag',chargesMax:3,chargesCurrent:2},1).chargesCurrent,2);
+});
+test('build preview does not mutate character and respects ASI cap',()=>{
+ const src=extract('function atlasBuildScenario(ch,first,second,split){','function atlasPlannerPreview(');
+ const scenario=vm.runInNewContext(src+';atlasBuildScenario',{D:{abilities:{STR:'Strength',DEX:'Dexterity'}},tr:t});
+ const ch={abilities:{STR:18,DEX:14},hp:{max:30}};
+ assert.equal(scenario(ch,'STR','',false).abilities.STR,20);assert.equal(ch.abilities.STR,18);
+ assert.equal(scenario(ch,'STR','DEX',true).abilities.DEX,15);assert.throws(()=>scenario(ch,'STR','STR',true));
+ assert.throws(()=>scenario({abilities:{STR:19}},'STR','',false));
 });
