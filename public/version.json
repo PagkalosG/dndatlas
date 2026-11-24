@@ -1,6 +1,6 @@
 {
-  "version": "3.10.1",
+  "version": "3.11.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "End encounter resets initiative and temporary combatants; revision-safe deletion"
+  "notes": "Manual save, combat activity log, encounter history, statistics and player turn projection"
 }
