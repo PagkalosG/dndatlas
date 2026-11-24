@@ -1,0 +1,14 @@
+# v3.14.0 — Party companions and summons
+
+This is a cumulative update from main v3.12.0, including v3.13.0 (PR #29). Deploy the upgraded Worker before deploying the frontend. Existing production Worker patch supports the exact v3.13.0 and earlier reviewed versions. No new D1 table, binding, migration, or automatic dice.
+
+DM / Creator → Multiview → Battle View → Party companions:
+- Add a permanent companion, familiar or mount with a party/DM or character owner, current/max HP, AC, speed, and editable attacks/abilities/source notes.
+- Import an existing companion from a character sheet as an independent DM library copy. A stable source ID prevents duplicate import for that owner. The original sheet remains unchanged; this is not live bidirectional synchronization. Enter the official 2024 stat block from the applicable source, or explicitly record a DM-approved custom stat block. No pre-filled official creature catalog is included.
+- Select companions when creating an encounter, or join an existing encounter. During setup assign initiative manually; for mid-combat additions enter the final initiative and arrange the displayed order with the arrows. Shared initiative, turn order and action restrictions vary by 2024 spell or class feature: the DM sets them, rather than applying an incorrect universal rule.
+- Temporary summons are encounter-only, with optional owner and round-of-expiration reminder. The DM confirms dismissal; dismissed summons cannot resume a turn. If a summon depends on concentration, adjudicate its dismissal separately. The reminder is not an automated spell-duration engine.
+- Use existing damage/heal, conditions, concentration and combat log tools with these participants. Companion abilities are shown as notes and suggested attack labels, not automated damage or attack calculations. Ending combat clears temporary creatures, initiative and encounter conditions while retaining permanent companion HP. Deleting an encounter does not delete the library. To edit a participating permanent companion, remove it during setup or finish the encounter first.
+
+The library is stored as part of the private revisioned encounter envelope. Only the existing main Save writes the data; the roster has its own dirty baseline and is included in draft export. HP updates for linked permanent companions are persisted in the same encounter snapshot; public player projection remains unchanged. Strict server validation checks allowed keys, bounds, unique references, owner existence for new owners, and permanent versus temporary types. Historical participant snapshots remain independent.
+
+Verify staging Worker integration and live UI before rollout. Unit/regression tests include backward compatibility, HP retention, expiry metadata validation, owner/reference validation and public privacy. No automatic synchronization with character-sheet companion entries, no monster compendium, and no automated rules enforcement.
