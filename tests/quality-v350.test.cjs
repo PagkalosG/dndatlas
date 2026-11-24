@@ -464,3 +464,11 @@ test('DM quick HP mutation is pure, consumes temporary HP, caps healing and reje
  const submit=extract('async function atlasDmSubmitHp(form){'," document.addEventListener('click',e=>{");
  assert.match(submit,/atlasDmTarget\(id\)/);assert.match(submit,/String\(cloud\.revisions\[id\]\)!==revision/);assert.match(submit,/cloudPush\(ch\)/);assert.doesNotMatch(submit,/selectedId\s*=/);
 });
+
+test('DM card controls do not stay disabled after transient revision polling',()=>{
+ const src=extract('function atlasDmActions(ch){','function atlasDmCard(ch,s){');
+ const cloud={polling:true,pendingWrites:0,syncBlocked:false,revisions:{a:1}};
+ const render=vm.runInNewContext(src+';atlasDmActions',{cloud,atlasDmSaving:false,tr:t,attr:String});
+ assert.doesNotMatch(render({id:'a'}),/\bdisabled\b/);
+ cloud.syncBlocked=true;assert.match(render({id:'a'}),/\bdisabled\b/);
+});
