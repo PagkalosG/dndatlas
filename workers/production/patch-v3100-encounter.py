@@ -24,7 +24,8 @@ def patch(raw,extension):
     legacy3=Path(__file__).with_name('encounter-extension-v3110.js').read_text().rstrip()+'\n\n'
     legacy4=Path(__file__).with_name('encounter-extension-v3120.js').read_text().rstrip()+'\n\n'
     legacy5=Path(__file__).with_name('encounter-extension-v3130.js').read_text().rstrip()+'\n\n'
-    for known in (extra,legacy,legacy2,legacy3,legacy4,legacy5):
+    legacy6=Path(__file__).with_name('encounter-extension-v3140.js').read_text().rstrip()+'\n\n'
+    for known in (extra,legacy,legacy2,legacy3,legacy4,legacy5,legacy6):
         if source.count(known)!=1:continue
         restored=source.replace(known,'',1).replace(ANCHOR+HOOK,ANCHOR,1).encode('utf-8')
         if hashlib.sha256(restored).hexdigest()!=BASE:raise ValueError('Production base differs from reviewed hash')
