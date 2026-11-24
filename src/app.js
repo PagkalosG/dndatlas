@@ -3,7 +3,7 @@
  const D=window.ATLAS_DATA;
  const L=window.ATLAS_I18N;
  const R=window.ATLAS_RULES_2024;
- const APP_VERSION='3.12.0';
+ const APP_VERSION='3.12.1';
  const KEY='character-atlas:characters:v1', VIEWKEY='character-atlas:ui:v1';
  // 2.1.1: self-contained inventory mastery controls and weapon condition tags.
  const extraStyle=document.createElement('style');
@@ -347,7 +347,7 @@
    for(const s of ch.spellbook||[]){if(s.freeResourceId&&!(ch.resources||[]).some(r=>r.id===s.freeResourceId))add('warning',s.name,tr('Λείπει ο συνδεδεμένος πόρος δωρεάν χρήσεων.','Linked free-casting resource is missing.'),'spells');}
    if(atlasAttunementCount(ch)>3)add('warning','Attunement',tr('Υπέρβαση συνήθους ορίου 3.','Standard limit of 3 exceeded.'),'inventory');
    for(const i of ch.inventory||[]){if(i.containerId&&!atlasContainerAllowed(ch,i.id,i.containerId))add('warning',i.name,tr('Μη έγκυρο δοχείο.','Invalid container.'),'inventory');if(i.attuned&&(!i.requiresAttunement||Number(i.qty)!==1))add('warning',i.name,tr('Έλεγξε τον συντονισμό.','Review attunement.'),'inventory');}
-   for(const p of ch.pendingChoices2024||[])if(p.status!=='resolved')add('warning',p.label||p.key||tr('Εκκρεμής επιλογή','Pending choice'),tr('Απαιτείται επιλογή ή έλεγχος DM.','Choice or DM review required.'),'overview');
+   for(const p of (typeof atlasPendingEntries==='function'?atlasPendingEntries(ch):ch.pendingChoices2024||[]))if(p.status!=='resolved')add('warning',p.label||p.key||tr('Εκκρεμής επιλογή','Pending choice'),tr('Απαιτείται επιλογή ή έλεγχος DM.','Choice or DM review required.'),'overview');
    for(const [key,label] of [['proficiencyOverride','PB'],['passivePerceptionOverride','Passive Perception'],['spellDCOverride','Spell DC'],['spellAttackOverride','Spell Attack']])if(ch[key]!==''&&ch[key]!=null)add('override',label,tr('Καταχωρισμένη χειροκίνητη τιμή (όχι πιστοποίηση έγκρισης).','Recorded manual override (not proof of approval).'),'character');
    return issues;
  }
@@ -433,7 +433,7 @@
    const stats=[['AC',s.ac],[tr('Πρωτοβουλία (Init.)','Initiative'),signed(s.initiative)],[tr('Παθητική αντίληψη (PP)','Passive Perception'),s.pp],[tr('Ταχύτητα','Speed'),s.speed+' ft']];
    const resources=(ch.resources||[]).map(r=>'<div class="atlas-dm-resource"><span>'+esc(r.name)+'</span><b>'+esc(r.current??0)+' / '+esc(r.max??0)+'</b></div>').join('');
    const spells=s.slots.map(x=>'<span class="atlas-dm-chip">Lv '+esc(x.level)+' · '+x.remaining+'/'+x.max+'</span>').join('')+(s.pact?'<span class="atlas-dm-chip">Pact Lv '+esc(s.pact.level)+' · '+s.pact.remaining+'/'+s.pact.max+'</span>':'');
-   return '<article class="atlas-dm-card"><div class="atlas-dm-card-head"><div class="atlas-dm-avatar">'+portraitMarkup(ch)+'</div><div><h3>'+esc(ch.name)+'</h3><small>'+esc(classLabel(ch))+'</small>'+(ch.player?'<small>'+esc(ch.player)+'</small>':'')+'</div></div>'+atlasDmHpBar(s)+'<div class="atlas-dm-stats">'+stats.map(([label,value])=>'<div><small>'+esc(label)+'</small><b>'+esc(value)+'</b></div>').join('')+'</div>'+atlasDmStatus(ch,s)+'<div class="atlas-dm-resource"><span>Hit Dice · '+tr('διαθέσιμα','available')+'</span><b>'+s.hdRemaining+' / '+s.hdMax+'</b></div>'+(spells?'<div class="atlas-dm-block"><strong>'+tr('Θέσεις ξορκιών (Spell Slots)','Spell Slots')+'</strong><div class="atlas-dm-status">'+spells+'</div></div>':'')+(resources?'<details class="atlas-dm-resources"><summary>'+tr('Πόροι κλάσης','Class resources')+' ('+(ch.resources||[]).length+')</summary>'+resources+'</details>':'')+atlasDmActions(ch)+'</article>';
+   return '<article class="atlas-dm-card"><div class="atlas-dm-card-head"><div class="atlas-dm-avatar">'+portraitMarkup(ch)+'</div><div><h3>'+esc(ch.name)+'</h3><small>'+esc(classLabel(ch))+'</small>'+(ch.player?'<small>'+esc(ch.player)+'</small>':'')+'</div></div>'+atlasDmHpBar(s)+'<div class="atlas-dm-stats">'+stats.map(([label,value])=>'<div><small>'+esc(label)+'</small><b>'+esc(value)+'</b></div>').join('')+'</div>'+atlasDmStatus(ch,s)+'<div class="atlas-dm-resource"><span>Hit Dice · '+tr('διαθέσιμα','available')+'</span><b>'+s.hdRemaining+' / '+s.hdMax+'</b></div>'+(spells?'<div class="atlas-dm-block"><strong>'+tr('Θέσεις ξορκιών (Spell Slots)','Spell Slots')+'</strong><div class="atlas-dm-status">'+spells+'</div></div>':'')+(resources?'<details class="atlas-dm-resources"><summary>'+tr('Πόροι κλάσης','Class resources')+' ('+(ch.resources||[]).length+')</summary>'+resources+'</details>':'')+atlasPrimalPanel(ch,true)+atlasDmActions(ch)+'</article>';
  }
  function atlasDmTable(rows){
    return '<div class="atlas-dm-table-wrap" tabindex="0" aria-label="'+attr(tr('Πίνακας παρέας','Party table'))+'"><table class="atlas-dm-table"><thead><tr>'+[tr('Χαρακτήρας','Character'),'HP','AC',tr('Πρωτοβουλία','Initiative'),tr('Παθητική αντίληψη','Passive Perception'),'Hit Dice',tr('Θέσεις ξορκιών','Spell Slots'),tr('Κατάσταση','Status'),tr('Ενέργειες','Actions')].map(n=>'<th scope="col">'+n+'</th>').join('')+'</tr></thead><tbody>'+rows.map(({ch,s})=>'<tr><th scope="row">'+esc(ch.name)+'<small>'+esc(classLabel(ch))+'</small></th><td>'+atlasDmHpBar(s)+'</td><td>'+s.ac+'</td><td>'+signed(s.initiative)+'</td><td>'+s.pp+'</td><td>'+s.hdRemaining+'/'+s.hdMax+'</td><td>'+(s.slotMax?s.slotRemaining+'/'+s.slotMax:'—')+'</td><td>'+atlasDmStatus(ch,s)+'</td><td>'+atlasDmActions(ch)+'</td></tr>').join('')+'</tbody></table></div>';
@@ -717,7 +717,7 @@
    const rows=b.participants.map((p,i)=>{
      const ch=p.type==='player'?characters.find(x=>x.id===p.characterId):null,hp=ch?.hp||{current:p.hp,max:p.maxHp,temp:0},name=ch?.name||p.name,ac=ch?AC(ch):p.ac,missing=p.type==='player'&&!ch;
      const hpActions=ended||missing?'':ch?'<button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="damage">− HP</button><button class="btn sm" data-atlas-dm-hp="'+attr(ch.id)+'" data-dm-mode="heal">+ HP</button>':button('− HP','damage',p.id)+button('+ HP','heal',p.id);
-     return '<article class="atlas-battle-row '+(p.id===b.activeId?'active ':'')+(p.out?'out':'')+'"><div class="atlas-battle-init"><strong>'+esc(p.initiative??'—')+'</strong>'+(!ended?button(tr('Αλλαγή','Edit'),'initiative',p.id):'')+'</div><div class="atlas-battle-name"><strong>'+esc(name)+'</strong><small>'+esc(missing?tr('Λείπει το φύλλο','Missing sheet'):p.type==='player'?tr('Παίκτης','Player'):p.type==='enemy'?tr('Εχθρός','Enemy'):tr('Σύμμαχος','Ally'))+(p.id===b.activeId?' · '+tr('Ενεργό turn','Current turn'):'')+(p.out?' · '+tr('Εκτός μάχης','Out'):'')+'</small>'+(!missing?'<span>HP '+esc(hp.current??'—')+'/'+esc(hp.max??'—')+' · AC '+esc(ac??'—')+(hp.temp?' · Temp '+esc(hp.temp):'')+'</span>':'')+(ch?atlasDmStatus(ch,atlasDmStats(ch)):'')+'</div><div class="atlas-battle-controls">'+hpActions+(!ended?button('↑','up',p.id,i===0)+button('↓','down',p.id,i===b.participants.length-1)+button(p.out?tr('Επαναφορά','Restore'):tr('Εκτός','Out'),'out',p.id,p.id===b.activeId)+(setup?button(tr('Αφαίρεση','Remove'),'remove',p.id):button(tr('Μετάβαση','Jump'),'jump',p.id,p.out)):'')+'</div></article>';
+     return '<article class="atlas-battle-row '+(p.id===b.activeId?'active ':'')+(p.out?'out':'')+'"><div class="atlas-battle-init"><strong>'+esc(p.initiative??'—')+'</strong>'+(!ended?button(tr('Αλλαγή','Edit'),'initiative',p.id):'')+'</div><div class="atlas-battle-name"><strong>'+esc(name)+'</strong><small>'+esc(missing?tr('Λείπει το φύλλο','Missing sheet'):p.type==='player'?tr('Παίκτης','Player'):p.type==='enemy'?tr('Εχθρός','Enemy'):tr('Σύμμαχος','Ally'))+(p.id===b.activeId?' · '+tr('Ενεργό turn','Current turn'):'')+(p.out?' · '+tr('Εκτός μάχης','Out'):'')+'</small>'+(!missing?'<span>HP '+esc(hp.current??'—')+'/'+esc(hp.max??'—')+' · AC '+esc(ac??'—')+(hp.temp?' · Temp '+esc(hp.temp):'')+'</span>':'')+(ch?atlasDmStatus(ch,atlasDmStats(ch))+atlasPrimalPanel(ch,true):'')+'</div><div class="atlas-battle-controls">'+hpActions+(!ended?button('↑','up',p.id,i===0)+button('↓','down',p.id,i===b.participants.length-1)+button(p.out?tr('Επαναφορά','Restore'):tr('Εκτός','Out'),'out',p.id,p.id===b.activeId)+(setup?button(tr('Αφαίρεση','Remove'),'remove',p.id):button(tr('Μετάβαση','Jump'),'jump',p.id,p.out)):'')+'</div></article>';
    }).join('');
    return '<section class="atlas-dm-page"><div class="page-title"><div><h2>'+esc(b.name)+'</h2><p>'+phaseLabel+(ended?'':' · '+tr('Γύρος','Round')+' '+b.round)+'</p></div><div class="actions-inline">'+button(tr('Ανανέωση','Reload'),'reload')+(ended?button(tr('+ Νέα μάχη','+ New Encounter'),'new'):button(tr('+ Συμμετέχων','+ Combatant'),'add'))+'<button class="btn sm warn" data-action="atlas-battle-delete" '+(atlasBattleBusy?'disabled':'')+'>'+tr('Διαγραφή μάχης','Delete Encounter')+'</button></div></div>'+error+(active&&!ended?'<div class="atlas-battle-current"><small>'+tr('Ενεργό turn','Current turn')+'</small><strong>'+esc(characters.find(ch=>ch.id===active.characterId)?.name||active.name)+'</strong></div>':'')+'<div class="atlas-battle-nav">'+(setup?button(tr('Ταξινόμηση Initiative','Sort Initiative'),'sort')+button(tr('Έναρξη μάχης','Start Combat'),'start'):ended?'':button(tr('Προηγούμενο turn','Previous Turn'),'prev','',b.phase!=='active')+button(tr('Επόμενο turn','Next Turn'),'next','',b.phase!=='active')+button(b.phase==='paused'?tr('Συνέχεια','Resume'):tr('Παύση','Pause'),b.phase==='paused'?'resume':'pause'))+(!ended?button(tr('Τέλος μάχης','End Encounter'),'end'):'')+'</div><div class="atlas-battle-workspace"><div class="atlas-battle-order">'+rows+'</div><aside class="atlas-dm-card"><h3>'+tr('Καταγραφή μάχης','Combat Log')+'</h3>'+(!ended&&!setup?button(tr('+ Καταγραφή ενέργειας','+ Log Action'),'log')+(atlasCombatUndo&&atlasBattleDirty?button(tr('Αναίρεση τελευταίας μη αποθηκευμένης ενέργειας','Undo last unsaved action'),'undo-log'):''):'')+atlasBattleLogMarkup(b.events||[])+atlasInboxMarkup()+'</aside></div><p class="muted small">'+tr('Καταχώρισε τα τελικά Initiative από πραγματικά ζάρια. Ίδια τέρατα: ίδιο αποτέλεσμα. Διόρθωσε τις ισοβαθμίες με τα βέλη. Τα 0 HP δεν αφαιρούν αυτόματα κάποιον από τη μάχη. Το Previous αλλάζει μόνο τη σειρά, όχι HP ή ενέργειες.','Enter final Initiative totals from physical dice. Identical monsters share a result. Resolve ties using arrows. Zero HP does not automatically remove a combatant. Previous only changes the turn, not HP or actions.')+'</p></section>';
  }
@@ -946,24 +946,250 @@
   return items.length?items.map(f=>`<button class="atlas-reference-row" data-feature-detail="${attr(f.id)}"><span><b>${esc(pairedTerm(f.name))}</b><small class="${f.selectedValue?'atlas-feature-selected':''}">${esc(f.selectedValue||f.subline||f.source||'')}${f.level?' · '+tr('Επίπεδο','Level')+' '+f.level:''}</small></span><span class="atlas-chevron">›</span></button>`).join(''):`<p class="muted">${tr('Δεν υπάρχουν καταχωρισμένες ικανότητες.','No features recorded.')}</p>`;
  }
 
+ // v3.18.0: typed, state-derived character choices. Legacy labels are migration hints, never proof of a selection.
+ const ATLAS_PENDING_ABILITIES={Acolyte:['INT','WIS','CHA'],Artisan:['STR','DEX','INT'],Charlatan:['DEX','CON','CHA'],Criminal:['DEX','CON','INT'],Entertainer:['STR','DEX','CHA'],Farmer:['STR','CON','WIS'],Guard:['STR','INT','WIS'],Guide:['DEX','CON','WIS'],Hermit:['CON','WIS','CHA'],Merchant:['CON','INT','CHA'],Noble:['STR','INT','CHA'],Sage:['CON','INT','WIS'],Sailor:['STR','DEX','WIS'],Scribe:['DEX','INT','WIS'],Soldier:['STR','DEX','CON'],Wayfarer:['DEX','WIS','CHA']};
+ const ATLAS_PENDING_RANGER_SPELLS=[[],['Alarm','Animal Friendship','Cure Wounds','Detect Magic','Detect Poison and Disease','Ensnaring Strike','Entangle','Fog Cloud','Goodberry','Hail of Thorns','Hunter’s Mark','Jump','Longstrider','Speak with Animals'],['Aid','Animal Messenger','Barkskin','Beast Sense','Cordon of Arrows','Darkvision','Enhance Ability','Find Traps','Gust of Wind','Lesser Restoration','Locate Animals or Plants','Locate Object','Magic Weapon','Pass without Trace','Protection from Poison','Silence','Spike Growth','Summon Beast'],['Conjure Animals','Conjure Barrage','Daylight','Dispel Magic','Elemental Weapon','Lightning Arrow','Meld into Stone','Nondetection','Plant Growth','Protection from Energy','Revivify','Speak with Plants','Summon Fey','Water Breathing','Water Walk','Wind Wall'],['Conjure Woodland Beings','Dominate Beast','Freedom of Movement','Grasping Vine','Locate Creature','Stoneskin','Summon Elemental'],['Commune with Nature','Conjure Volley','Greater Restoration','Steel Wind Strike','Swift Quiver','Tree Stride']];
+ const ATLAS_PENDING_DRUID_CANTRIPS=['Druidcraft','Elementalism','Guidance','Mending','Message','Poison Spray','Produce Flame','Resistance','Shillelagh','Spare the Dying','Starry Wisp','Thorn Whip','Thunderclap'];
+ const ATLAS_PENDING_RANGER_LIMITS=[0,2,3,4,5,6,6,7,7,9,9,10,10,11,11,12,12,14,14,15,15];
+ const ATLAS_PENDING_RANGER_SLOTS=[[],[2],[2],[3],[3],[4,2],[4,2],[4,3],[4,3],[4,3,2],[4,3,2],[4,3,3],[4,3,3],[4,3,3,1],[4,3,3,1],[4,3,3,2],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,1],[4,3,3,3,2],[4,3,3,3,2]];
+ const ATLAS_PENDING_ARRAY=[8,10,12,13,14,15];
+ const atlasPendingNorm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const atlasPendingLevel=(ch,name)=>Math.max(0,...(ch.classes||[]).filter(x=>x.name===name).map(x=>Number(x.level)||0));
+ function atlasPendingKind(p,ch){
+   const k=String(p.key||'')+' '+String(p.label||''),t=k.toLowerCase().replace(/[_-]/g,' ');
+   if(p.kind&&['skills','deft','mastery','druidic','primal','ranger-spells','array','expertise','student','review'].includes(p.kind))return p.kind;
+   if(/standard array|rebuild.*scores|ability score allocation/.test(t))return 'array';
+   if(/deft explorer/.test(t))return 'deft';
+   if(/weapon master/.test(t))return 'mastery';
+   if(/druidic warrior|druid cantrip/.test(t))return 'druidic';
+   if(/primal companion/.test(t))return 'primal';
+   if(/student of war/.test(t))return 'student';
+   if(/expertise/.test(t))return 'expertise';
+   if(/ranger.*(prepared|spells)|prepared spells/.test(t)&&atlasPendingLevel(ch,'Ranger'))return 'ranger-spells';
+   if(/class skills|background skills|keen senses|skill proficien|choose.*skills|verify.*skills/.test(t)&&!/docx|spells/.test(t))return 'skills';
+   if(/^(dm.review|dm.character.approval)/i.test(p.key||''))return 'review';
+   return 'unsupported';
+ }
+ function atlasPendingSpecies(ch){return /\belf\b/i.test(ch.species||'')?'Elf':ch.species;}
+ function atlasPendingWoodElf(ch){return [ch.species,ch.lineage,ch.elfLineage,ch.subspecies,ch.subrace,ch.speciesLineage,ch.speciesChoice,...(ch.features||[]).map(x=>x.name)].some(v=>/\bwood[\s-]+elf\b|\belf\s*\(wood\)/i.test(String(v||'')))||atlasPendingSpecies(ch)==='Elf'&&[ch.lineage,ch.elfLineage,ch.subspecies,ch.subrace,ch.speciesLineage,ch.speciesChoice].some(v=>String(v||'').trim().toLowerCase()==='wood');}
+ function atlasPendingSkillPlan(ch){
+   const p=atlasSkillPlan({...ch,species:atlasPendingSpecies(ch)}),sources=p.sources.filter(s=>s.key!=='feat');
+   for(const q of (ch.classes||[]).slice(1)){const rule=ATLAS_SKILL_RULES_2024.classes[q.name];if(rule&&['Bard','Ranger','Rogue'].includes(q.name))sources.push({key:'multi:'+q.name,title:q.name+' · '+tr('Πολυκλασικότητα','Multiclass'),count:1,options:rule[1]==='*'?p.all:rule[1].split(',')});}
+   return {...p,sources};
+ }
+ function atlasPendingOtherSkillSources(ch){const old=ch.skillChoiceSources2024||{};return [...new Set([...(Array.isArray(old.feat)?old.feat:[]),ch.studentOfWarSkill,...(ch.pendingOtherSkills2024||[])].filter(x=>D.skills.some(s=>s[0]===x)&&Number(ch.skills?.[x])>=1))];}
+ function atlasPendingSkillPicks(ch,p){
+   const old=ch.skillChoiceSources2024||{},taken=new Set([...p.fixed,...atlasPendingOtherSkillSources(ch)]),picks={};
+   for(const source of p.sources){const stored=Array.isArray(old[source.key])?old[source.key]:[],suggested=source.options.filter(x=>Number(ch.skills?.[x])>=1&&!taken.has(x));
+     picks[source.key]=(stored.length?stored:suggested).filter(x=>source.options.includes(x)&&!taken.has(x)).slice(0,source.count);
+     picks[source.key].forEach(x=>taken.add(x));}
+   return picks;
+ }
+ function atlasPendingSkillsValid(ch){
+   const p=atlasPendingSkillPlan(ch),stored=ch.skillChoiceSources2024||{},taken=new Set([...p.fixed,...atlasPendingOtherSkillSources(ch)]);
+   if(!p.fixed.length||!p.sources.length||p.fixed.some(x=>Number(ch.skills?.[x])<1||!Number(ch.skills?.[x])))return false;
+   for(const src of p.sources){const a=stored[src.key];if(!Array.isArray(a)||a.length!==src.count||new Set(a).size!==a.length||a.some(x=>!src.options.includes(x)||taken.has(x)||!(Number(ch.skills?.[x])>=1)))return false;a.forEach(x=>taken.add(x));}
+   return true;
+ }
+ function atlasPendingLanguages(ch){return Array.isArray(ch.languages)?[...new Set(ch.languages.map(x=>String(x).trim()).filter(Boolean))]:languageList(ch.languages);}
+ function atlasPendingLanguageOptions(ch){return CHARACTER_LANGUAGES.filter(x=>x!=='Common'&&!['Druidic','Thieves’ Cant','Gith','Quori'].includes(x));}
+ function atlasPendingExpertiseCount(ch,kind){
+   if(kind==='deft')return atlasPendingLevel(ch,'Ranger')>=2?1:0;
+   return (atlasPendingLevel(ch,'Ranger')>=9?2:0)+(atlasPendingLevel(ch,'Rogue')>=1?2:0)+(atlasPendingLevel(ch,'Rogue')>=6?2:0)+(atlasPendingLevel(ch,'Bard')>=2?2:0)+(atlasPendingLevel(ch,'Bard')>=9?2:0);
+ }
+ function atlasPendingExpertiseValid(ch,kind){
+   const count=atlasPendingExpertiseCount(ch,kind),a=kind==='deft'?[ch.deftExplorer2024?.skill]:ch.expertiseChoices2024||[];
+   if(!count)return true;if(a.length!==count||new Set(a).size!==count||a.some(x=>Number(ch.skills?.[x])!==2))return false;
+   if(kind==='deft'){const langs=ch.deftExplorer2024?.languages||[],known=atlasPendingLanguages(ch);return langs.length===2&&new Set(langs).size===2&&langs.every(x=>atlasPendingLanguageOptions(ch).includes(x)&&known.includes(x))&&!((ch.expertiseChoices2024||[]).includes(a[0]));}
+   return !a.includes(ch.deftExplorer2024?.skill);
+ }
+ function atlasPendingHasDruidic(ch){const style=String(ch.fightingStyle||'').trim();return atlasPendingLevel(ch,'Ranger')>=2&&(style?/druidic warrior/i.test(style):(ch.features||[]).some(x=>/druidic warrior/i.test(String(x.name||'')))||(ch.pendingChoices2024||[]).some(p=>atlasPendingKind(p,ch)==='druidic'));}
+ function atlasPendingSpellName(s){return findReference(s.ref)?.name||s.name||'';}
+ function atlasPendingSpellDef(name){const key=atlasPendingNorm(name);return D.spells.find(x=>atlasPendingNorm(x.name)===key);}
+ function atlasPendingSpellSource(s){const raw=String(s.spellSource||'').trim().toLowerCase();return /^(ranger|ranger spellcasting|ranger spells)$/.test(raw)?'ranger':/druidic warrior/.test(raw)?'druidic warrior':raw;}
+ function atlasPendingSpellAlways(ch,s){
+   const n=atlasPendingNorm(atlasPendingSpellName(s)),src=atlasPendingSpellSource(s);
+   return s.alwaysPrepared===true||/favored enemy|lineage|species|wood elf|magic initiate|subclass|gloom stalker|fey wanderer|swarmkeeper|hunter magic/.test(src)||n==='huntersmark'&&atlasPendingLevel(ch,'Ranger')>0||atlasPendingWoodElf(ch)&&['druidcraft','longstrider','passwithouttrace'].includes(n);
+ }
+ function atlasPendingRangerPlan(ch){
+   const level=atlasPendingLevel(ch,'Ranger'),slots=ATLAS_PENDING_RANGER_SLOTS[level]||[],limit=ATLAS_PENDING_RANGER_LIMITS[level]||0;
+   const fixed=new Set(['huntersmark']);if(atlasPendingWoodElf(ch)){if(totalLevel(ch)>=3)fixed.add('longstrider');if(totalLevel(ch)>=5)fixed.add('passwithouttrace');}
+   for(const s of ch.spellbook||[])if(atlasPendingSpellAlways(ch,s))fixed.add(atlasPendingNorm(atlasPendingSpellName(s)));
+   const options=ATLAS_PENDING_RANGER_SPELLS.slice(1,slots.length+1).flat().map(atlasPendingSpellDef).filter(x=>x&&!fixed.has(atlasPendingNorm(x.name)));
+   return {level,slots,limit,options};
+ }
+ function atlasPendingDruidPlan(ch){
+   const options=ATLAS_PENDING_DRUID_CANTRIPS.map(atlasPendingSpellDef).filter(Boolean).filter(d=>!((atlasPendingWoodElf(ch)&&d.name==='Druidcraft')||(ch.spellbook||[]).some(s=>atlasPendingNorm(atlasPendingSpellName(s))===atlasPendingNorm(d.name)&&atlasPendingSpellAlways(ch,s))));
+   return {limit:2,options};
+ }
+ function atlasPendingSpellSelected(ch,kind,plan){
+   const src=kind==='druidic'?'druidic warrior':'ranger',stored=kind==='druidic'?ch.druidicWarriorChoices2024:ch.rangerPreparedChoices2024;
+   if(Array.isArray(stored))return stored.filter(x=>plan.options.some(d=>d.id===x));
+   const ids=(ch.spellbook||[]).filter(s=>s.prepared!==false&&!atlasPendingSpellAlways(ch,s)&&(!atlasPendingSpellSource(s)||atlasPendingSpellSource(s)===src||kind==='druidic'&&atlasPendingSpellSource(s)==='druid')).map(s=>atlasPendingSpellDef(atlasPendingSpellName(s))?.id).filter(x=>plan.options.some(d=>d.id===x));
+   return [...new Set(ids)];
+ }
+ function atlasPendingSpellValid(ch,kind){
+   const p=kind==='druidic'?atlasPendingDruidPlan(ch):atlasPendingRangerPlan(ch),ids=kind==='druidic'?ch.druidicWarriorChoices2024:ch.rangerPreparedChoices2024;
+   if(!p.limit)return true;
+   if(!Array.isArray(ids)||ids.length!==p.limit||new Set(ids).size!==ids.length||ids.some(id=>!p.options.some(d=>d.id===id)))return false;
+   const src=kind==='druidic'?'druidic warrior':'ranger',selected=(ch.spellbook||[]).filter(s=>atlasPendingSpellSource(s)===src&&s.prepared!==false&&!atlasPendingSpellAlways(ch,s)&&(kind==='druidic'||Number(findReference(s.ref)?.level??s.level)>0));
+   if(selected.length!==ids.length||!ids.every(id=>selected.some(s=>atlasPendingSpellDef(atlasPendingSpellName(s))?.id===id)))return false;
+   if(kind==='ranger-spells'){const hm=(ch.spellbook||[]).find(s=>atlasPendingNorm(atlasPendingSpellName(s))==='huntersmark'&&s.alwaysPrepared===true&&s.prepared!==false),max=p.level>=17?6:p.level>=13?5:p.level>=9?4:p.level>=5?3:2;if(!hm||!(ch.resources||[]).some(r=>r.id===hm.freeResourceId&&Number(r.max)===max))return false;if((ch.classes||[]).length===1&&p.slots.some((n,i)=>Number(ch.slots?.[i+1]?.max)!==n))return false;if(atlasPendingWoodElf(ch)){for(const name of ['Druidcraft',...(totalLevel(ch)>=3?['Longstrider']:[]),...(totalLevel(ch)>=5?['Pass without Trace']:[])])if(!(ch.spellbook||[]).some(s=>atlasPendingNorm(atlasPendingSpellName(s))===atlasPendingNorm(name)&&s.alwaysPrepared===true&&s.prepared!==false))return false;}}
+   return true;
+ }
+ function atlasPendingArrayScores(base,boosts,bg){
+   const keys=['STR','DEX','CON','INT','WIS','CHA'],allowed=ATLAS_PENDING_ABILITIES[bg];
+   if(!allowed||keys.some(k=>!Number.isInteger(base?.[k]))||JSON.stringify(keys.map(k=>base[k]).sort((a,b)=>a-b))!==JSON.stringify(ATLAS_PENDING_ARRAY))return null;
+   if(!boosts||Object.keys(boosts).some(k=>!allowed.includes(k))||Object.values(boosts).some(n=>![1,2].includes(n))||Object.values(boosts).reduce((a,b)=>a+b,0)!==3||![2,3].includes(Object.keys(boosts).length))return null;
+   return Object.fromEntries(keys.map(k=>[k,base[k]+(boosts[k]||0)]));
+ }
+ function atlasPendingArrayValid(ch){const q=ch.standardArray2024;if(!q||q.background!==ch.background)return false;const final=atlasPendingArrayScores(q.base,q.boosts,ch.background);return !!final&&Object.keys(final).every(k=>Number(ch.abilities?.[k])===final[k]+Number(q.laterIncreases?.[k]||0));}
+ function atlasPendingSupported(ch,kind){
+   if(kind==='skills'){const p=atlasPendingSkillPlan(ch);return !!p.fixed.length&&!!p.sources.length;}
+   if(kind==='deft'||kind==='expertise')return atlasPendingExpertiseCount(ch,kind)>0;
+   if(kind==='mastery')return masteryCapacity(ch)>0;
+   if(kind==='druidic')return atlasPendingHasDruidic(ch);
+   if(kind==='primal')return atlasPrimalLevel(ch)>=3;
+   if(kind==='ranger-spells'){const r=(ch.classes||[]).find(x=>x.name==='Ranger');return !!r&&['','Beast Master','Hunter'].includes(String(r.subclass||''))&&(ch.classes||[]).length===1;}
+   if(kind==='array')return !!ATLAS_PENDING_ABILITIES[ch.background]&&totalLevel(ch)<=3;
+   if(kind==='student')return isBattleMaster(ch);
+   return false;
+ }
+ function atlasPendingResolved(ch,p,kind=atlasPendingKind(p,ch)){
+   if(kind==='skills')return atlasPendingSkillsValid(ch);
+   if(kind==='deft'||kind==='expertise')return atlasPendingExpertiseValid(ch,kind);
+   if(kind==='mastery')return masteryCapacity(ch)>0&&selectedMasteries(ch).length===masteryCapacity(ch);
+   if(kind==='primal')return atlasPrimalLevel(ch)<3||!!atlasPrimalStats(ch);
+   if(kind==='druidic'||kind==='ranger-spells')return atlasPendingSpellValid(ch,kind);
+   if(kind==='array')return atlasPendingArrayValid(ch);
+   if(kind==='student'){const q=studentSelection(ch);return !!q.tool&&!!q.skill;}
+   return p.status==='resolved'&&(kind==='review'||p.resolutionMode==='dm-review');
+ }
+ function atlasPendingEntries(ch){
+   const entries=(ch.pendingChoices2024||[]).map((p,i)=>({...p,choiceKey:String(p.key||'legacy-'+i),kind:atlasPendingKind(p,ch)})),existing=new Set(entries.map(p=>p.kind));
+   const add=(kind,el,en)=>{if(!existing.has(kind)&&atlasPendingSupported(ch,kind)){const p={key:'dynamic-'+kind,choiceKey:'dynamic-'+kind,kind,label:tr(el,en)};if(!atlasPendingResolved(ch,p,kind))entries.push(p);}};
+   add('skills','Επιλογές επάρκειας δεξιοτήτων (Skills)','Skill proficiency choices');
+   add('mastery','Εξειδικεύσεις όπλων (Weapon Mastery)','Weapon Mastery choices');
+   add('deft','Ειδίκευση και γλώσσες (Deft Explorer)','Deft Explorer expertise and languages');
+   add('expertise','Επιλογές ειδίκευσης (Expertise)','Expertise choices');
+   add('druidic','Ξόρκια μηδενικού επιπέδου (Druidic Warrior)','Druidic Warrior cantrips');
+   add('primal','Πρωταρχικός σύντροφος (Primal Companion)','Primal Companion form');
+   add('ranger-spells','Προετοιμασμένα ξόρκια Ranger','Ranger prepared spells');
+   return entries.map(p=>({...p,status:atlasPendingResolved(ch,p,p.kind)?'resolved':'pending'}));
+ }
+ function atlasPendingSelect(name,label,values,current,required=true){return '<label class="field">'+esc(label)+'<select name="'+attr(name)+'" '+(required?'required':'')+'><option value="">—</option>'+values.map(x=>{const [v,n]=Array.isArray(x)?x:[x,x];return '<option value="'+attr(v)+'" '+(String(current??'')===String(v)?'selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label>';}
+ function atlasPendingChecks(name,options,selected,limit){
+   const set=new Set(selected),label=tr('Επιλεγμένα','Selected');
+   return '<p class="muted small" data-pending-count="'+attr(name)+'">'+label+': '+set.size+' / '+limit+'</p><div class="tile-list" data-pending-checks="'+attr(name)+'" data-limit="'+limit+'">'+options.map(([v,n,desc])=>'<label class="tile" style="justify-content:flex-start"><input type="checkbox" name="'+attr(name)+'" value="'+attr(v)+'" '+(set.has(v)?'checked':'')+'><span style="flex:1;min-width:0"><strong>'+esc(n)+'</strong>'+(desc?'<small class="desc">'+esc(desc)+'</small>':'')+'</span></label>').join('')+'</div>';
+ }
+ function atlasPendingFields(ch,p){
+   const kind=p.kind;
+   if(kind==='skills'){
+     const plan=atlasPendingSkillPlan(ch),picks=atlasPendingSkillPicks(ch,plan),old=ch.skillChoiceSources2024||{},fixed=new Set(plan.fixed),claimed=new Set([...fixed,...Object.values(picks).flat()]);
+     const preserved=atlasPendingOtherSkillSources(ch);
+     const extras=Object.keys(ch.skills||{}).filter(x=>Number(ch.skills[x])>=1&&!claimed.has(x)&&!preserved.includes(x));
+     return '<p>'+tr('Υποχρεωτικές δεξιότητες υποβάθρου','Fixed background skills')+': <b>'+esc(plan.fixed.join(' · '))+'</b></p>'+plan.sources.map(src=>'<div class="detail-note"><strong>'+esc(src.title)+' · '+src.count+'</strong>'+Array.from({length:src.count},(_,i)=>atlasPendingSelect('skill:'+src.key+':'+i,tr('Επιλογή','Choice')+' '+(i+1),src.options.filter(x=>!fixed.has(x)&&!preserved.includes(x)),picks[src.key][i])).join('')+'</div>').join('')+(preserved.length?'<p class="muted small">'+tr('Διατηρούνται καταγεγραμμένες άλλες πηγές: ','Preserved recorded other sources: ')+esc(preserved.join(', '))+'</p>':'')+(extras.length?'<p class="notice">'+tr('Μη αντιστοιχισμένες εισαγόμενες δεξιότητες: ','Unassigned imported skills: ')+esc(extras.join(', '))+'. '+tr('Αν δεν επιλεγούν ξανά, απαιτείται έλεγχος DM πριν αφαιρεθούν.','If not selected again, DM review is required before removal.')+'</p>':'')+(atlasCanDmOverride()?atlasPendingChecks('retain',plan.all.filter(x=>Number(ch.skills?.[x])>=1&&!preserved.includes(x)).map(x=>[x,x,tr('Άλλη πηγή (DM)','Other source (DM)')]),(ch.pendingOtherSkills2024||[]).filter(x=>plan.all.includes(x)),18):'')+'<label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω την ανακατανομή των εισαγόμενων proficiencies.','Confirm rebuilding the imported proficiencies.')+'</label>';
+   }
+   if(kind==='deft'||kind==='expertise'){
+     const count=atlasPendingExpertiseCount(ch,kind),old=kind==='deft'?[ch.deftExplorer2024?.skill].filter(Boolean):ch.expertiseChoices2024||[],blocked=kind==='deft'?ch.expertiseChoices2024||[]:[ch.deftExplorer2024?.skill],options=D.skills.map(x=>x[0]).filter(x=>Number(ch.skills?.[x])>=1&&!blocked.includes(x));
+     const defaults=old.length?old:options.filter(x=>Number(ch.skills[x])===2).slice(0,count);
+     return '<p class="muted">'+tr('Μόνο δεξιότητες στις οποίες έχεις ήδη επάρκεια.','Only skills in which you are already proficient.')+'</p>'+atlasPendingChecks('expertise',options.map(x=>[x,x,Number(ch.skills[x])===2?tr('Ήδη Expertise','Existing Expertise'):'']),defaults,count)+(kind==='deft'?'<h3>'+tr('Δύο γλώσσες','Two languages')+'</h3>'+[0,1].map(i=>atlasPendingSelect('language'+i,tr('Γλώσσα','Language')+' '+(i+1),atlasPendingLanguageOptions(ch),ch.deftExplorer2024?.languages?.[i])).join('')+'<p class="muted small">'+tr('Οι υπάρχουσες γλώσσες διατηρούνται· επιβεβαίωσε ποιες προέρχονται από το Deft Explorer.','Existing languages are retained; confirm which came from Deft Explorer.')+'</p>':'')+'<label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω ότι οι επιλεγμένες ειδικεύσεις ανήκουν σε αυτή την πηγή.','Confirm these expertise selections belong to this source.')+'</label>';
+   }
+   if(kind==='mastery')return atlasPendingChecks('mastery',D.weapons.filter(w=>R.masteryEligible(ch,w,D.weapons)).map(w=>[w.name,w.name,w.mastery]),selectedMasteries(ch),masteryCapacity(ch));
+   if(kind==='druidic'||kind==='ranger-spells'){
+     const plan=kind==='druidic'?atlasPendingDruidPlan(ch):atlasPendingRangerPlan(ch);
+     return '<p>'+tr('Επίλεξε ακριβώς','Choose exactly')+' <b>'+plan.limit+'</b> '+tr('νόμιμα ξόρκια. Τα επιπλέον ξόρκια από άλλες πηγές δεν καταναλώνουν θέσεις.','legal spells. Additional spells from other sources do not count.')+'</p>'+atlasPendingChecks('spells',plan.options.map(d=>[d.id,d.name,'Lv '+d.level+' · '+d.school+(d.concentration?' · Concentration':'')+(d.ritual?' · Ritual':'')]),atlasPendingSpellSelected(ch,kind,plan),plan.limit)+'<label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω την αρχική επιλογή ή διόρθωση των ξορκιών (όχι δωρεάν αλλαγές μέσα στη μάχη).','Confirm initial spell selection or correction (not free changes during combat).')+'</label>';
+   }
+   if(kind==='array'){
+     const q=ch.standardArray2024,allowed=ATLAS_PENDING_ABILITIES[ch.background],keys=['STR','DEX','CON','INT','WIS','CHA'],values=ATLAS_PENDING_ARRAY.map(n=>[n,String(n)]);
+     return '<p class="notice">'+tr('Η αρχική κατανομή αλλάζει τα πραγματικά ability scores. Τα HP προσαρμόζονται στη μεταβολή CON. Έλεγξε χειροκίνητα την AC και τυχόν ειδικές εξαιρέσεις με τον DM.','The initial allocation changes actual ability scores. HP adjusts for CON changes. Review AC and special exceptions with the DM.')+'</p><div class="form-grid">'+keys.map(k=>atlasPendingSelect('base:'+k,k+' · '+tr('Τρέχον','Current')+' '+ch.abilities?.[k],values,q?.base?.[k])).join('')+'</div><h3>'+esc(ch.background)+' · '+tr('Αυξήσεις','Increases')+'</h3><div class="form-grid">'+allowed.map(k=>atlasPendingSelect('boost:'+k,k,[[0,'+0'],[1,'+1'],[2,'+2']],q?.boosts?.[k]??0)).join('')+'</div><p class="muted small">'+tr('Χρησιμοποίησε κάθε τιμή του Standard Array μία φορά. Επίλεξε +2/+1 ή +1/+1/+1.','Use every Standard Array value once. Choose +2/+1 or +1/+1/+1.')+'</p><label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω τη διόρθωση της αρχικής κατανομής.','Confirm correcting the initial allocation.')+'</label>';
+   }
+   return '';
+ }
+ function atlasPendingSpellPut(ch,def,source,extra={}){
+   ch.spellbook=ch.spellbook||[];const key=atlasPendingNorm(def.name);
+   let row=ch.spellbook.find(x=>atlasPendingNorm(atlasPendingSpellName(x))===key&&atlasPendingSpellSource(x)===source.toLowerCase());
+   if(!row)row=ch.spellbook.find(x=>atlasPendingNorm(atlasPendingSpellName(x))===key&&!atlasPendingSpellSource(x));
+   if(!row){row={id:uid()};ch.spellbook.push(row);}
+   Object.assign(row,{ref:def.id,name:def.name,level:def.level,prepared:true,spellSource:source,...extra});return row;
+ }
+ function atlasPendingRangerGrants(ch,plan){
+   const level=plan.level;ch.resources=ch.resources||[];
+   let r=ch.resources.find(x=>x.id==='atlas-favored-enemy'||/favored enemy|hunter.?s mark/i.test(x.name||''));
+   const max=level>=17?6:level>=13?5:level>=9?4:level>=5?3:2;
+   if(!r){r={id:'atlas-favored-enemy',name:'Favored Enemy · Hunter’s Mark',max,current:max,recharge:'long'};ch.resources.push(r);}else{const spent=Math.max(0,Number(r.max||0)-Number(r.current||0));Object.assign(r,{max,current:Math.max(0,max-spent),recharge:'long'});}
+   const h=atlasPendingSpellDef('Hunter’s Mark');if(!h)throw Error('Missing Hunter’s Mark reference');
+   let existing=(ch.spellbook||[]).find(x=>atlasPendingNorm(atlasPendingSpellName(x))==='huntersmark'&&(!atlasPendingSpellSource(x)||/ranger|favored enemy/i.test(x.spellSource)));
+   if(existing)Object.assign(existing,{ref:h.id,name:h.name,level:1,prepared:true,spellSource:'Favored Enemy',alwaysPrepared:true,freeResourceId:r.id});else atlasPendingSpellPut(ch,h,'Favored Enemy',{alwaysPrepared:true,freeResourceId:r.id});
+   if(atlasPendingWoodElf(ch)){for(const name of ['Druidcraft',...(totalLevel(ch)>=3?['Longstrider']:[]),...(totalLevel(ch)>=5?['Pass without Trace']:[])]){const d=atlasPendingSpellDef(name);if(!d)continue;let e=(ch.spellbook||[]).find(x=>atlasPendingNorm(atlasPendingSpellName(x))===atlasPendingNorm(name)&&(!atlasPendingSpellSource(x)||/ranger|wood elf|lineage|species/i.test(x.spellSource)));if(e)Object.assign(e,{ref:d.id,name:d.name,level:d.level,prepared:true,spellSource:'Wood Elf Lineage',alwaysPrepared:true});else atlasPendingSpellPut(ch,d,'Wood Elf Lineage',{alwaysPrepared:true});}}
+   if((ch.classes||[]).length===1){const slots={};plan.slots.forEach((max,i)=>{const k=String(i+1);slots[k]={...(ch.slots?.[k]||{}),max,used:Math.min(max,Math.max(0,Number(ch.slots?.[k]?.used)||0))};});ch.slots=slots;ch.spellAbility='WIS';}
+ }
+ function atlasPendingApply(ch,kind,fd,dm=false){
+   const list=n=>fd.getAll(n).map(String),one=n=>String(fd.get(n)||''),unique=(a,n)=>a.length===n&&new Set(a).size===n,need=()=>{if(!fd.get('confirm'))throw Error(tr('Απαιτείται επιβεβαίωση.','Confirmation required.'));},bad=()=>{throw Error(tr('Συμπλήρωσε ακριβώς τις νόμιμες και διαφορετικές επιλογές.','Choose exactly the required distinct legal options.'));};
+   if(!atlasPendingSupported(ch,kind))bad();
+   if(kind==='skills'){
+     need();const p=atlasPendingSkillPlan(ch),old=ch.skillChoiceSources2024||{},next={...old},reserved=new Set(atlasPendingOtherSkillSources(ch)),taken=new Set(p.fixed);
+     for(const src of p.sources){const a=Array.from({length:src.count},(_,i)=>one('skill:'+src.key+':'+i));if(!unique(a,src.count)||a.some(x=>!src.options.includes(x)||taken.has(x)||reserved.has(x)))bad();a.forEach(x=>taken.add(x));next[src.key]=a;}
+     const keep=[...(Array.isArray(old.feat)?old.feat:[]),ch.studentOfWarSkill,...(!dm?ch.pendingOtherSkills2024||[]:[])].filter(x=>p.all.includes(x)&&Number(ch.skills?.[x])>=1);
+     const other=dm?list('retain'):ch.pendingOtherSkills2024||[];if(other.some(x=>!p.all.includes(x)||!(Number(ch.skills?.[x])>=1)))bad();
+     const selected=new Set([...taken,...keep,...other]),ranks={};const dropped=Object.keys(ch.skills||{}).filter(x=>Number(ch.skills[x])>=1&&!selected.has(x));if(dropped.length&&!dm)throw Error(tr('Μόνο ο DM μπορεί να αφαιρέσει μη αντιστοιχισμένες εισαγόμενες δεξιότητες: ','Only the DM can remove unassigned imported skills: ')+dropped.join(', '));if(other.some(x=>taken.has(x)))bad();for(const x of selected)ranks[x]=Number(ch.skills?.[x])===2?2:1;
+     ch.skills=ranks;ch.skillChoiceSources2024=next;if(dm)ch.pendingOtherSkills2024=other;return;
+   }
+   if(kind==='deft'||kind==='expertise'){
+     need();const count=atlasPendingExpertiseCount(ch,kind),a=list('expertise'),old=kind==='deft'?[ch.deftExplorer2024?.skill].filter(Boolean):ch.expertiseChoices2024||[],blocked=kind==='deft'?ch.expertiseChoices2024||[]:[ch.deftExplorer2024?.skill];
+     if(!unique(a,count)||a.some(x=>!D.skills.some(s=>s[0]===x)||!(Number(ch.skills?.[x])>=1)||blocked.includes(x)))bad();
+     const existing=Object.keys(ch.skills||{}).filter(x=>Number(ch.skills[x])===2&&!blocked.includes(x)&&!a.includes(x)&&!old.includes(x));
+     if(existing.length&&!dm)throw Error(tr('Υπάρχουν άλλες μη αντιστοιχισμένες ειδικεύσεις. Χρειάζεται έλεγχος DM πριν προσθέσεις νέες.','Other unassigned expertise exists. DM review is required before adding more.'));
+     if(kind==='deft'){const languages=[one('language0'),one('language1')],allowed=atlasPendingLanguageOptions(ch);if(!unique(languages,2)||languages.some(x=>!allowed.includes(x)))bad();const known=atlasPendingLanguages(ch),prior=ch.deftExplorer2024?.languages||[];ch.languages=[...new Set([...known.filter(x=>!prior.includes(x)||languages.includes(x)),...languages])].join(', ');ch.deftExplorer2024={skill:a[0],languages};}
+     else ch.expertiseChoices2024=a;
+     old.filter(x=>!a.includes(x)&&!blocked.includes(x)&&Number(ch.skills?.[x])===2).forEach(x=>ch.skills[x]=1);a.forEach(x=>ch.skills[x]=2);return;
+   }
+   if(kind==='mastery'){const a=list('mastery'),limit=masteryCapacity(ch);if(!unique(a,limit)||a.some(n=>!R.masteryEligible(ch,D.weapons.find(w=>w.name===n),D.weapons)))bad();ch.weaponMasteries=a;return;}
+   if(kind==='druidic'||kind==='ranger-spells'){
+     need();const p=kind==='druidic'?atlasPendingDruidPlan(ch):atlasPendingRangerPlan(ch),ids=list('spells');if(!unique(ids,p.limit)||ids.some(id=>!p.options.some(d=>d.id===id)))bad();
+     const src=kind==='druidic'?'Druidic Warrior':'Ranger',old=kind==='druidic'?ch.druidicWarriorChoices2024:ch.rangerPreparedChoices2024;
+     if(kind==='ranger-spells')atlasPendingRangerGrants(ch,p);
+     ch.spellbook=ch.spellbook||[];
+     const candidates=new Set(p.options.map(d=>atlasPendingNorm(d.name)));
+     for(const s of ch.spellbook){const d=atlasPendingSpellDef(atlasPendingSpellName(s)),source=atlasPendingSpellSource(s),isOwned=source===src.toLowerCase()||(Array.isArray(old)&&old.includes(d?.id)&&!source);
+       if(isOwned&&!atlasPendingSpellAlways(ch,s)&&!ids.includes(d?.id))s.prepared=false;
+       else if(!source&&candidates.has(atlasPendingNorm(atlasPendingSpellName(s)))&&!ids.includes(d?.id)&&kind==='ranger-spells')s.prepared=false;
+     }
+     if(kind==='druidic'){ch.spellbook=ch.spellbook.filter(s=>atlasPendingSpellSource(s)!=='druidic warrior'||ids.includes(atlasPendingSpellDef(atlasPendingSpellName(s))?.id)||atlasPendingSpellAlways(ch,s));}
+     for(const id of ids)atlasPendingSpellPut(ch,p.options.find(d=>d.id===id),src);
+     if(kind==='druidic'){ch.druidicWarriorChoices2024=ids;ch.fightingStyle='Druidic Warrior';}else ch.rangerPreparedChoices2024=ids;
+     return;
+   }
+   if(kind==='array'){
+     need();const keys=['STR','DEX','CON','INT','WIS','CHA'],base=Object.fromEntries(keys.map(k=>[k,Number(one('base:'+k))])),boosts={};for(const k of ATLAS_PENDING_ABILITIES[ch.background]){const n=Number(one('boost:'+k));if(n)boosts[k]=n;}
+     const scores=atlasPendingArrayScores(base,boosts,ch.background);if(!scores)bad();
+     const delta=(Math.floor((scores.CON-10)/2)-Math.floor((Number(ch.abilities?.CON||10)-10)/2))*totalLevel(ch);
+     ch.abilities={...ch.abilities,...scores};ch.standardArray2024={background:ch.background,base,boosts};
+     if(ch.hp&&Number.isFinite(Number(ch.hp.max))){const oldMax=Number(ch.hp.max),current=Number(ch.hp.current)||0,newMax=Math.max(1,oldMax+delta);ch.hp.max=newMax;ch.hp.current=current===0?0:Math.min(newMax,Math.max(1,current+newMax-oldMax));}return;
+   }
+   bad();
+ }
  function pendingChoiceAlert(ch){
-  const choices=(ch.pendingChoices2024||[]).filter(x=>x.status!=='resolved');
-  if(!choices.length)return '';
-  const can= !cloud.enabled||canEditCharacter(ch);
-  return '<section class="atlas-mastery-alert" role="status"><div><strong>'+esc(tr('Εκκρεμείς επιλογές χαρακτήρα','Pending character choices'))+' ('+choices.length+')</strong><p>'+esc(tr('Ο χαρακτήρας χρειάζεται επιβεβαίωση πριν θεωρηθεί ολοκληρωμένος.','This character needs choices confirmed before it is complete.'))+'</p></div>'+(can?'<button class="btn primary" data-action="pending-choices">'+esc(tr('Διαχείριση επιλογών','Review choices'))+'</button>':'')+'</section>';
+   const choices=atlasPendingEntries(ch).filter(x=>x.status!=='resolved');if(!choices.length)return '';
+   const can=canEditCharacter(ch);return '<section class="atlas-mastery-alert" role="status"><div><strong>'+tr('Εκκρεμείς επιλογές χαρακτήρα','Pending character choices')+' ('+choices.length+')</strong><p>'+tr('Οι εκκρεμότητες ελέγχονται από τα πραγματικά δεδομένα του φύλλου.','Choices are checked against actual sheet data.')+'</p></div>'+(can?btn(tr('Διαχείριση επιλογών','Review choices'),'pending-choices','primary'):'')+'</section>';
  }
  function showPendingChoices(){
-  const ch=c(),choices=ch.pendingChoices2024||[];
-  if(cloud.enabled&&!canEditCharacter(ch))return toast(tr('Δεν έχεις δικαίωμα επεξεργασίας.','You cannot edit this character.'));
-  const list=choices.map((p,i)=>'<div class="tile"><div><strong>'+esc(p.label||p.key)+'</strong><p class="muted small">'+esc(p.notes||'')+'</p><p class="small">'+esc(p.status==='resolved'?tr('Επιβεβαιωμένο','Confirmed'):tr('Εκκρεμεί','Pending'))+(p.value?' · '+esc(p.value):'')+'</p></div><button class="btn sm" data-action="pending-edit:'+i+'">'+esc(tr('Επιλογή','Choose'))+'</button></div>').join('');
-  openModal(tr('Εκκρεμείς επιλογές','Pending choices'),'<p class="muted">'+esc(tr('Οι επιλογές αποθηκεύονται στον χαρακτήρα. Για skills, feats και spells έλεγξε επίσης τις αντίστοιχες καρτέλες.','Choices are saved to this character. For skills, feats and spells, also verify the appropriate tabs.'))+'</p><div class="tile-list">'+list+'</div>',btn(tr('Κλείσιμο','Close'),'close-modal'),true);
+   const ch=c();if(!ch||!canEditCharacter(ch))return;
+   const all=atlasPendingEntries(ch),choices=all.filter(x=>x.status!=='resolved');
+   const list=choices.map(p=>'<div class="tile"><div style="flex:1;min-width:0"><strong>'+esc(p.label||p.key)+'</strong>'+(p.notes?'<p class="muted small">'+esc(p.notes)+'</p>':'')+'<p class="small">'+(atlasPendingSupported(ch,p.kind)?tr('Απαιτείται πραγματική επιλογή','Actual selection required'):tr('Απαιτείται έλεγχος DM','DM review required'))+'</p></div><button class="btn sm" data-action="pending-edit:'+all.indexOf(p)+'">'+tr('Επιλογή','Choose')+'</button></div>').join('');
+   openModal(tr('Εκκρεμείς επιλογές','Pending choices'),'<p class="muted">'+tr('Οι επιλογές εφαρμόζονται στο φύλλο. Πάτησε το κεντρικό Save για συγχρονισμό.','Choices update the sheet. Press the main Save to sync.')+'</p><div class="tile-list">'+(list||'<p>'+tr('Δεν υπάρχουν εκκρεμείς επιλογές.','No pending choices.')+'</p>')+'</div><p class="muted small">'+(all.length-choices.length)+' '+tr('ολοκληρωμένες καταγεγραμμένες επιλογές','completed recorded choices')+'</p>',btn(tr('Κλείσιμο','Close'),'close-modal'),true);
  }
  function editPendingChoice(index){
-  const ch=c(),p=(ch.pendingChoices2024||[])[index];if(!p)return;
-  const options=Array.isArray(p.options)?p.options:[];
-  const control=options.length?'<select name="pendingValue" required><option value="">—</option>'+options.map(v=>'<option value="'+attr(v)+'" '+(p.value===v?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':'<textarea name="pendingValue" required maxlength="1000" rows="3" placeholder="'+attr(tr('Η επιλογή που επιβεβαιώνει ο παίκτης','Player-confirmed choice'))+'">'+esc(p.value||'')+'</textarea>';
-  openModal(p.label||p.key,'<form id="atlas-pending-choice-form" data-choice-index="'+index+'"><p class="muted">'+esc(p.notes||'')+'</p><label>'+esc(tr('Επιλογή / επιβεβαίωση','Choice / confirmation'))+control+'</label><div class="actions-inline"><button class="btn primary" type="submit">'+esc(tr('Αποθήκευση επιλογής','Save choice'))+'</button><button class="btn" type="button" data-action="pending-choices">'+esc(tr('Πίσω','Back'))+'</button></div></form>','',true);
+   const ch=c(),p=ch&&atlasPendingEntries(ch)[index];if(!p||!canEditCharacter(ch)||atlasManualSaving)return;
+   if(p.kind==='primal'&&atlasPendingSupported(ch,p.kind))return atlasPrimalForm(ch,'summon');
+   if(p.kind==='student'&&atlasPendingSupported(ch,p.kind))return editStudentOfWar();
+   const supported=atlasPendingSupported(ch,p.kind),review=p.kind==='review'&&atlasCanDmOverride();
+   const fields=supported?atlasPendingFields(ch,p):review?'<p>'+tr('Ο DM πρέπει να ελέγξει τα πραγματικά στοιχεία του φύλλου. Η επιβεβαίωση αυτή δεν χορηγεί κανένα trait.','The DM must verify the actual sheet. This confirmation grants no trait.')+'</p><label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω τον έλεγχο DM.','Confirm DM review.')+'</label>':'<p class="notice">'+tr('Δεν υπάρχει ακόμη πλήρης εξειδικευμένος selector για αυτή την απαίτηση. Δεν μπορεί να ολοκληρωθεί γράφοντας μια σημείωση. Χρειάζεται έλεγχος των αντίστοιχων κανόνων από τον DM.','A complete typed selector is not yet available for this requirement. A note cannot complete it. The DM must review the relevant rules.')+'</p>';
+   openModal(p.label||p.key,'<form id="atlas-pending-choice-form" data-character="'+attr(ch.id)+'" data-choice-key="'+attr(p.choiceKey)+'">'+fields+'<div class="actions-inline">'+(supported||review?'<button class="btn primary" type="submit">'+tr('Εφαρμογή επιλογής','Apply choice')+'</button>':'')+btn(tr('Πίσω','Back'),'pending-choices')+'</div></form>','',true);
+   document.querySelectorAll('#atlas-pending-choice-form [data-pending-checks]').forEach(atlasPendingRefreshChecks);
  }
+ function atlasPendingRefreshChecks(group){const boxes=[...group.querySelectorAll('input[type=checkbox]')],n=boxes.filter(x=>x.checked).length,limit=Number(group.dataset.limit);boxes.forEach(x=>x.disabled=!x.checked&&n>=limit);const count=group.previousElementSibling;if(count?.hasAttribute('data-pending-count'))count.textContent=tr('Επιλεγμένα','Selected')+': '+n+' / '+limit;}
+ document.addEventListener('change',e=>{const group=e.target.closest?.('#atlas-pending-choice-form [data-pending-checks]');if(group)atlasPendingRefreshChecks(group);});
 
  function renderOverview(ch){return `<div class="atlas-overview">${atlasOverviewHeader(ch)}<div class="atlas-rest-row"><button class="btn primary" data-action="short-rest">🪑 ${tr('Σύντομη ανάπαυση','Short Rest')}</button><button class="btn primary" data-action="long-rest">🛏️ ${tr('Παρατεταμένη ανάπαυση','Long Rest')}</button></div>${masteryAlert(ch)}${studentOverviewAlert(ch)}${pendingChoiceAlert(ch)}${atlasStory(ch)}${atlasCoreStats(ch)}${panel('ABILITY SCORES',atlasOverviewAbilities(ch),'<button class="btn sm" data-action="edit-abilities">Edit</button>')}${panel('SKILLS',atlasOverviewSkills(ch),'','All 18 skills')}<div class="atlas-overview-bottom">${panel('FEATS',atlasOverviewOwned(ch,'feat'))}${panel('FEATURES',atlasOverviewOwned(ch,'feature'))}</div><div class="atlas-overview-bottom-note">${tr('Κανόνες: D&D 2024. Τα εισαγόμενα φύλλα ίσως χρειάζονται έλεγχο εκκρεμών επιλογών.','Ruleset: D&D 2024 only. Existing/imported sheets may need review for unresolved character choices.')}</div></div>`;}
 
@@ -999,6 +1225,91 @@
  function renderSlots(ch){let any=false,rows='';for(let i=1;i<=9;i++){const s=ch.slots?.[i];if(!s||!s.max)continue;any=true;rows+=slotCell(ch,'slot',i,s.max,s.used||0);}let p=ch.pact||{max:0,used:0,level:1};if(p.max){any=true;rows+=slotCell(ch,'pact',p.level,p.max,p.used);}
  return any?`<div class="slots">${rows}</div><div class="tiny muted" style="margin-top:9px">Πατάς κύκλο όταν ξοδεύεις/ανακτάς slot. Long Rest επαναφέρει τα συνήθη slots· Pact Magic και σε Short Rest.</div>`:`<div class="empty"><strong>No spell slots</strong>Κανονικό για αρκετές martial classes. ${btn('Configure','edit-spell-setup','sm')}</div>`;}
  function slotCell(ch,type,lvl,max,used){return `<div class="slot"><div class="slot-head"><strong>${type==='pact'?'PACT · ':''}L${lvl}</strong><span>${Math.max(0,max-used)}/${max}</span></div><div class="dots">${Array.from({length:max},(_,i)=>`<button class="dot ${i<max-used?'filled':''}" title="${i<max-used?'Spend':'Restore'} slot" data-slot="${type}:${lvl}:${i<max-used?'spend':'restore'}">${i<max-used?'✓':'·'}</button>`).join('')}</div></div>`;}
+ // Class-granted companions are derived from the owning character, not generic monster copies.
+ const ATLAS_PRIMAL_FORMS={
+   land:{en:'Beast of the Land',el:'Θηρίο της Ξηράς',size:'Medium',speed:'40 ft. / Climb 40 ft.',hpBase:5,die:8,damageBase:2,damageDie:'1d8',damageTypes:['Bludgeoning','Piercing','Slashing'],scores:[14,14,15,8,14,11],darkvision:60},
+   sea:{en:'Beast of the Sea',el:'Θηρίο της Θάλασσας',size:'Medium',speed:'5 ft. / Swim 60 ft.',hpBase:5,die:8,damageBase:2,damageDie:'1d6',damageTypes:['Bludgeoning','Piercing'],scores:[14,14,15,8,14,11],darkvision:90},
+   sky:{en:'Beast of the Sky',el:'Θηρίο του Ουρανού',size:'Small',speed:'10 ft. / Fly 60 ft.',hpBase:4,die:6,damageBase:3,damageDie:'1d4',damageTypes:['Slashing'],scores:[6,16,13,8,14,11],darkvision:60}
+ };
+ function atlasPrimalLevel(ch){return (ch?.classes||[]).reduce((n,x)=>String(x.name).toLowerCase()==='ranger'&&String(x.subclass||'').toLowerCase().replace(/[^a-z]/g,'')==='beastmaster'?Math.max(n,Number(x.level)||0):n,0);}
+ function atlasPrimalStats(ch,q=ch?.primalCompanion){
+   const level=atlasPrimalLevel(ch),f=Object.hasOwn(ATLAS_PRIMAL_FORMS,q?.form)?ATLAS_PRIMAL_FORMS[q.form]:null;if(level<3||!f)return null;
+   const wis=ability(ch,'WIS'),pb=prof(ch),maxHp=f.hpBase*(level+1),damage=Math.max(0,Math.min(maxHp,Math.trunc(Number(q.damage)||0)));
+   return {...f,level,wis,pb,maxHp,hp:['dead','reviving','vanished'].includes(q.status)?0:maxHp-damage,ac:13+wis,attack:pb+wis,dc:8+pb+wis,damage:f.damageDie+signed(f.damageBase+wis),damageType:f.damageTypes.includes(q.damageType)?q.damageType:f.damageTypes[0],strikes:level>=11?2:1};
+ }
+ function atlasPrimalName(form){const f=ATLAS_PRIMAL_FORMS[form];return f?tr(f.el+' ('+f.en+')',f.en):'';}
+ function atlasPrimalButton(ch,action,label){return '<button type="button" class="btn sm" data-atlas-primal="'+action+'" data-character="'+attr(ch.id)+'">'+label+'</button>';}
+ function atlasPrimalPanel(ch,compact=false){
+   if(atlasPrimalLevel(ch)<3)return '';
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch),editable=canEditCharacter(ch)&&!atlasManualSaving;
+   const b=(action,label)=>editable||action==='detail'?atlasPrimalButton(ch,action,label):'';
+   const heading=tr('Πρωταρχικός σύντροφος (Primal Companion)','Primal Companion');
+   if(!s)return '<section class="atlas-dm-card"><h3>'+heading+'</h3><p class="muted small">'+tr('Beast Master επιπέδου 3: επίλεξε μία από τις τρεις μορφές.','Beast Master level 3: choose one of the three forms.')+'</p>'+b('summon',tr('Επίκληση συντρόφου','Summon companion'))+'</section>';
+   const status=q.status==='dead'?tr('Νεκρό','Dead'):q.status==='reviving'?tr('Αναβίωση σε εξέλιξη','Revival pending'):q.status==='vanished'?tr('Εξαφανίστηκε','Vanished'):s.hp===0?tr('0 HP · επιβεβαίωσε κατάσταση','0 HP · confirm status'):tr('Ενεργό','Active');
+   return '<section class="atlas-dm-card"><div class="page-title"><div><h3>'+esc(q.name||atlasPrimalName(q.form))+'</h3><small>'+heading+' · '+esc(atlasPrimalName(q.form))+' · '+status+'</small></div>'+b('detail',tr('Στατιστικά','Stat block'))+'</div><div class="atlas-dm-stats"><div><small>HP</small><b>'+s.hp+'/'+s.maxHp+'</b></div><div><small>AC</small><b>'+s.ac+'</b></div><div><small>'+tr('Επίθεση','Attack')+'</small><b>'+signed(s.attack)+'</b></div><div><small>'+tr('Ζημιά','Damage')+'</small><b>'+esc(s.damage)+'</b></div></div><p class="muted small">'+tr('Ενεργεί στη σειρά του Ranger, χωρίς δικό του Initiative.','Acts during the Ranger’s turn, without separate initiative.')+'</p><div class="actions-inline">'+(q.status==='active'?b('hp',tr('Ενημέρωση HP','Update HP'))+(s.hp===0?b('dead',tr('Επιβεβαίωση θανάτου','Mark dead')):''):q.status==='dead'?b('revive',tr('Αναβίωση','Revive')):q.status==='reviving'?b('complete',tr('Ολοκλήρωση αναβίωσης','Complete revival')):'')+(q.status!=='vanished'&&Number(ch.hp?.current)===0?b('vanish',tr('Ο Ranger πέθανε','Ranger died')):'')+(q.replaceReady?b('summon',tr('Νέα μορφή μετά την ανάπαυση','Replace after Long Rest')):'')+(!compact&&q.status==='active'&&s.hp>0?b('command',tr('Εντολές μάχης','Combat commands')):'')+'</div></section>';
+ }
+ function atlasPrimalDetail(ch){
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch);if(!s)return;
+   const checks=['STR','DEX','CON','INT','WIS','CHA'].map((k,i)=>k+' '+s.scores[i]+' · '+tr('Έλεγχος/σωτηρία','Check/save')+' '+signed(Math.floor((s.scores[i]-10)/2)+s.pb));
+   const special=q.form==='land'?tr('Αν προηγηθούν 20 ft. ευθείας κίνησης προς τον στόχο, επιπλέον 1d6 ίδιας ζημιάς και Prone σε στόχο Large ή μικρότερο.','After moving 20 ft. straight toward the target, add 1d6 of the same damage; a Large or smaller target falls Prone.'):q.form==='sea'?tr('Grappled στον στόχο, Escape DC ','Grappled target, escape DC ')+s.dc+' · '+tr('Αναπνοή σε νερό και αέρα.','Breathes air and water.'):tr('Flyby: η πτήση έξω από την εμβέλεια δεν προκαλεί Opportunity Attacks.','Flyby: flying out of reach does not provoke opportunity attacks.');
+   openModal(q.name||atlasPrimalName(q.form),'<div class="detail-meta"><span class="chip gold">HP '+s.hp+'/'+s.maxHp+'</span><span class="chip">AC '+s.ac+'</span><span class="chip">'+esc(s.speed)+'</span></div><p>'+esc(q.appearance||'')+'</p><p>'+checks.map(esc).join('<br>')+'</p><p>Darkvision '+s.darkvision+' ft. · Passive Perception 12 · '+tr('Ζάρια ζωής','Hit Dice')+' '+s.level+'d'+s.die+'</p><h3>Beast’s Strike</h3><p>'+tr('Επίθεση','Attack')+' 1d20'+signed(s.attack)+' · '+tr('Ζημιά','Damage')+' '+esc(s.damage)+' '+esc(s.damageType)+' · 5 ft. · '+s.strikes+' '+tr('χτυπήματα ανά εντολή','strikes per command')+'</p><p>'+esc(special)+'</p>'+(s.level>=7?'<p>'+tr('Επίπεδο 7: επιλέγεις Force ή τον κανονικό τύπο ζημιάς. Με Bonus Action εντολή, το θηρίο μπορεί επιπλέον να κάνει Dash, Disengage, Dodge ή Help με τη δική του Bonus Action.','Level 7: choose Force or normal damage. A Bonus Action command also permits the beast to use its own Bonus Action for Dash, Disengage, Dodge or Help.')+'</p>':'')+(s.level>=11?'<p>'+tr('Επίπεδο 11: στο πρώτο χτύπημα κάθε turn σε στόχο του Hunter’s Mark σου, πρόσθεσε την αντίστοιχη bonus ζημιά ως Force.','Level 11: on its first hit each turn against your Hunter’s Mark target, add the spell’s bonus damage as Force.')+'</p>':'')+(s.level>=15?'<p>'+tr('Επίπεδο 15: ξόρκι που στοχεύει εσένα μπορεί να επηρεάσει και το θηρίο εντός 30 ft.','Level 15: a spell targeting yourself may also affect your beast within 30 ft.')+'</p>':''),btn(tr('Κλείσιμο','Close'),'close-modal'),true);
+ }
+ function atlasPrimalSlots(ch){
+   return [...Object.entries(ch.slots||{}).filter(([k,v])=>Number(k)>=1&&Number(k)<=9&&Number(v.max)>Number(v.used||0)).map(([k,v])=>['slot-'+k,'Spell Slot Lv '+k+' ('+(v.max-(v.used||0))+'/'+v.max+')']),...(ch.pact?.max>Number(ch.pact.used||0)?[['pact','Pact Magic']]:[])];
+ }
+ function atlasPrimalForm(ch,mode){
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch),opt=(v,n,sel)=>'<option value="'+attr(v)+'" '+(sel===v?'selected':'')+'>'+esc(n)+'</option>';
+   let fields='',title='';
+   if(mode==='summon'){
+     if(s&&!q.replaceReady)return;
+     title=tr('Επίκληση πρωταρχικού συντρόφου','Summon Primal Companion');
+     fields='<label class="field">'+tr('Μορφή','Form')+'<select name="form">'+Object.keys(ATLAS_PRIMAL_FORMS).map(k=>opt(k,atlasPrimalName(k),q?.form)).join('')+'</select></label><label class="field">'+tr('Όνομα','Name')+'<input name="name" maxlength="100" value="'+attr(q?.name||'')+'"></label><label class="field">'+tr('Εμφάνιση ζώου (αισθητική επιλογή)','Animal appearance (cosmetic)')+'<input name="appearance" maxlength="160" value="'+attr(q?.appearance||'')+'"></label><label class="field">'+tr('Τύπος ζημιάς','Damage type')+'<select name="damageType">'+['Bludgeoning','Piercing','Slashing'].map(k=>opt(k,k,q?.damageType||'Slashing')).join('')+'</select></label><p class="muted small">'+tr('Η μορφή καθορίζει τα στατιστικά, όχι το είδος ζώου που περιγράφεις. Μόνο ένας σύντροφος. Μετά την αρχική επίκληση, αντικατάσταση κατά την ολοκλήρωση Long Rest.','Form determines stats, not the animal appearance. Only one companion. After the first summon, replacement is available upon finishing a Long Rest.')+'</p>';
+   }else if(mode==='hp'&&s&&q.status==='active'){
+     title=tr('Ενημέρωση HP συντρόφου','Update companion HP');fields='<label class="field">HP (0–'+s.maxHp+')<input name="hp" type="number" min="0" max="'+s.maxHp+'" step="1" value="'+s.hp+'" required></label><p class="muted small">'+tr('Εισήγαγε το τελικό HP. Τα 0 HP χρειάζονται επιβεβαίωση κατάστασης από τον DM.','Enter final HP. At 0 HP confirm the creature’s status with the DM.')+'</p>';
+   }else if(mode==='revive'&&s&&q.status==='dead'){
+     const slots=atlasPrimalSlots(ch);if(!slots.length)return toast(tr('Δεν υπάρχει διαθέσιμη θέση ξορκιού.','No spell slot available.'));
+     title=tr('Αναβίωση συντρόφου','Revive companion');fields='<label class="atlas-rest-check"><input type="checkbox" name="withinHour" required>'+tr('Επιβεβαιώνω ότι πέθανε την τελευταία ώρα και ο Ranger μπορεί να τον αγγίξει.','Confirm it died within the last hour and the Ranger can touch it.')+'</label><label class="field">'+tr('Θέση ξορκιού','Spell slot')+'<select name="slot">'+slots.map(([k,n])=>opt(k,n,'')).join('')+'</select></label><p>'+tr('Magic action και μία θέση ξορκιού. Η αναβίωση ολοκληρώνεται μετά από ένα λεπτό.','Magic action and one spell slot. Revival completes after one minute.')+'</p>';
+   }else return;
+   openModal(title,'<form id="atlas-primal-form" data-character="'+attr(ch.id)+'" data-mode="'+mode+'">'+fields+'</form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-primal-form">'+tr('Εφαρμογή','Apply')+'</button>');
+ }
+ function atlasPrimalAction(ch,action){
+   if(atlasPrimalLevel(ch)<3)return;
+   if(action==='detail')return atlasPrimalDetail(ch);
+   if(!canEditCharacter(ch)||atlasManualSaving)return;
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch);
+   if(['summon','hp','revive'].includes(action))return atlasPrimalForm(ch,action);
+   if(!s)return;
+   if(action==='vanish'&&q.status!=='vanished'&&Number(ch.hp?.current)===0&&confirm(tr('Επιβεβαιώνεις ότι ο Ranger πέθανε; Το θηρίο εξαφανίζεται.','Confirm the Ranger died? The beast vanishes.'))){q.status='vanished';q.damage=s.maxHp;q.replaceReady=false;}
+   else if(action==='dead'&&q.status==='active'&&s.hp===0&&confirm(tr('Επιβεβαίωση θανάτου συντρόφου;','Confirm companion death?'))){q.status='dead';q.replaceReady=false;}
+   else if(action==='complete'&&q.status==='reviving'&&confirm(tr('Πέρασε ένα λεπτό από την αναβίωση;','Has one minute passed since revival?'))){q.status='active';q.damage=0;}
+   else if(action==='command'&&q.status==='active'&&s.hp>0){
+     const canPropose=atlasProposalContext(ch)&&atlasPublicBattle?.currentCharacterId===ch.id;
+     return openModal(tr('Εντολές συντρόφου','Companion commands'),'<p>'+tr('Στη σειρά σου κινείται και αντιδρά ανεξάρτητα. Χωρίς εντολή χρησιμοποιεί Dodge. Με Bonus Action δίνεις εντολή για ενέργεια ή θυσιάζεις μία επίθεσή σου κατά το Attack action για Beast’s Strike. Αν είσαι Incapacitated, ενεργεί ανεξάρτητα.','On your turn it moves and reacts independently. Without a command it Dodges. Use a Bonus Action to command an action, or forgo one attack during your Attack action for Beast’s Strike. If you are Incapacitated, it acts independently.')+'</p><p>Beast’s Strike · 1d20'+signed(s.attack)+' · '+esc(s.damage)+' · '+s.strikes+' '+tr('χτυπήματα','strikes')+'</p><p class="muted small">'+tr('Η χρήση Action/Bonus Action καταγράφεται χειροκίνητα.','Action/Bonus Action use is tracked manually.')+'</p>',btn(tr('Κλείσιμο','Close'),'close-modal')+(canPropose?atlasPrimalButton(ch,'propose',tr('Πρόταση ενέργειας στον DM','Propose action to DM')):''),true);
+   }else if(action==='propose'&&q.status==='active'&&s.hp>0&&atlasProposalContext(ch)&&atlasPublicBattle?.currentCharacterId===ch.id){
+     atlasPlayerProposalOpen(ch);const f=document.getElementById('atlas-player-proposal');if(f){f.elements.kind.value='attack';f.elements.label.value=(q.name||atlasPrimalName(q.form))+' · Beast’s Strike';}return;
+   }else return;
+   closeModal();update();
+ }
+ document.addEventListener('click',e=>{const el=e.target.closest('[data-atlas-primal]');if(!el)return;e.preventDefault();e.stopImmediatePropagation();const ch=characters.find(x=>x.id===el.dataset.character);if(ch)atlasPrimalAction(ch,el.dataset.atlasPrimal);},true);
+ document.addEventListener('submit',e=>{
+   const f=e.target;if(f.id!=='atlas-primal-form')return;e.preventDefault();e.stopImmediatePropagation();
+   const ch=characters.find(x=>x.id===f.dataset.character);if(!ch||!canEditCharacter(ch)||atlasManualSaving||atlasPrimalLevel(ch)<3)return;
+   const q=ch.primalCompanion,s=atlasPrimalStats(ch),fd=new FormData(f),mode=f.dataset.mode;
+   if(mode==='summon'){
+     if(s&&!q.replaceReady)return;const form=String(fd.get('form')),def=ATLAS_PRIMAL_FORMS[form];if(!def)return;
+     const name=String(fd.get('name')||'').trim(),appearance=String(fd.get('appearance')||'').trim(),damageType=String(fd.get('damageType'));
+     if(name.length>100||appearance.length>160)return;
+     ch.primalCompanion={form,name,appearance,damageType:def.damageTypes.includes(damageType)?damageType:def.damageTypes[0],damage:0,status:'active',replaceReady:false};
+   }else if(mode==='hp'&&s&&q.status==='active'){
+     const raw=fd.get('hp'),hp=Number(raw);if(raw===null||String(raw).trim()===''||!Number.isInteger(hp)||hp<0||hp>s.maxHp)return;q.damage=s.maxHp-hp;
+   }else if(mode==='revive'&&s&&q.status==='dead'){
+     if(!fd.get('withinHour'))return;const slot=String(fd.get('slot'));if(!atlasPrimalSlots(ch).some(x=>x[0]===slot))return;
+     const source=slot==='pact'?ch.pact:ch.slots[slot.slice(5)];source.used=Number(source.used||0)+1;q.status='reviving';q.replaceReady=false;
+   }else return;
+   closeModal();update();
+ },true);
+
+
  function renderCompanions(ch){const list=ch.companions||[];return list.length?`<div class="tile-list">${list.map(p=>`<div class="tile"><button class="linklike" style="text-align:left;min-width:0;flex:1" data-companion-detail="${attr(p.id)}"><span class="name">${esc(p.name)} · HP ${p.hp}/${p.maxHp}</span><span class="desc">${esc(p.type||'Companion')} · AC ${p.ac} · Speed ${p.speed} ft</span></button><button class="btn sm" data-edit-companion="${attr(p.id)}">Edit</button></div>`).join('')}</div>`:'<div class="empty">Familiars, wild shapes, mounts και companions μπορούν να προστεθούν εδώ.</div>';}
  function renderSurvival(ch){const d=ch.death||{success:0,fail:0};const h=ch.hitDice||{max:totalLevel(ch),used:0};return `<div class="rowline"><span class="name">Death saves · Success</span><div class="dots">${[0,1,2].map(i=>`<button class="dot ${i<d.success?'filled':''}" data-death="success:${i}">${i<d.success?'✓':'·'}</button>`).join('')}</div></div><div class="rowline"><span class="name">Death saves · Failure</span><div class="dots">${[0,1,2].map(i=>`<button class="dot ${i<d.fail?'filled':''}" style="${i<d.fail?'background:#a85d61':''}" data-death="fail:${i}">${i<d.fail?'✕':'·'}</button>`).join('')}</div></div><div class="rowline"><div><span class="name">Hit Dice</span><small>${h.max-h.used} / ${h.max} ${tr('διαθέσιμα','remaining')} · ${h.used} ${tr('χρησιμοποιημένα','spent')}</small></div><div class="actions-inline"><button class="btn sm" data-action="spend-hitdie">Mark used</button><button class="btn sm" data-action="edit-hitdice">Edit</button></div></div><div class="rowline"><span class="name">Exhaustion</span><div class="counter"><button class="btn sm" data-action="exhaust-down">−</button><span class="counter-val">${ch.exhaustion||0} / 6</span><button class="btn sm" data-action="exhaust-up">+</button></div></div>`;}
 const ATLAS_SKILL_RULES_2024={classes:{"Barbarian":[2,"Animal Handling,Athletics,Intimidation,Nature,Perception,Survival"],"Bard":[3,"*"],"Cleric":[2,"History,Insight,Medicine,Persuasion,Religion"],"Druid":[2,"Arcana,Animal Handling,Insight,Medicine,Nature,Perception,Religion,Survival"],"Fighter":[2,"Acrobatics,Animal Handling,Athletics,History,Insight,Intimidation,Perception,Persuasion,Survival"],"Monk":[2,"Acrobatics,Athletics,History,Insight,Religion,Stealth"],"Paladin":[2,"Athletics,Insight,Intimidation,Medicine,Persuasion,Religion"],"Ranger":[3,"Animal Handling,Athletics,Insight,Investigation,Nature,Perception,Stealth,Survival"],"Rogue":[4,"Acrobatics,Athletics,Deception,Insight,Intimidation,Investigation,Perception,Performance,Persuasion,Sleight of Hand,Stealth"],"Sorcerer":[2,"Arcana,Deception,Insight,Intimidation,Persuasion,Religion"],"Warlock":[2,"Arcana,Deception,History,Intimidation,Investigation,Nature,Religion"],"Wizard":[2,"Arcana,History,Insight,Investigation,Medicine,Religion"]},backgrounds:{"Acolyte":"Insight,Religion","Artisan":"Investigation,Persuasion","Charlatan":"Deception,Sleight of Hand","Criminal":"Sleight of Hand,Stealth","Entertainer":"Acrobatics,Performance","Farmer":"Animal Handling,Nature","Guard":"Athletics,Perception","Guide":"Stealth,Survival","Hermit":"Medicine,Religion","Merchant":"Animal Handling,Persuasion","Noble":"History,Persuasion","Sage":"Arcana,History","Sailor":"Acrobatics,Perception","Scribe":"Investigation,Perception","Soldier":"Athletics,Intimidation","Wayfarer":"Insight,Stealth"}};
@@ -1197,7 +1508,7 @@ document.addEventListener('submit',e=>{
  function atlasSpellInfo(ch,s,ref){
    const level=Number(ref?.level??s.level??0),cast=String(ref?.cast||s.cast||''),kind=/bonus action/i.test(cast)?'bonus':/reaction/i.test(cast)?'reaction':/^(?:1\s*)?action$/i.test(cast.trim())?'action':'other';
    const source=String(s.spellSource||'').trim(),resource=(ch.resources||[]).find(r=>r.id===s.freeResourceId);
-   const prepared=level===0||s.prepared!==false,ritual=ref?!!ref.ritual:!!s.ritual,wizardRitual=ritual&&source.toLowerCase()==='wizard'&&(ch.classes||[]).some(x=>x.name==='Wizard');
+   const prepared=level===0||s.alwaysPrepared===true||s.prepared!==false,ritual=ref?!!ref.ritual:!!s.ritual,wizardRitual=ritual&&source.toLowerCase()==='wizard'&&(ch.classes||[]).some(x=>x.name==='Wizard');
    const slots=level>0&&prepared?Object.entries(ch.slots||{}).filter(([k,r])=>Number(k)>=level&&r.max>r.used).map(([k])=>Number(k)):[];
    const pact=level>0&&prepared&&Number(ch.pact?.level)>=level&&ch.pact.max>ch.pact.used;
    return {level,cast,kind,source,resource,prepared,ritual,wizardRitual,slots,pact,canFree:level>0&&!!resource&&Number(resource.current)>0,canRitual:ritual&&(prepared||wizardRitual)};
@@ -1608,11 +1919,12 @@ document.addEventListener('submit',e=>{
  function atlasDeadline(promise,ms=18000){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Timed out')),ms);})]).finally(()=>clearTimeout(timer));}
  async function atlasRemoteVersion(){const url=new URL('./version.json',location.href);url.searchParams.set('_atlas_release',String(Date.now()));const result=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(12000):undefined});if(!result.ok)throw Error('HTTP '+result.status);const version=String((await result.json()).version||'');atlasVersionCompare(version,APP_VERSION);return version;}
  async function checkUpdates(manual=false){
-  if(checkingUpdates||refreshingApp)return;checkingUpdates=true;lastUpdateCheck=Date.now();
+  if(checkingUpdates||refreshingApp){if(manual)toast(uiText('Ο έλεγχος ή η ενημέρωση είναι ήδη σε εξέλιξη.','A check or update is already in progress.'));return;}checkingUpdates=true;lastUpdateCheck=Date.now();
   if(manual)atlasUpdateBusy(true,uiText('Έλεγχος έκδοσης…','Checking release…'));
   try{const remote=await atlasDeadline(atlasRemoteVersion(),15000);updateAvailable=atlasVersionCompare(remote,APP_VERSION)>0;
-    if(updateAvailable){updateBanner();setUpdateStatus(uiText('Διαθέσιμη έκδοση ','Available version ')+remote);}
-    else{document.getElementById('atlas-update-banner')?.remove();if(manual)setUpdateStatus(uiText('Η εφαρμογή είναι ενημερωμένη.','The app is up to date.'));}
+    const versions=' · '+uiText('Εγκατεστημένη','Installed')+' '+APP_VERSION+' · '+uiText('Δημοσιευμένη','Published')+' '+remote;
+    if(updateAvailable){updateBanner();setUpdateStatus(uiText('Διαθέσιμη έκδοση ','Available version ')+remote+versions);}
+    else{document.getElementById('atlas-update-banner')?.remove();if(manual){const msg=(atlasVersionCompare(remote,APP_VERSION)<0?uiText('Η δημοσιευμένη έκδοση είναι παλαιότερη.','Published release is older.'):uiText('Δεν υπάρχει νεότερη δημοσιευμένη έκδοση.','No newer published release.'))+versions;setUpdateStatus(msg);toast(msg);}}
   }catch(e){if(manual){const msg=uiText('Αποτυχία ελέγχου. Δοκίμασε ξανά.','Update check failed. Try again.');setUpdateStatus(msg);toast(msg);}}
   finally{checkingUpdates=false;if(manual)atlasUpdateBusy(false);}
  }
@@ -1803,6 +2115,7 @@ document.addEventListener('submit',e=>{
    const plan=atlasRestPlan(ch,id,!!document.getElementById('atlas-rest-end-concentration')?.checked);
    if(!plan.allowed)return toast(tr('Χρειάζεσαι τουλάχιστον 1 HP για να αρχίσεις Rest.','You need at least 1 HP to begin a Rest.'));
    if(id==='short'){const count=document.getElementById('atlas-rest-dice-count'),mode=document.getElementById('atlas-rest-dice-mode');if(count&&count.closest('[data-character]')?.dataset.character!==ch.id)return;try{const result=atlasRestDiceApply(plan.next,count?.value??0,mode?.value??'manual',[...document.querySelectorAll('[data-rest-die-result]')].map(x=>x.value),atlasRestDieTypes(ch));if(result.spent)plan.changes.push(tr('Χρησιμοποιήθηκαν Hit Dice: ','Hit Dice spent: ')+result.spent+(mode?.value==='manual'?' · '+tr('Ενημέρωσε τα HP χειροκίνητα.','Update HP manually.'):' · +'+result.healed+' HP'));}catch(err){return toast(err.message);}}
+   if(id==='long'&&atlasPrimalLevel(ch)>=3&&plan.next.primalCompanion){plan.next.primalCompanion.replaceReady=true;plan.changes.push(tr('Primal Companion: μπορείς να επιλέξεις νέο θηρίο.','Primal Companion: you may replace your beast.'));}
    Object.assign(ch,plan.next);closeModal();update();restReport(id,plan.changes);break;}
   case 'remove-custom-feat':ch.customFeats=(ch.customFeats||[]).filter(x=>x.id!==id);closeModal();update();break;
   case 'close-modal':closeModal();break;
@@ -2114,6 +2427,7 @@ document.addEventListener('submit',e=>{
     const group=ch.classes.map(x=>`${esc(pairedTerm(x.name))} ${x.level}${x.subclass?' · '+esc(pairedTerm(x.subclass)):''}`).join(' / ');
     return `<div class="page-title"><div><h2>${tr('Χαρακτήρας','Character')}</h2><p>${tr('Στοιχεία χαρακτήρα και εξέλιξη από το επίπεδο 1 έως το 20.','Character details and level progression from 1 to 20.')}</p></div>${btn(tr('Επεξεργασία','Edit'),'edit-character','sm')}</div>
     <div class="grid two">${section('Ταυτότητα','Identity',`<div class="rowline"><span>${tr('Όνομα','Name')}</span><strong>${esc(ch.name)}</strong></div><div class="rowline"><span>${tr('Είδος','Species')}</span><strong>${esc(ch.species)}</strong></div><div class="rowline"><span>${tr('Υπόβαθρο','Background')}</span><strong>${esc(ch.background||'—')}</strong></div><div class="rowline"><span>${tr('Κλάση / Υποκλάση','Class / Subclass')}</span><strong>${group}</strong></div><div class="rowline"><span>${tr('Ευθυγράμμιση','Alignment')}</span><strong>${esc(ch.alignment||'—')}</strong></div>`)}${section('Εκπαίδευση & επάρκειες','Equipment Training & Proficiencies',atlasProfPanel(ch),atlasProfCanManage(ch)?btn(tr('Επεξεργασία','Edit'),'edit-proficiencies','sm'):'')}</div>
+    ${atlasPrimalPanel(ch)}${section('Σύντροφοι & επικλήσεις','Companions & Summons',renderCompanions(ch),canEditCharacter(ch)?btn(tr('+ Σύντροφος','+ Companion'),'add-companion','sm'):'')}
     ${section('Εξέλιξη επιπέδων 1–20','Level progression 1–20',progression(ch),`<button class="btn sm" data-action="level-up">${tr('Αύξηση επιπέδου','Level Up')}</button>`)}
     ${section('Εξαγωγή και αντίγραφα','Export & backups',`<div class="actions-inline"><button class="btn sm primary" data-atlas-print>${tr('Εκτύπωση φύλλου χαρακτήρα 2024 / PDF','Print 2024 character sheet / PDF')}</button><button class="btn sm" data-action="download-character-docx">${tr('Εξαγωγή DOCX','Export DOCX')}</button><button class="btn sm" data-action="level-progression">${tr('Πίνακας όλων των κλάσεων','All classes reference')}</button></div><p class="muted small">${tr('Η εκτυπώσιμη μορφή ακολουθεί τα δεδομένα και τους υπολογισμούς του 2024. Δεν είναι το επίσημο PDF της Wizards.','This printable layout uses 2024 rules and values. It is not the Wizards official PDF template.')}</p>`)}`;
   };
@@ -2147,6 +2461,7 @@ document.addEventListener('submit',e=>{
     return `${atlasPublicBattleBanner(ch)}<div class="page-title"><div><h2>${tr('Μάχη','Combat')}</h2><p>${tr('Οι πραγματικές δυνατότητές σου και ο τρόπος χρήσης τους με ζάρια.','Your available abilities and how to use physical dice.')}</p></div></div>
       <div class="combat-status"><div><small>${tr('Ζωή','HP')}</small><b>${ch.hp?.current||0}/${ch.hp?.max||1}</b></div><div><small>${tr('Άμυνα','AC')}</small><b>${AC(ch)}</b></div><div><small>${tr('Πρωτοβουλία','Initiative')}</small><b>${signed(initMod(ch))}</b></div><div><small>${tr('Ταχύτητα','Speed')}</small><b>${ch.speed||30} ft</b></div>${ch.hp?.temp?`<div><small>${tr('Προσωρινή ζωή','Temp HP')}</small><b>${ch.hp.temp}</b></div>`:''}</div>
       ${atlasCombatTabBar(active)}${atlasTurnPanel(ch)}
+      ${atlasPrimalPanel(ch)}
       <div class="combat-columns atlas-combat-tab-layout">
       <div class="grid atlas-combat-primary">
       <div class="grid" role="tabpanel" id="atlas-combat-panel-attacks" aria-labelledby="atlas-combat-tab-attacks" ${active==='attacks'?'':'hidden'}>
@@ -2161,6 +2476,7 @@ document.addEventListener('submit',e=>{
       </div>
       ${classFeatures?section('Ικανότητες μάχης','Combat abilities',classFeatures):''}
       </div><div class="grid atlas-combat-shared">
+      ${section('Σύντροφοι & επικλήσεις','Companions & Summons',renderCompanions(ch),canEditCharacter(ch)?btn(tr('+ Σύντροφος','+ Companion'),'add-companion','sm'):'')}
       ${res?section('Διαθέσιμοι πόροι','Available resources',res):''}
       ${section('Ζαριές σωτηρίας','Saving Throws',`<div class="combat-saves">${saves}</div><p class="muted small">${tr('● Επάρκεια: προστίθεται το μπόνους επάρκειας.','● Proficient: add Proficiency Bonus.')}</p>`)}
       ${section('Ενεργές καταστάσεις','Active Conditions',conditionPills(ch),`<button class="btn sm" data-action="conditions">${tr('Διαχείριση','Manage')}</button>`)}
@@ -2807,12 +3123,18 @@ document.addEventListener('submit',e=>{
   document.addEventListener('change',e=>{if(e.target.matches('[data-atlas-session-filter]')){campaignTagFilter=e.target.value;renderApp();return;}if(e.target.matches('[data-atlas-other-tag-filter]')){campaignOtherTagFilter=e.target.value;renderApp();}},true);
   document.addEventListener('submit',async e=>{
    if(e.target.id==='atlas-pending-choice-form'){
-    e.preventDefault();const index=Number(e.target.dataset.choiceIndex),ch=c(),p=(ch.pendingChoices2024||[])[index];
-    const value=String(new FormData(e.target).get('pendingValue')||'').trim();
-    if(!p||!value)return toast(tr('Συμπλήρωσε την επιλογή.','Choose a value.'));
-    if(cloud.enabled&&!canEditCharacter(ch))return toast(tr('Δεν έχεις δικαίωμα επεξεργασίας.','Permission denied.'));
-    p.value=value;p.status='resolved';p.resolvedAt=new Date().toISOString();
-    update();showPendingChoices();return;
+    e.preventDefault();e.stopImmediatePropagation();
+    const ch=c(),p=ch&&atlasPendingEntries(ch).find(x=>x.choiceKey===e.target.dataset.choiceKey),fd=new FormData(e.target);
+    if(!ch||!p||ch.id!==e.target.dataset.character||!canEditCharacter(ch)||atlasManualSaving)return;
+    try{
+      const draft=structuredClone(ch);
+      if(p.kind==='review'){if(!atlasCanDmOverride()||!fd.get('confirm'))return;}
+      else{atlasPendingApply(draft,p.kind,fd,atlasCanDmOverride());if(!atlasPendingResolved(draft,p,p.kind))throw Error(tr('Η επιλογή δεν ολοκλήρωσε τις απαιτήσεις.','The choice did not satisfy the requirements.'));}
+      const stored=(draft.pendingChoices2024||[]).find((q,i)=>String(q.key||'legacy-'+i)===p.choiceKey);
+      if(stored){stored.status='resolved';stored.resolutionMode=p.kind==='review'?'dm-review':'typed';stored.resolvedAt=new Date().toISOString();delete stored.value;}
+      Object.assign(ch,draft);update();showPendingChoices();
+    }catch(err){toast(err.message);}
+    return;
    }
 
    if(e.target.id==='atlas-image-tags-form'){
@@ -2882,7 +3204,7 @@ document.addEventListener('submit',e=>{
   if(el.dataset.slot){let [type,lvl,dir]=el.dataset.slot.split(':'),x=type==='pact'?c().pact:c().slots?.[lvl];if(x){x.used=clamp(x.used+(dir==='spend'?1:-1),0,x.max);update();}return;}
   if(el.dataset.death){let [k,i]=el.dataset.death.split(':'),d=c().death;d[k]=Number(i)<d[k]?Number(i):Number(i)+1;update();return;}
   if(el.dataset.ownedSpell){ownedSpell(el.dataset.ownedSpell);return;}
-  if(el.dataset.togglePrepared){let x=c().spellbook.find(z=>z.id===el.dataset.togglePrepared);if(x){x.prepared=x.prepared===false;update();}return;}
+  if(el.dataset.togglePrepared){let x=c().spellbook.find(z=>z.id===el.dataset.togglePrepared);if(x){if(x.alwaysPrepared===true)return toast(tr('Αυτό το ξόρκι είναι πάντα προετοιμασμένο.','This spell is always prepared.'));x.prepared=x.prepared===false;update();}return;}
   if(el.dataset.editOwnedSpell){editOwnedSpell(el.dataset.editOwnedSpell);return;}
   if(el.dataset.featureDetail){featureDetail(el.dataset.featureDetail);return;}
   if(el.dataset.customFeatDetail){customFeatDetail(el.dataset.customFeatDetail);return;}
