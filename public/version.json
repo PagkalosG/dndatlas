@@ -1,6 +1,6 @@
 {
-  "version": "3.12.0",
+  "version": "3.13.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Player combat proposals, DM review and End Turn, explicit Save status"
+  "notes": "Encounter-local conditions, duration and saving throw reminders, concentration damage checks"
 }
