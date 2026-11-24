@@ -1,6 +1,6 @@
 {
-  "version": "3.13.0",
+  "version": "3.14.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Encounter-local conditions, duration and saving throw reminders, concentration damage checks"
+  "notes": "Persistent party companion library, sheet imports, temporary summons and encounter tracking"
 }
