@@ -1,6 +1,6 @@
 {
-  "version": "3.11.0",
+  "version": "3.12.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Manual save, combat activity log, encounter history, statistics and player turn projection"
+  "notes": "Player combat proposals, DM review and End Turn, explicit Save status"
 }
