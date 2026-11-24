@@ -263,6 +263,21 @@ test('isolated actual D1 integration: Creator, DM, Player, privacy, Undo, confli
    assert.equal((await req(mf,'/encounter?public=1',3,'PUT',{revision:7,encounter:null,history:[]})).status,403);
    assert.equal((await req(mf,'/encounter',2,'PUT',{revision:7,encounter:null,history:[archive]})).status,200);
    assert.equal((await req(mf,'/encounter',2)).body.history.length,1);
+   const fight={...state,fightId:'fight-test',turnKey:'turn-test',reviews:[]};
+   const made=await req(mf,'/encounter',2,'PUT',{revision:8,encounter:fight,history:[archive]});assert.equal(made.status,200,JSON.stringify(made.body));
+   const proposal={id:'proposal-test',fightId:'fight-test',turnKey:'turn-test',round:1,characterId:'borruk',kind:'attack',label:'Spear',target:'Goblin',outcome:'hit',amount:4,note:''};
+   const inbox='/encounter?inbox=1';
+   assert.equal((await req(mf,inbox,4,'POST',{items:[proposal]})).status,400);
+   assert.equal((await req(mf,inbox,2,'POST',{items:[proposal]})).status,403);
+   assert.equal((await req(mf,inbox,3,'POST',{items:[{...proposal,turnKey:'stale'}]})).status,409);
+   const sent=await req(mf,inbox,3,'POST',{items:[proposal]});assert.equal(sent.status,200,JSON.stringify(sent.body));
+   assert.equal((await req(mf,inbox,3,'POST',{items:[proposal]})).status,200);
+   assert.equal((await req(mf,inbox,4)).body.items.length,0);const visible=await req(mf,'/encounter?public=1',3);assert.equal(visible.body.items.length,1);assert.equal(visible.body.items[0].turnActorId,undefined);assert.equal((await req(mf,'/encounter?public=1',4)).body.items.length,0);
+   assert.equal((await req(mf,inbox,2)).body.items.length,1);
+   assert.equal((await req(mf,'/encounter',2)).body.revision,9);
+   const reviewed=await req(mf,'/encounter',2,'PUT',{revision:9,encounter:{...fight,reviews:[{id:proposal.id,status:'approved'}]},history:[archive]});assert.equal(reviewed.status,200,JSON.stringify(reviewed.body));
+   assert.equal((await req(mf,inbox,3)).body.items[0].status,'approved');
+   assert.equal((await req(mf,'/encounter',3)).status,403);
   });
   await t.test('direct Drive API remains forbidden or disabled',async()=>{
    assert.equal((await req(mf,'/sync/drive/publish',1,'POST',{})).status,410);
