@@ -606,13 +606,13 @@
      if(action==='check'&&e.kind==='concentration'){
        openModal(tr('Έλεγχος συγκέντρωσης','Concentration check'),'<form id="atlas-effect-damage-form" data-id="'+attr(id)+'" data-revision="'+atlasBattleRevision+'" data-fight="'+attr(next.fightId||'')+'"><label class="field">'+tr('Τελική ζημιά μετά από αντιστάσεις','Final damage after resistances')+'<input name="damage" type="number" min="1" max="99999" step="1" required></label></form>',btn(tr('Άκυρο','Cancel'),'close-modal')+'<button class="btn primary" type="submit" form="atlas-effect-damage-form">'+tr('Καταγραφή','Record')+'</button>');return;
      }
-     if(action==='repeat'&&e.mode==='save'&&atlasEffectDue(next,e)){if(next.round>=99999)return;e.round=next.round+1;}
+     if(action==='repeat'&&e.mode==='save'&&atlasEffectDue(next,e)){const round=Math.max(e.round+1,next.round);e.round=round;if(atlasEffectDue(next,e))e.round++;if(e.round>99999)throw Error(tr('Έφτασες στο όριο γύρων.','Round limit reached.'));}
      else if(action==='pass'&&e.kind==='check')atlasEffectRemove(next,id);
      else if(action==='fail'&&e.kind==='check')atlasEffectRemove(next,e.parent);
      else if(action==='end'&&e.kind!=='check')atlasEffectRemove(next,id);
      else return;
      const p=next.participants.find(p=>p.id===e.targetId);
-     atlasBattleAppend(next,{kind:e.kind==='check'||e.kind==='concentration'?'concentration':'condition',label:(action==='repeat'?'Next reminder: ':action==='pass'?'Save passed: ':action==='fail'?'Concentration lost: ':'Ended: ')+e.label.slice(0,120),target:p.id,targetName:p.name,amount:0,outcome:action==='pass'?'success':action==='fail'?'failure':'',note:''});
+     atlasBattleAppend(next,{kind:e.kind==='check'||e.kind==='concentration'?'concentration':'condition',label:(action==='repeat'?tr('Επόμενη υπενθύμιση: ','Next reminder: '):action==='pass'?tr('Επιτυχής δοκιμασία: ','Save passed: '):action==='fail'?tr('Απώλεια συγκέντρωσης: ','Concentration lost: '):tr('Έληξε: ','Ended: '))+e.label.slice(0,120),target:p.id,targetName:p.name,amount:0,outcome:action==='pass'?'success':action==='fail'?'failure':'',note:''});
      atlasBattleSave(next);
    }catch(err){toast(err.message);}
  }
