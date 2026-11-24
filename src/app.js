@@ -1292,15 +1292,16 @@
    for(const q of (ch.classes||[]).slice(1)){const rule=ATLAS_SKILL_RULES_2024.classes[q.name];if(rule&&['Bard','Ranger','Rogue'].includes(q.name))sources.push({key:'multi:'+q.name,title:q.name+' · '+tr('Πολυκλασικότητα','Multiclass'),count:1,options:rule[1]==='*'?p.all:rule[1].split(',')});}
    return {...p,sources};
  }
+ function atlasPendingOtherSkillSources(ch){const old=ch.skillChoiceSources2024||{};return [...new Set([...(Array.isArray(old.feat)?old.feat:[]),ch.studentOfWarSkill,...(ch.pendingOtherSkills2024||[])].filter(x=>D.skills.some(s=>s[0]===x)&&Number(ch.skills?.[x])>=1))];}
  function atlasPendingSkillPicks(ch,p){
-   const old=ch.skillChoiceSources2024||{},taken=new Set(p.fixed),picks={};
+   const old=ch.skillChoiceSources2024||{},taken=new Set([...p.fixed,...atlasPendingOtherSkillSources(ch)]),picks={};
    for(const source of p.sources){const stored=Array.isArray(old[source.key])?old[source.key]:[],suggested=source.options.filter(x=>Number(ch.skills?.[x])>=1&&!taken.has(x));
      picks[source.key]=(stored.length?stored:suggested).filter(x=>source.options.includes(x)&&!taken.has(x)).slice(0,source.count);
      picks[source.key].forEach(x=>taken.add(x));}
    return picks;
  }
  function atlasPendingSkillsValid(ch){
-   const p=atlasPendingSkillPlan(ch),stored=ch.skillChoiceSources2024||{},taken=new Set(p.fixed);
+   const p=atlasPendingSkillPlan(ch),stored=ch.skillChoiceSources2024||{},taken=new Set([...p.fixed,...atlasPendingOtherSkillSources(ch)]);
    if(!p.fixed.length||!p.sources.length||p.fixed.some(x=>Number(ch.skills?.[x])<1||!Number(ch.skills?.[x])))return false;
    for(const src of p.sources){const a=stored[src.key];if(!Array.isArray(a)||a.length!==src.count||new Set(a).size!==a.length||a.some(x=>!src.options.includes(x)||taken.has(x)||!(Number(ch.skills?.[x])>=1)))return false;a.forEach(x=>taken.add(x));}
    return true;
@@ -1320,7 +1321,7 @@
  function atlasPendingHasDruidic(ch){const style=String(ch.fightingStyle||'').trim();return atlasPendingLevel(ch,'Ranger')>=2&&(style?/druidic warrior/i.test(style):(ch.features||[]).some(x=>/druidic warrior/i.test(String(x.name||'')))||(ch.pendingChoices2024||[]).some(p=>atlasPendingKind(p,ch)==='druidic'));}
  function atlasPendingSpellName(s){return findReference(s.ref)?.name||s.name||'';}
  function atlasPendingSpellDef(name){const key=atlasPendingNorm(name);return D.spells.find(x=>atlasPendingNorm(x.name)===key);}
- function atlasPendingSpellSource(s){const raw=String(s.spellSource||'').trim().toLowerCase();return /^(ranger|ranger spellcasting|ranger spells)$/.test(raw)?'ranger':raw;}
+ function atlasPendingSpellSource(s){const raw=String(s.spellSource||'').trim().toLowerCase();return /^(ranger|ranger spellcasting|ranger spells)$/.test(raw)?'ranger':/druidic warrior/.test(raw)?'druidic warrior':raw;}
  function atlasPendingSpellAlways(ch,s){
    const n=atlasPendingNorm(atlasPendingSpellName(s)),src=atlasPendingSpellSource(s);
    return s.alwaysPrepared===true||/favored enemy|lineage|species|wood elf|magic initiate|subclass|gloom stalker|fey wanderer|swarmkeeper|hunter magic/.test(src)||n==='huntersmark'&&atlasPendingLevel(ch,'Ranger')>0||atlasPendingWoodElf(ch)&&['druidcraft','longstrider','passwithouttrace'].includes(n);
@@ -1400,9 +1401,9 @@
    const kind=p.kind;
    if(kind==='skills'){
      const plan=atlasPendingSkillPlan(ch),picks=atlasPendingSkillPicks(ch,plan),old=ch.skillChoiceSources2024||{},fixed=new Set(plan.fixed),claimed=new Set([...fixed,...Object.values(picks).flat()]);
-     const preserved=[...new Set([...(Array.isArray(old.feat)?old.feat:[]),ch.studentOfWarSkill].filter(x=>plan.all.includes(x)&&Number(ch.skills?.[x])>=1))];
+     const preserved=atlasPendingOtherSkillSources(ch);
      const extras=Object.keys(ch.skills||{}).filter(x=>Number(ch.skills[x])>=1&&!claimed.has(x)&&!preserved.includes(x));
-     return '<p>'+tr('Υποχρεωτικές δεξιότητες υποβάθρου','Fixed background skills')+': <b>'+esc(plan.fixed.join(' · '))+'</b></p>'+plan.sources.map(src=>'<div class="detail-note"><strong>'+esc(src.title)+' · '+src.count+'</strong>'+Array.from({length:src.count},(_,i)=>atlasPendingSelect('skill:'+src.key+':'+i,tr('Επιλογή','Choice')+' '+(i+1),src.options.filter(x=>!fixed.has(x)),picks[src.key][i])).join('')+'</div>').join('')+(preserved.length?'<p class="muted small">'+tr('Διατηρούνται καταγεγραμμένες άλλες πηγές: ','Preserved recorded other sources: ')+esc(preserved.join(', '))+'</p>':'')+(extras.length?'<p class="notice">'+tr('Μη αντιστοιχισμένες εισαγόμενες δεξιότητες: ','Unassigned imported skills: ')+esc(extras.join(', '))+'. '+tr('Θα αφαιρεθούν αν δεν επιλεγούν ξανά. Ο DM μπορεί να διατηρήσει άλλες νόμιμες πηγές.','They will be removed unless selected again. The DM may retain other legal sources.')+'</p>':'')+(atlasCanDmOverride()?atlasPendingChecks('retain',plan.all.filter(x=>Number(ch.skills?.[x])>=1&&!preserved.includes(x)).map(x=>[x,x,tr('Άλλη πηγή (DM)','Other source (DM)')]),(ch.pendingOtherSkills2024||[]).filter(x=>plan.all.includes(x)),18):'')+'<label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω την ανακατανομή των εισαγόμενων proficiencies.','Confirm rebuilding the imported proficiencies.')+'</label>';
+     return '<p>'+tr('Υποχρεωτικές δεξιότητες υποβάθρου','Fixed background skills')+': <b>'+esc(plan.fixed.join(' · '))+'</b></p>'+plan.sources.map(src=>'<div class="detail-note"><strong>'+esc(src.title)+' · '+src.count+'</strong>'+Array.from({length:src.count},(_,i)=>atlasPendingSelect('skill:'+src.key+':'+i,tr('Επιλογή','Choice')+' '+(i+1),src.options.filter(x=>!fixed.has(x)&&!preserved.includes(x)),picks[src.key][i])).join('')+'</div>').join('')+(preserved.length?'<p class="muted small">'+tr('Διατηρούνται καταγεγραμμένες άλλες πηγές: ','Preserved recorded other sources: ')+esc(preserved.join(', '))+'</p>':'')+(extras.length?'<p class="notice">'+tr('Μη αντιστοιχισμένες εισαγόμενες δεξιότητες: ','Unassigned imported skills: ')+esc(extras.join(', '))+'. '+tr('Αν δεν επιλεγούν ξανά, απαιτείται έλεγχος DM πριν αφαιρεθούν.','If not selected again, DM review is required before removal.')+'</p>':'')+(atlasCanDmOverride()?atlasPendingChecks('retain',plan.all.filter(x=>Number(ch.skills?.[x])>=1&&!preserved.includes(x)).map(x=>[x,x,tr('Άλλη πηγή (DM)','Other source (DM)')]),(ch.pendingOtherSkills2024||[]).filter(x=>plan.all.includes(x)),18):'')+'<label class="atlas-rest-check"><input type="checkbox" name="confirm" required>'+tr('Επιβεβαιώνω την ανακατανομή των εισαγόμενων proficiencies.','Confirm rebuilding the imported proficiencies.')+'</label>';
    }
    if(kind==='deft'||kind==='expertise'){
      const count=atlasPendingExpertiseCount(ch,kind),old=kind==='deft'?[ch.deftExplorer2024?.skill].filter(Boolean):ch.expertiseChoices2024||[],blocked=kind==='deft'?ch.expertiseChoices2024||[]:[ch.deftExplorer2024?.skill],options=D.skills.map(x=>x[0]).filter(x=>Number(ch.skills?.[x])>=1&&!blocked.includes(x));
@@ -1442,11 +1443,11 @@
    const list=n=>fd.getAll(n).map(String),one=n=>String(fd.get(n)||''),unique=(a,n)=>a.length===n&&new Set(a).size===n,need=()=>{if(!fd.get('confirm'))throw Error(tr('Απαιτείται επιβεβαίωση.','Confirmation required.'));},bad=()=>{throw Error(tr('Συμπλήρωσε ακριβώς τις νόμιμες και διαφορετικές επιλογές.','Choose exactly the required distinct legal options.'));};
    if(!atlasPendingSupported(ch,kind))bad();
    if(kind==='skills'){
-     need();const p=atlasPendingSkillPlan(ch),taken=new Set(p.fixed),old=ch.skillChoiceSources2024||{},next={...old};
-     for(const src of p.sources){const a=Array.from({length:src.count},(_,i)=>one('skill:'+src.key+':'+i));if(!unique(a,src.count)||a.some(x=>!src.options.includes(x)||taken.has(x)))bad();a.forEach(x=>taken.add(x));next[src.key]=a;}
+     need();const p=atlasPendingSkillPlan(ch),old=ch.skillChoiceSources2024||{},next={...old},reserved=new Set(atlasPendingOtherSkillSources(ch)),taken=new Set(p.fixed);
+     for(const src of p.sources){const a=Array.from({length:src.count},(_,i)=>one('skill:'+src.key+':'+i));if(!unique(a,src.count)||a.some(x=>!src.options.includes(x)||taken.has(x)||reserved.has(x)))bad();a.forEach(x=>taken.add(x));next[src.key]=a;}
      const keep=[...(Array.isArray(old.feat)?old.feat:[]),ch.studentOfWarSkill,...(!dm?ch.pendingOtherSkills2024||[]:[])].filter(x=>p.all.includes(x)&&Number(ch.skills?.[x])>=1);
      const other=dm?list('retain'):ch.pendingOtherSkills2024||[];if(other.some(x=>!p.all.includes(x)||!(Number(ch.skills?.[x])>=1)))bad();
-     const selected=new Set([...taken,...keep,...other]),ranks={};for(const x of selected)ranks[x]=Number(ch.skills?.[x])===2?2:1;
+     const selected=new Set([...taken,...keep,...other]),ranks={};const dropped=Object.keys(ch.skills||{}).filter(x=>Number(ch.skills[x])>=1&&!selected.has(x));if(dropped.length&&!dm)throw Error(tr('Μόνο ο DM μπορεί να αφαιρέσει μη αντιστοιχισμένες εισαγόμενες δεξιότητες: ','Only the DM can remove unassigned imported skills: ')+dropped.join(', '));if(other.some(x=>taken.has(x)))bad();for(const x of selected)ranks[x]=Number(ch.skills?.[x])===2?2:1;
      ch.skills=ranks;ch.skillChoiceSources2024=next;if(dm)ch.pendingOtherSkills2024=other;return;
    }
    if(kind==='deft'||kind==='expertise'){
