@@ -1,6 +1,6 @@
 {
-  "version": "3.7.0",
+  "version": "3.8.0",
   "updated": "2026-11-24",
   "ruleset": "D&D 5e 2024",
-  "notes": "Compact header, partial character validation, manual combat turn tracker, spell source and casting options"
+  "notes": "Reliable update flow, uniform header, containers, attunement, charges, explicit shield loadouts and build planner"
 }

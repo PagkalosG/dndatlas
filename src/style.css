@@ -381,3 +381,18 @@ html{scroll-padding-top:calc(var(--atlas-header-height) + 10px)}
 .atlas-spell-options{margin-top:12px}.atlas-spell-options .btn{min-height:40px}
 @media(max-width:1050px),(hover:none) and (pointer:coarse){.atlas-header-calculator{width:40px;min-height:44px;flex:0 0 40px}.top-actions{gap:4px}}
 @media(max-width:360px){.atlas-header-calculator,.atlas-header-toggle,.top-actions .atlas-header-settings{width:36px;flex-basis:36px}.atlas-language-flag{width:30px;min-width:30px}.brand strong{font-size:10px}}
+
+/* v3.8 uniform header controls and update feedback */
+.top-actions .atlas-header-calculator,.top-actions .atlas-header-toggle,.top-actions .atlas-header-settings{box-sizing:border-box;height:42px;min-height:42px;max-height:42px;align-self:center;border:1px solid #435b72;border-radius:10px;display:inline-flex;align-items:center;justify-content:center}
+.top-actions .atlas-header-calculator{width:42px;min-width:42px;padding:0}
+.top-actions .atlas-header-calculator svg,.top-actions .atlas-header-toggle svg,.top-actions .atlas-header-settings svg{width:19px;height:19px;flex-shrink:0}
+.top-actions .atlas-header-calculator:hover{background:#2b4056;border-color:#688099}
+.atlas-update-loader{position:fixed;inset:0;z-index:10000;background:#09121ce6;display:grid;place-items:center;padding:20px;cursor:progress}
+.atlas-update-loader-card{display:grid;justify-items:center;gap:16px;text-align:center;padding:24px;color:var(--text)}
+.atlas-update-spinner{width:36px;height:36px;border:3px solid #40566a;border-top-color:#e7c38a;border-radius:50%;animation:atlas-update-spin .8s linear infinite}
+@keyframes atlas-update-spin{to{transform:rotate(360deg)}}
+.atlas-container-card{display:grid;gap:6px;padding:10px;margin-bottom:8px;border:1px solid #43546a;border-radius:9px}
+.atlas-container-card small{color:var(--muted)}
+@media(max-width:1050px),(hover:none) and (pointer:coarse){.top-actions .atlas-header-calculator,.top-actions .atlas-header-toggle,.top-actions .atlas-header-settings{width:40px;min-width:40px;height:44px;min-height:44px;max-height:44px;flex:0 0 40px;padding:0}}
+@media(max-width:360px){.top-actions .atlas-header-calculator,.top-actions .atlas-header-toggle,.top-actions .atlas-header-settings{width:36px;min-width:36px;flex-basis:36px}}
+@media(prefers-reduced-motion:reduce){.atlas-update-spinner{animation:none;border-color:#e7c38a}}
