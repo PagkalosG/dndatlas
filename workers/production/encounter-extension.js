@@ -17,17 +17,29 @@ function atlasEncounterValidate(input,err){
  if(['active','paused'].includes(input.phase)&&(!input.activeId||input.participants.some(p=>p.initiative===null)))bad();
  return input;
 }
+// Encounter-local allies are temporary; future permanent companions must have a separate persistent identity.
+function atlasEncounterFinish(state){
+ return {...state,phase:'ended',round:1,activeId:null,participants:state.participants.filter(p=>p.type==='player').map(p=>({...p,initiative:null,out:false}))};
+}
 async function atlasEncounterRequest({request,env,actor,pathname,method,respond,err,jsonBody,audit}){
  if(pathname!=='/encounter')return null;
  if(!['creator','dm'].includes(actor.role))throw err(403,'Creator/DM only');
- if(!['GET','PUT'].includes(method))throw err(405,'Method not allowed');
+ if(!['GET','PUT','DELETE'].includes(method))throw err(405,'Method not allowed');
  await env.DB.prepare('CREATE TABLE IF NOT EXISTS atlas_encounter (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL, data_json TEXT NOT NULL, modified_by INTEGER, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)').run();
  const row=await env.DB.prepare('SELECT revision,data_json FROM atlas_encounter WHERE id=1').first();
- if(method==='GET')return respond({revision:row?Number(row.revision):0,encounter:row?JSON.parse(row.data_json):null});
+ if(method==='GET'){const state=row?JSON.parse(row.data_json):null;return respond({revision:row?Number(row.revision):0,encounter:state?.phase==='ended'?atlasEncounterFinish(state):state});}
  const body=await jsonBody(request);
- if(!body||Object.keys(body).some(k=>!['revision','encounter'].includes(k))||!Number.isInteger(body.revision)||body.revision<0)throw err(400,'Expected encounter revision');
+ if(!body||Object.keys(body).some(k=>!(method==='DELETE'?['revision']:['revision','encounter']).includes(k))||!Number.isInteger(body.revision)||body.revision<0)throw err(400,'Expected encounter revision');
  if(body.revision!==(row?Number(row.revision):0))throw err(409,'Encounter changed elsewhere. Reload before saving.');
- const state=atlasEncounterValidate(body.encounter,err);
+ if(method==='DELETE'){
+  if(!row||JSON.parse(row.data_json)===null)throw err(404,'Encounter not found');
+  // Keep a monotonic revision tombstone, not encounter contents, to prevent stale clients recreating deleted state.
+  const result=await env.DB.prepare("UPDATE atlas_encounter SET revision=revision+1,data_json='null',modified_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=1 AND revision=?").bind(actor.id,body.revision).run();
+  if(!result.meta.changes)throw err(409,'Encounter changed elsewhere. Reload before saving.');
+  await audit(env,actor.id,'delete-encounter',String(body.revision+1));
+  return respond({revision:body.revision+1,encounter:null});
+ }
+ const validated=atlasEncounterValidate(body.encounter,err),state=validated.phase==='ended'?atlasEncounterFinish(validated):validated;
  const previous=row?JSON.parse(row.data_json):null,existing=new Set((previous?.participants||[]).filter(p=>p.type==='player').map(p=>p.characterId));
  for(const p of state.participants.filter(p=>p.type==='player'&&!existing.has(p.characterId))){
   if(!await env.DB.prepare('SELECT id FROM characters WHERE id=?').bind(p.characterId).first())throw err(400,'Unknown character');

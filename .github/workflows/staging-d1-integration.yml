@@ -1,4 +1,4 @@
-name: Staging D1 integration tests (isolated, read-only production source)
+name: Staging D1 integration tests (isolated, verified proposed Worker)
 on:
   push:
     branches: [main]
@@ -6,6 +6,8 @@ on:
       - '.github/workflows/staging-d1-integration.yml'
       - 'tests/staging-d1-integration.test.cjs'
       - 'workers/production/history-drive-extension.js'
+      - 'workers/production/encounter-extension*.js'
+      - 'workers/production/patch-v3100-encounter.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,19 +32,9 @@ jobs:
           curl --silent --show-error --fail -H "Authorization: Bearer ${CF_API_TOKEN}" \
             -o /tmp/atlas-production-worker.raw \
             "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/dndatlas-api"
-          python3 - <<'PY'
-          import hashlib
-          from pathlib import Path
-          from importlib.machinery import SourceFileLoader
-          parser=SourceFileLoader('patcher','workers/production/patch-v341-history.py').load_module()
-          raw=parser.extract(Path('/tmp/atlas-production-worker.raw').read_bytes())
-          sha=hashlib.sha256(raw).hexdigest()
-          print('Deployed production Worker SHA256:',sha)
-          if sha!='546753c94bad98bca9f0998053b6439cbab1ad4ce11252994d45b5f366830980':
-            raise SystemExit('Deployed Worker changed; review before testing')
-          Path('.atlas-staging-worker.mjs').write_bytes(raw)
-          PY
-      - name: Test real Worker routes against isolated ephemeral local D1
+          python3 workers/production/patch-v3100-encounter.py /tmp/atlas-production-worker.raw workers/production/encounter-extension.js .atlas-staging-worker.mjs
+          node --check .atlas-staging-worker.mjs
+      - name: Test verified proposed Worker against isolated ephemeral local D1
         env:
           ATLAS_WORKER_SOURCE: .atlas-staging-worker.mjs
         run: node --test tests/staging-d1-integration.test.cjs
