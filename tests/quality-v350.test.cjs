@@ -107,7 +107,7 @@ test('Level Up previews next 2024 milestones before making changes',()=>{
 });
 
 test('PWA behavior, rule limits and existing Creator/DM permissions remain unchanged',()=>{
- assert.match(app,/APP_VERSION='3\.12\.0'/);
+ assert.match(app,/APP_VERSION='3\.12\.1'/);
  assert.match(app,/const R=window\.ATLAS_RULES_2024/);
  assert.match(app,/data-action="short-rest"/);
  assert.match(app,/data-action="long-rest"/);
@@ -187,12 +187,12 @@ test('mobile navigation is fixed, with compact accessible header and safe-area s
  const index=fs.readFileSync('public/index.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const version=JSON.parse(fs.readFileSync('public/version.json','utf8'));
- assert.equal(version.version,'3.12.0');
+ assert.equal(version.version,'3.12.1');
  for(const asset of ['style.css','app.js']){
-  assert.ok(index.includes(asset+'?v=3.12.0'));
-  assert.ok(sw.includes(asset+'?v=3.12.0'));
+  assert.ok(index.includes(asset+'?v=3.12.1'));
+  assert.ok(sw.includes(asset+'?v=3.12.1'));
  }
- assert.match(sw,/dndatlas-shell-v3\.12\.0/);
+ assert.match(sw,/dndatlas-shell-v3\.12\.1/);
  assert.match(css,/\.topbar\{position:fixed;inset:0 0 auto/);
  assert.match(css,/\.mobile-nav\{display:grid;position:fixed;z-index:30;inset:auto 0 0/);
  assert.match(css,/\.main\{padding-bottom:calc\(var\(--atlas-bottom-height\) \+ 24px\)/);
@@ -323,7 +323,7 @@ test('canonical ritual flag cannot be overridden by a custom spell field',()=>{
 test('release check compares semantic versions and update guards unsaved changes',()=>{
  const src=extract('function atlasVersionCompare(a,b){','function atlasUpdateBusy(');
  const cmp=vm.runInNewContext(src+';atlasVersionCompare',{});
- assert.equal(cmp('3.12.0','3.8.0'),1);assert.equal(cmp('3.8.0','3.8.0'),0);assert.equal(cmp('3.7.0','3.8.0'),-1);assert.throws(()=>cmp('broken','3.8.0'));
+ assert.equal(cmp('3.12.1','3.8.0'),1);assert.equal(cmp('3.8.0','3.8.0'),0);assert.equal(cmp('3.7.0','3.8.0'),-1);assert.throws(()=>cmp('broken','3.8.0'));
  const refresh=extract('async function refreshApp(clearCache=false){','function resetLocalData(){');
  assert.match(refresh,/cloud\.failedWrites\.size/);assert.match(refresh,/await atlasAwaitWorker\(reg,remote\)/);assert.match(refresh,/atlasUpdateBusy\(false\)/);
 });
@@ -528,3 +528,6 @@ test('player proposals are staged locally and approval does not apply unverified
  const save=extract('async function cloudSaveNow(){','async function cloudSecureBackup(){');
  assert.match(save,/cloudRequest\('\/encounter\?inbox=1','POST'/);
 });
+
+require('./dynamic-choices.test.cjs');
+require('./primal-companion.test.cjs');
