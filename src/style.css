@@ -310,3 +310,48 @@ html{scroll-padding-top:calc(var(--atlas-header-height) + 10px)}
  html{scroll-padding-bottom:calc(var(--atlas-bottom-height) + 10px)}
 }
 @media print{.app{padding-top:0}.main{padding-bottom:0}}
+
+
+/* v3.5.2 — unified header controls and local SVG language flags. */
+.topbar{background:#101b2a}
+.top-actions{gap:9px}
+.atlas-header-current{display:flex;align-items:center;gap:7px;color:var(--muted);min-width:0;max-width:210px;padding-right:9px;border-right:1px solid var(--stroke)}
+.atlas-header-current>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650}
+.atlas-header-current svg{flex-shrink:0}
+.atlas-language-flags{display:flex;align-items:center;gap:3px;padding:3px;border:1px solid #3b536a;border-radius:10px;background:#0e1928;flex-shrink:0}
+.atlas-language-flag{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;min-width:53px;height:34px;padding:4px 6px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font-size:10px;font-weight:800}
+.atlas-language-flag svg{display:block;width:24px;height:16px;border-radius:2px;box-shadow:0 0 0 1px #ffffff29;flex-shrink:0}
+.atlas-language-flag:hover{background:#22364b;color:var(--text)}
+.atlas-language-flag[aria-pressed="true"]{border-color:#b39363;background:#2d3947;color:#f1d5a8}
+.atlas-header-toggle,.top-actions .atlas-header-settings{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:42px;min-height:42px;padding:0 12px;border:1px solid #435b72;border-radius:10px;background:#203246;color:var(--text);font-size:12px;font-weight:700;flex-shrink:0}
+.atlas-header-toggle svg,.atlas-header-settings svg{width:19px;height:19px;flex-shrink:0}
+.atlas-header-toggle:hover,.top-actions .atlas-header-settings:hover{background:#2b4056;border-color:#688099}
+.atlas-header-panel{display:none;position:absolute;top:calc(100% + 7px);right:max(12px,env(safe-area-inset-right,0px));width:min(330px,calc(100% - 24px));max-height:calc(100vh - var(--atlas-header-height) - 20px);max-height:calc(100dvh - var(--atlas-header-height) - 20px);overflow:auto;overscroll-behavior:contain;flex-direction:column;gap:9px;padding:13px;border:1px solid #43546a;border-radius:13px;background:#142232;box-shadow:0 12px 32px #0009}
+.atlas-header-toggle[aria-expanded="true"]{border-color:var(--gold);color:var(--gold)}
+.atlas-header-toggle[aria-expanded="true"]+.atlas-header-panel{display:flex}
+.atlas-header-panel-title{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.atlas-header-field{display:grid;gap:5px}
+.atlas-header-field>span{display:block;color:var(--muted);font-size:11px;font-weight:700}
+.atlas-header-panel select,.atlas-header-panel .btn{width:100%;max-width:none;min-height:44px;height:auto;font-size:13px;padding:9px 11px;white-space:normal;border-radius:9px}
+.atlas-header-panel .btn{justify-content:flex-start;gap:9px;font-weight:650;text-align:left}
+.atlas-header-panel .btn svg{width:18px;height:18px;flex-shrink:0}
+.atlas-header-panel .btn span{min-width:0;overflow-wrap:anywhere}
+.atlas-header-panel .btn.primary{justify-content:center}
+.nav-item{min-height:44px;transition:background .15s,border-color .15s}
+.nav-item.active{box-shadow:inset 3px 0 0 var(--gold)}
+@media (max-width:1050px),(hover:none) and (pointer:coarse){
+ .atlas-header-current{display:none}
+ .top-actions{gap:5px}
+ .atlas-language-flags{gap:1px;padding:2px}
+ .atlas-language-flag{min-width:36px;width:36px;height:36px;padding:3px}
+ .atlas-language-flag span,.atlas-header-menu-label{display:none}
+ .atlas-header-toggle,.top-actions .atlas-header-settings{width:40px;height:44px;min-height:44px;padding:0;flex:0 0 40px}
+ .atlas-header-panel{right:max(8px,env(safe-area-inset-right,0px));width:min(330px,calc(100% - 16px));max-height:calc(100vh - var(--atlas-header-height) - var(--atlas-bottom-height) - 12px);max-height:calc(100dvh - var(--atlas-header-height) - var(--atlas-bottom-height) - 12px)}
+}
+@media (max-width:360px){
+ .topbar{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+ .brand{gap:5px}
+ .brand strong{font-size:11px}
+ .top-actions{gap:4px}
+}
+@media (prefers-reduced-motion:reduce){.nav-item{transition:none}}
