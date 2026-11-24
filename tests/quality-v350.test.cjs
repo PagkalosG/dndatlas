@@ -409,3 +409,11 @@ test('proficiency editing has explicit role and ownership checks and profile can
  assert.doesNotMatch(extract('function editChar(){','function editAbilities'),/field\('proficiencies'/);
  assert.match(app,/if\(!atlasProfCanManage\(ch\)\|\|ch.id!==e.target.dataset.character\)/);
 });
+
+test('soldier gaming choice is scoped to one identifiable legacy grant',()=>{
+ const src=extract('function atlasSoldierGame(ch){','function atlasSoldierGameEditor(){');
+ const grant=vm.runInNewContext(src+';atlasSoldierGame',{B_GAMES:['Dice Set','Playing Card Set']});
+ assert.equal(grant({background:'Soldier',proficiencies:'Gaming Set: Dice Set; Smith’s Tools'}).value,'Dice Set');
+ assert.equal(grant({background:'Soldier',proficiencies:'Gaming Set: Dice Set; Gaming Set: Playing Card Set'}),null);
+ assert.equal(grant({background:'Sage',proficiencies:'Gaming Set: Dice Set'}),null);
+});

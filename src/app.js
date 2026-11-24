@@ -850,7 +850,7 @@ document.addEventListener('submit',e=>{
  // Structured presentation over the existing proficiencies field. No schema migration.
  const ATLAS_PROF_GROUPS=[
   ['armor','Armor Training','Εκπαίδευση πανοπλίας',['Light Armor','Medium Armor','Heavy Armor','Shields']],
-  ['weapons','Weapon Proficiencies','Επάρκεια όπλων',['Simple Weapons','Martial Weapons',...D.weapons.map(x=>x.name),'Dart','Sling','Blowgun','Hand Crossbow','Net','Pistol','Musket']],
+  ['weapons','Weapon Proficiencies','Επάρκεια όπλων',['Simple Weapons','Martial Weapons',...D.weapons.map(x=>x.name),'Dart','Sling','Blowgun','Hand Crossbow','Pistol','Musket']],
   ['artisan','Artisan’s Tools','Εργαλεία τεχνίτη',R.ARTISAN_TOOLS],
   ['tools','Other Tools','Άλλα εργαλεία',['Disguise Kit','Forgery Kit','Herbalism Kit','Navigator’s Tools','Poisoner’s Kit','Thieves’ Tools']],
   ['games','Gaming Sets','Σετ παιχνιδιών',['Dice Set','Dragonchess Set','Playing Card Set','Three-Dragon Ante Set']],
@@ -887,7 +887,7 @@ document.addEventListener('submit',e=>{
      if(i===0&&(all||simple))add('weapons','Simple Weapons',source);
      if(all)add('weapons','Martial Weapons',source);
      if(i===0&&source==='Monk')for(const n of ['Scimitar','Shortsword'])add('weapons',n,source);
-     if(i===0&&source==='Rogue')for(const n of ['Rapier','Scimitar','Shortsword','Whip'])add('weapons',n,source);
+     if(i===0&&source==='Rogue')for(const n of ['Rapier','Scimitar','Shortsword','Whip','Hand Crossbow'])add('weapons',n,source);
      if(source==='Rogue')add('tools','Thieves’ Tools',source);
    });
    if(['Acolyte','Sage'].includes(ch.background))add('artisan','Calligrapher’s Supplies',ch.background);
@@ -914,6 +914,20 @@ document.addEventListener('submit',e=>{
    const langs=languageList(ch.languages);
    return langs.length===3&&langs.includes('Common')&&langs.filter(x=>x!=='Common').every(x=>B_LANGUAGES.includes(x));
  }
+
+ function atlasSoldierGame(ch){
+   if(!ch||ch.background!=='Soldier')return null;
+   const entries=String(ch.proficiencies||'').split(';').map(x=>x.trim()).filter(Boolean),matches=entries.filter(x=>/^Gaming Set:\s*/i.test(x));
+   // Only replace an unambiguous, explicitly labeled grant. Never guess which of several sets came from Soldier.
+   if(matches.length!==1)return null;
+   const value=matches[0].replace(/^Gaming Set:\s*/i,'').trim();
+   return B_GAMES.includes(value)?{entries,entry:matches[0],value}:null;
+ }
+ function atlasSoldierGameEditor(){
+   const ch=c(),grant=atlasSoldierGame(ch);if(!grant||!canEditCharacter(ch))return;
+   formModal(tr('Επιλογή παιχνιδιού · Soldier','Gaming Set · Soldier'),selectField('gamingSet',tr('Σετ παιχνιδιού','Gaming Set'),grant.value,B_GAMES),'save-soldier-game');
+ }
+
  function atlasProfLabel(key){const g=ATLAS_PROF_GROUPS.find(x=>x[0]===key);return g?tr(g[2],g[1]):key;}
  function atlasProfChips(names,fixed={}){
    return names.length?'<div class="atlas-prof-chips">'+names.map(n=>'<span class="atlas-prof-chip '+(fixed[n]?'fixed':'')+'"'+(fixed[n]?' title="'+attr(fixed[n].join(', '))+'"':'')+'>'+esc(n)+(fixed[n]?'<small>'+esc(fixed[n].join(', '))+'</small>':'')+'</span>').join('')+'</div>':'<span class="muted small">'+tr('Δεν έχουν καταχωριστεί.','Not recorded.')+'</span>';
@@ -922,7 +936,7 @@ document.addEventListener('submit',e=>{
    const {selected,legacy}=atlasProfParse(ch.proficiencies),fixed=atlasProfFixed(ch);
    const rows=ATLAS_PROF_GROUPS.map(([k])=>'<div class="atlas-prof-section"><strong>'+atlasProfLabel(k)+'</strong>'+atlasProfChips([...new Set([...Object.keys(fixed[k]),...selected[k]])],fixed)+'</div>').join('');
    const choice=canEditCharacter(ch)&&(ch.classes||[]).some(x=>x.name==='Fighter'&&Number(x.level)>=3&&x.subclass==='Battle Master')?'<button class="btn sm" data-atlas-student-edit>Student of War · '+tr('Επιλογές','Choices')+'</button>':'';
-   return rows+(legacy.length?'<details class="atlas-prof-section"><summary>'+tr('Πρόσθετες / παλιές καταχωρίσεις','Additional / legacy entries')+'</summary><div class="detail-description">'+esc(legacy.join('; '))+'</div></details>':'')+'<div class="atlas-prof-section"><strong>'+tr('Γλώσσες','Languages')+'</strong>'+atlasProfChips(languageList(ch.languages))+(atlasProfCanChooseLanguages(ch)?'<button class="btn sm" data-action="edit-prof-languages">'+tr('Επιλογή γλωσσών','Choose languages')+'</button>':'')+'</div>'+(choice?'<div class="actions-inline">'+choice+'</div>':'')+'<p class="muted small">'+tr('Οι αυτόματες επάρκειες εμφανίζουν την πηγή. Πρόσθετες εγγραφές είναι καταγεγραμμένες επιλογές, όχι αυτόματη αλλαγή των υπολογισμών μάχης.','Automatic grants show their source. Additional entries are recorded choices, not automatic combat calculation overrides.')+'</p>';
+   return rows+(legacy.length?'<details class="atlas-prof-section"><summary>'+tr('Πρόσθετες / παλιές καταχωρίσεις','Additional / legacy entries')+'</summary><div class="detail-description">'+esc(legacy.join('; '))+'</div></details>':'')+'<div class="atlas-prof-section"><strong>'+tr('Γλώσσες','Languages')+'</strong>'+atlasProfChips(languageList(ch.languages))+(atlasProfCanChooseLanguages(ch)?'<button class="btn sm" data-action="edit-prof-languages">'+tr('Επιλογή γλωσσών','Choose languages')+'</button>':'')+'</div>'+(choice?'<div class="actions-inline">'+choice+'</div>':'')+(canEditCharacter(ch)&&atlasSoldierGame(ch)?'<div class="actions-inline"><button class="btn sm" data-action="edit-soldier-game">Soldier · '+tr('Επιλογή παιχνιδιού','Choose Gaming Set')+'</button></div>':'')+'<p class="muted small">'+tr('Οι αυτόματες επάρκειες εμφανίζουν την πηγή. Πρόσθετες εγγραφές είναι καταγεγραμμένες επιλογές, όχι αυτόματη αλλαγή των υπολογισμών μάχης.','Automatic grants show their source. Additional entries are recorded choices, not automatic combat calculation overrides.')+'</p>';
  }
  function atlasProfEditor(){
    const ch=c();if(!atlasProfCanManage(ch))return;
@@ -1254,6 +1268,7 @@ document.addEventListener('submit',e=>{
   case 'atlas-save-story':{ch.backgroundStory=v.story||'';ch.storyPublic=v.storyPublic==='true';break;}
   case 'save-profile':{
    ch.name=v.name.trim()||ch.name;ch.player=v.player;ch.species=v.species;ch.background=v.background;ch.alignment=v.alignment;ch.speed=clamp(n('speed'),0,300);ch.initiativeBonus=n('initiativeBonus');ch.proficiencyOverride=v.proficiencyOverride;ch.passivePerceptionOverride=v.passivePerceptionOverride;ch.rulesVersion='2024';break;}
+  case 'save-soldier-game':{const grant=atlasSoldierGame(ch);if(!grant||!canEditCharacter(ch)||!B_GAMES.includes(v.gamingSet))return toast(tr('Μη έγκυρη επιλογή.','Invalid choice.'));ch.proficiencies=grant.entries.map(x=>x===grant.entry?'Gaming Set: '+v.gamingSet:x).join('; ');break;}
   case 'save-prof-languages':{if(!atlasProfCanChooseLanguages(ch))return toast(tr('Δεν επιτρέπεται η αλλαγή.','Change not permitted.'));if(atlasProfCanManage(ch)){ch.languages=String(v.languages||'');}else{if(!B_LANGUAGES.includes(v.lang1)||!B_LANGUAGES.includes(v.lang2)||v.lang1===v.lang2)return toast(tr('Επίλεξε δύο διαφορετικές βασικές γλώσσες.','Choose two distinct standard languages.'));ch.languages=['Common',v.lang1,v.lang2].join(', ');}break;}
   case 'save-custom-feat':{if(!(v.name||'').trim())return toast(uiText('Δώσε όνομα feat.','Enter a feat name.'));ch.customFeats=ch.customFeats||[];ch.customFeats.push({id:uid(),name:v.name.trim(),tier:v.tier||'Custom',summary:v.summary||''});break;}
   case 'save-abilities':for(let k of Object.keys(D.abilities))ch.abilities[k]=clamp(n(k),1,30);break;
@@ -1318,6 +1333,7 @@ document.addEventListener('submit',e=>{
   case 'new-character':atlasBuilderOpen();break;
   case 'edit-proficiencies':atlasProfEditor();break;
   case 'edit-prof-languages':atlasProfLanguages();break;
+  case 'edit-soldier-game':atlasSoldierGameEditor();break;
   case 'level-progression':showProgression();break;
   case 'atlas-build-planner':atlasBuildPlanner();break;
   case 'download-docx-template':window.ATLAS_DOCX?.template();break;
