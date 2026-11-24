@@ -14,6 +14,11 @@ jobs:
           for js in src/*.js; do node --check "$js"; done
       - name: 2024 rules tests
         run: node --test tests/rules-2024.test.cjs
+      - name: History, Drive and synchronization stability
+        run: |
+          node --check workers/production/history-drive-extension.js
+          node --test tests/history-drive-extension.test.cjs
+          node --test tests/stability-v340.test.cjs
       - name: Character Sheet UI regression tests
         run: node --test tests/ui-skill-stat-controls-v343.test.cjs
       - name: Character quality, 2024 Builder and sync resilience
