@@ -87,4 +87,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsS --retry 4 --retry-delay 5 https://dndatlas-api-staging.pagkalosgeo.workers.dev/health | jq -e '.status == "ok" and .environment == "staging" and .database == "ready"'
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          for attempt in $(seq 1 12); do
+            if http=$(curl -sS --max-time 15 -H 'Cache-Control: no-cache' -o "$tmp/health" -w '%{http_code}' "https://dndatlas-api-staging.pagkalosgeo.workers.dev/health?check=$GITHUB_SHA-$attempt"); then
+              if [ "$http" = 200 ] && jq -e '.status == "ok" and .environment == "staging" and .database == "ready"' "$tmp/health" >/dev/null 2>&1; then
+                echo 'Staging Worker and D1 health verified.'
+                exit 0
+              fi
+              if grep -Eiq '^Hello World!?[[:space:]]*
+ "$tmp/health"; then
+                echo "Health attempt $attempt: HTTP $http; previous Hello World response"
+              elif jq -e 'type == "object"' "$tmp/health" >/dev/null 2>&1; then
+                echo "Health attempt $attempt: HTTP $http; JSON did not match staging health contract"
+              else
+                echo "Health attempt $attempt: HTTP $http; non-JSON response"
+              fi
+            else
+              echo "Health attempt $attempt: network request failed"
+            fi
+            if [ "$attempt" -lt 12 ]; then sleep 5; fi
+          done
+          echo '::error::Worker upload succeeded but the public staging URL did not serve the expected health response. Check active deployment in Cloudflare.'
+          exit 1
