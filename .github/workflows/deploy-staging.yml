@@ -95,8 +95,7 @@ jobs:
                 echo 'Staging Worker and D1 health verified.'
                 exit 0
               fi
-              if grep -Eiq '^Hello World!?[[:space:]]*
- "$tmp/health"; then
+              if grep -Fiq 'Hello World' "$tmp/health"; then
                 echo "Health attempt $attempt: HTTP $http; previous Hello World response"
               elif jq -e 'type == "object"' "$tmp/health" >/dev/null 2>&1; then
                 echo "Health attempt $attempt: HTTP $http; JSON did not match staging health contract"
