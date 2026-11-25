@@ -44,7 +44,7 @@ jobs:
           console.log('Staging isolation checks passed');
           JS
       - name: Install isolated D1 test runtime
-        run: npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund miniflare@4.20260730.0
+        run: npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund miniflare@4.20260730.0 playwright@1.56.1
       - name: Test Worker against local D1 only
         env:
           ATLAS_WORKER_SOURCE: workers/staging/worker.mjs
@@ -53,6 +53,10 @@ jobs:
         env:
           CF_PAGES_BRANCH: staging
         run: node scripts/build-staging.cjs
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+      - name: Test roles and manual save in real browser against disposable D1
+        run: node --test tests/staging-browser.test.cjs
       - uses: actions/upload-artifact@v4
         with:
           name: atlas-staging-frontend
