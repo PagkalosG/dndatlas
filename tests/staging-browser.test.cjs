@@ -73,7 +73,8 @@ test('real browser: role visibility, level groups, explicit correction and manua
   const before=await db.prepare('SELECT revision,data_json FROM characters WHERE id=?').bind(fixture.id).first();
   dm.page.once('dialog',d=>d.accept());
   await item.locator('button.primary').first().click();
-  await dm.page.locator('[data-atlas-review-modal] [data-action="close-modal"]').click();
+  await dm.page.locator('[data-atlas-review-modal] [data-action="close-modal"][aria-label="Close popup"]').click();
+  await dm.page.locator('[data-atlas-review-modal]').waitFor({state:'hidden'});
   await dm.page.locator('.atlas-header-save:enabled').waitFor();
   assert.deepEqual(await db.prepare('SELECT revision,data_json FROM characters WHERE id=?').bind(fixture.id).first(),before);
   await dm.page.locator('.atlas-header-save:enabled').click();
