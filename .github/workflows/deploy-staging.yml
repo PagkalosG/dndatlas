@@ -1,0 +1,74 @@
+name: Validate and deploy staging API
+on:
+  push:
+    branches: [staging]
+permissions:
+  contents: read
+concurrency:
+  group: atlas-staging-api
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and regression checks
+        run: |
+          set -euo pipefail
+          node --check workers/staging/worker.mjs
+          node --check workers/staging/entry.mjs
+          node --check src/app.js
+          node --check src/data.js
+          node --check src/rules-2024.js
+          node --test tests/rules-2024.test.cjs tests/history-drive-extension.test.cjs tests/stability-v340.test.cjs tests/ui-skill-stat-controls-v343.test.cjs tests/quality-v350.test.cjs
+      - name: Install isolated D1 test runtime
+        run: npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund miniflare@4.20260730.0
+      - name: Test Worker against local D1 only
+        env:
+          ATLAS_WORKER_SOURCE: workers/staging/worker.mjs
+        run: node --test tests/staging-d1-integration.test.cjs
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify staging binding and deploy code only
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }
+          STAGING_D1_DATABASE_ID: ${{ vars.STAGING_D1_DATABASE_ID }
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$GITHUB_REF" = refs/heads/staging
+          [[ "$CF_ACCOUNT_ID" =~ ^[0-9a-fA-F]{32}$ ]] || { echo 'Missing or invalid staging account ID'; exit 1; }
+          test -n "$CF_API_TOKEN" || { echo 'Missing staging token'; exit 1; }
+          [[ "$STAGING_D1_DATABASE_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]] || { echo 'Set staging environment variable STAGING_D1_DATABASE_ID'; exit 1; }
+          endpoint="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/workers/scripts/dndatlas-api-staging"
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          verify_binding() {
+            curl -fsS -H "Authorization: Bearer $CF_API_TOKEN" "$endpoint/settings" -o "$tmp/settings.json"
+            jq -e --arg id "$STAGING_D1_DATABASE_ID" '.success == true and ([.result.bindings[] | select(.type == "d1")] | length == 1) and any(.result.bindings[]; .name == "DB" and .type == "d1" and (.database_id // .id) == $id)' "$tmp/settings.json" >/dev/null || { echo 'Refusing deployment: DB does not match the explicitly approved staging database'; exit 1; }
+          }
+          verify_binding
+          curl -fsS -X PUT -H "Authorization: Bearer $CF_API_TOKEN" \
+            -F 'metadata={"main_module":"entry.mjs"};type=application/json' \
+            -F 'entry.mjs=@workers/staging/entry.mjs;type=application/javascript+module' \
+            -F 'worker.mjs=@workers/staging/worker.mjs;type=application/javascript+module' \
+            "$endpoint/content" -o "$tmp/deploy.json"
+          jq -e '.success == true' "$tmp/deploy.json" >/dev/null
+          verify_binding
+          echo 'Staging Worker code deployed; bindings retained.'
+      - name: Check isolated API health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 4 --retry-delay 5 https://dndatlas-api-staging.pagkalosgeo.workers.dev/health | jq -e '.status == "ok" and .environment == "staging" and .database == "ready"'
