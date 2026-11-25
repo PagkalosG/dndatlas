@@ -52,6 +52,8 @@ test('real browser: role visibility, level groups, explicit correction and manua
    });
    await page.goto(origin+'/');await page.locator('#cloud-login-form input[name=username]').fill(username);await page.locator('#cloud-login-form input[name=pin]').fill('24681012');await page.locator('#cloud-login-form button[type=submit]').click();
    await page.locator('#cloud-auth').waitFor({state:'hidden'});
+   assert.deepEqual(errors,[], 'Errors after login');
+   await page.locator('button[data-tab=combat]:visible').first().click();
    await page.locator('button[data-tab=spells]:visible').first().click();
    await page.locator('.atlas-spell-group').first().waitFor();
    return {ctx,page,errors};

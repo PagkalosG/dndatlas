@@ -124,3 +124,26 @@ jobs:
           done
           echo '::error::Worker upload succeeded but the public staging URL did not serve the expected health response. Check active deployment in Cloudflare.'
           exit 1
+  live-smoke:
+    needs: deploy
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test runtime
+        run: |
+          npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify live staging sign-in and role UI without character writes
+        env:
+          STAGING_CREATOR_PIN: ${{ secrets.STAGING_CREATOR_PIN }}
+          STAGING_DM_PIN: ${{ secrets.STAGING_DM_PIN }}
+          STAGING_PLAYER_PIN: ${{ secrets.STAGING_PLAYER_PIN }}
+        run: node tests/staging-live-smoke.cjs
