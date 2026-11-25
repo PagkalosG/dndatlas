@@ -26,6 +26,7 @@ async function main(){
  assert.ok(ready,'Live staging build, network policy, version or API health did not match; credentials were not used');
  console.log('Live staging config and health verified');
  const browser=await chromium.launch({headless:true});
+ const failures=[];
  try{
   for(const [username,role,key] of accounts){
    const ctx=await browser.newContext({serviceWorkers:'block',viewport:role==='player'?{width:390,height:844}:{width:1280,height:900}});
@@ -49,7 +50,11 @@ async function main(){
     const loginPromise=page.waitForResponse(r=>r.url()===api+'/auth/login'&&r.request().method()==='POST');
     await page.locator('#cloud-login-form button[type=submit]').click();
     const response=await loginPromise;
-    assert.equal(response.status(),200,role+' login failed');
+    if(response.status()!==200){
+     const status=response.status();
+     const reason={400:'request rejected',401:'invalid credentials or inactive account',403:'request forbidden or origin mismatch',429:'account temporarily locked',500:'internal API error',503:'API unavailable or staging configuration missing'}[status]||'unexpected response';
+     throw new Error('LOGIN_STATUS_'+status+': '+reason);
+    }
     const info=await response.json();token=info.token;
     assert.equal(info.me.role,role);
     await page.locator('#cloud-auth').waitFor({state:'hidden'});
@@ -62,11 +67,18 @@ async function main(){
     assert.equal(blockedWrites,0,'Unexpected live write attempt');
     assert.equal(errors.length,0,'Browser runtime error');
     console.log('Live '+role+' authentication and read-only UI passed; roster '+(roster.characters.length?'available':'empty'));
+   }catch(e){
+    // Only fixed diagnostics are allowed; never log response bodies, input values, or tokens.
+    const detail=/^LOGIN_STATUS_\d{3}: [a-z ]+$/.test(e.message)?e.message:
+     e.code==='ERR_ASSERTION'?'role/UI assertion failed':e.name==='TimeoutError'?'browser step timed out':'unexpected test error';
+    failures.push(role+': '+detail);
+    console.error('Live '+role+' check failed: '+detail);
    }finally{
     if(token){const logout=await fetch(api+'/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token},redirect:'error'});assert.equal(logout.status,200,'Staging session cleanup failed');}
     await ctx.close();
    }
   }
  }finally{await browser.close()}
+ assert.equal(failures.length,0,'Live smoke failed for '+failures.length+' role(s); see safe per-role diagnostics above');
 }
 main().catch(e=>{console.error('Live staging smoke test failed: '+(e.code==='ERR_ASSERTION'?e.message:e.name));process.exitCode=1});
