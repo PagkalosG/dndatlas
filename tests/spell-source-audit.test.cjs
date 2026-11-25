@@ -1,0 +1,13 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');const A=require('../src/content-packs.js'),S=require('../src/spell-source-audit.js');const ctx={window:{}};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/content-packs-core.js'),'utf8'),ctx);const {core,schema}=JSON.parse(JSON.stringify(ctx.window.ATLAS_CONTENT_CORE));const catalog=A.merge(core,[],schema);const ch={species:'Aasimar',classes:[{name:'Sorcerer',subclass:'Aberrant Sorcery',level:3}]};
+test('legacy ref normalized',()=>assert.equal(S.resolve({ref:'spell-firebolt',name:'Fire Bolt',level:0},catalog).status,'srd_metadata'));
+test('empty ref matches name',()=>assert.equal(S.resolve({ref:'',name:'Sleep',level:1},catalog).match,'name'));
+test('level conflict',()=>assert.equal(S.resolve({name:'Shield',level:2},catalog).status,'conflict'));
+test('ref name conflict',()=>assert.equal(S.resolve({name:'Sleep',ref:'spell-shield',level:1},catalog).status,'conflict'));
+test('missing non-SRD reference not falsely verified',()=>assert.equal(S.inspect(ch,{name:'Mind Sliver',level:0},catalog).status,'unmatched'));
+test('species grant inferred separately',()=>assert.equal(S.inspect(ch,{name:'Light',level:0},catalog).grant,'Aasimar · Light Bearer'));
+test('subclass grant inferred separately',()=>assert.equal(S.inspect(ch,{name:'Mind Sliver',level:0},catalog).grantStatus,'inferred'));
+test('class candidate not confirmed',()=>assert.equal(S.inspect(ch,{name:'Shield',level:1},catalog).grantStatus,'candidate'));
+test('PDF is import not grant',()=>assert.equal(S.inspect(ch,{name:'Shield',level:1,spellSource:'PDF'},catalog).importSource,'PDF'));
+test('casting mismatch only reported',()=>{const s=Object.freeze({name:'Shield',level:1,cast:'Action'});assert.equal(S.inspect(ch,s,catalog).differences.length,1);assert.equal(s.cast,'Action')});
+test('pack record is unverified regardless of coverage claim',()=>{const c=A.merge(core,[{schema_version:'1.0.0',ruleset:'D&D 5e 2024',id:'pack_test',name:'Test',name_el:'Δοκιμή',version:'1.0.0',records:{spells:[{id:'spell_test',name:'Test',name_el:'Δοκιμή',level:1,coverage:'verified_metadata_only'}]}}],schema);assert.equal(S.resolve({name:'Test',level:1},c).status,'user_pack')});
+test('party backup is never mutated when supplied',()=>{const file=process.env.ATLAS_TEST_BACKUP;if(!file)return;const data=JSON.parse(fs.readFileSync(file)),before=JSON.stringify(data);let count=0;for(const ch of data.characters)for(const s of ch.spellbook||[]){S.inspect(ch,s,catalog);S.label(ch,s,catalog,true);count++}assert.equal(count,38);assert.equal(JSON.stringify(data),before)});

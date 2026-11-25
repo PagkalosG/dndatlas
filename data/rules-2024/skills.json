@@ -1,0 +1,110 @@
+[
+  {
+    "id": "skill_acrobatics",
+    "name": "Acrobatics",
+    "name_el": "Ακροβατικά",
+    "ability": "DEX"
+  },
+  {
+    "id": "skill_animal_handling",
+    "name": "Animal Handling",
+    "name_el": "Χειρισμός Ζώων",
+    "ability": "WIS"
+  },
+  {
+    "id": "skill_arcana",
+    "name": "Arcana",
+    "name_el": "Απόκρυφη Γνώση",
+    "ability": "INT"
+  },
+  {
+    "id": "skill_athletics",
+    "name": "Athletics",
+    "name_el": "Αθλητισμός",
+    "ability": "STR"
+  },
+  {
+    "id": "skill_deception",
+    "name": "Deception",
+    "name_el": "Εξαπάτηση",
+    "ability": "CHA"
+  },
+  {
+    "id": "skill_history",
+    "name": "History",
+    "name_el": "Ιστορία",
+    "ability": "INT"
+  },
+  {
+    "id": "skill_insight",
+    "name": "Insight",
+    "name_el": "Διορατικότητα",
+    "ability": "WIS"
+  },
+  {
+    "id": "skill_intimidation",
+    "name": "Intimidation",
+    "name_el": "Εκφοβισμός",
+    "ability": "CHA"
+  },
+  {
+    "id": "skill_investigation",
+    "name": "Investigation",
+    "name_el": "Έρευνα",
+    "ability": "INT"
+  },
+  {
+    "id": "skill_medicine",
+    "name": "Medicine",
+    "name_el": "Ιατρική",
+    "ability": "WIS"
+  },
+  {
+    "id": "skill_nature",
+    "name": "Nature",
+    "name_el": "Φύση",
+    "ability": "INT"
+  },
+  {
+    "id": "skill_perception",
+    "name": "Perception",
+    "name_el": "Αντίληψη",
+    "ability": "WIS"
+  },
+  {
+    "id": "skill_performance",
+    "name": "Performance",
+    "name_el": "Παράσταση",
+    "ability": "CHA"
+  },
+  {
+    "id": "skill_persuasion",
+    "name": "Persuasion",
+    "name_el": "Πειθώ",
+    "ability": "CHA"
+  },
+  {
+    "id": "skill_religion",
+    "name": "Religion",
+    "name_el": "Θρησκεία",
+    "ability": "INT"
+  },
+  {
+    "id": "skill_sleight_of_hand",
+    "name": "Sleight of Hand",
+    "name_el": "Ταχυδακτυλουργία",
+    "ability": "DEX"
+  },
+  {
+    "id": "skill_stealth",
+    "name": "Stealth",
+    "name_el": "Απόκρυψη",
+    "ability": "DEX"
+  },
+  {
+    "id": "skill_survival",
+    "name": "Survival",
+    "name_el": "Επιβίωση",
+    "ability": "WIS"
+  }
+]

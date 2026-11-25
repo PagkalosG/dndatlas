@@ -1,0 +1,46 @@
+/* Atlas 2024 content packs: declarative, additive, browser-local. */
+(function(root){'use strict';
+ const RULESET='D&D 5e 2024', VERSION='1.0.0', KEY='dndatlas:content-packs:v1';
+ const kinds={'species':'species_','classes':'class_','subclasses':'subclass_','features':'feature_','backgrounds':'background_','feats':'feat_','spells':'spell_','weapons':'weapon_','weapon-masteries':'mastery_','armor':'armor_','equipment':'equipment_','tools':'tool_','magic-items':'magic_item_','companions':'companion_','conditions':'condition_','skills':'skill_','rules':'rule_'};
+ const fk={class_id:'classes',class_ids:'classes',subclass_id:'subclasses',subclass_ids:'subclasses',feature_ids:'features',owner_feature_id:'features',spell_id:'spells',requires_spell_id:'spells',mastery_id:'weapon-masteries',feat_id:'feats',skill_ids:'skills',tool_ids:'tools',condition_id:'conditions',apply_condition_id:'conditions',item_id:['equipment','weapons','armor','tools','magic-items'],base_item_id:['equipment','weapons','armor','tools','magic-items']};
+ const localRefs=new Set(['casting_ability_choice_id','class_from_choice','type_from_choice','resistance_from_choice','item_from_choice']);
+ const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k), obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x), copy=x=>JSON.parse(JSON.stringify(x));
+ const fail=(p,m)=>{throw Error(p+': '+m)};
+ function inspect(x,p='$',depth=0){if(depth>40)fail(p,'maximum depth 40');if(typeof x==='string'&&x.length>40000)fail(p,'string too long');if(typeof x==='number'&&!Number.isFinite(x))fail(p,'non-finite number');if(x&&typeof x==='object'){for(const [k,v] of Object.entries(x)){if(['__proto__','constructor','prototype'].includes(k))fail(p,'unsafe key '+k);inspect(v,p+'.'+k,depth+1)}}}
+ // Validator deliberately supports the exact vocabulary used by bundled schema 1.0.0.
+ function validate(x,s,defs,p='$'){
+  if(s.$ref){let k=s.$ref.replace('#/$defs/','');if(!own(defs,k))fail(p,'unknown schema ref');validate(x,defs[k],defs,p)}
+  if(s.type){let match={object:obj,array:Array.isArray,string:v=>typeof v==='string',integer:Number.isInteger,number:v=>typeof v==='number'&&Number.isFinite(v),boolean:v=>typeof v==='boolean',null:v=>v===null};if(![].concat(s.type).some(t=>match[t]?.(x)))fail(p,'expected '+s.type)}
+  if(own(s,'const')&&x!==s.const)fail(p,'invalid constant');if(s.enum&&!s.enum.includes(x))fail(p,'invalid enum value');
+  if(typeof x==='string'){if(s.minLength!==undefined&&x.length<s.minLength)fail(p,'too short');if(s.pattern&&!new RegExp(s.pattern).test(x))fail(p,'invalid format')}
+  if(typeof x==='number'){if(s.minimum!==undefined&&x<s.minimum)fail(p,'below minimum');if(s.maximum!==undefined&&x>s.maximum)fail(p,'above maximum')}
+  if(Array.isArray(x)){if(s.minItems!==undefined&&x.length<s.minItems)fail(p,'too few entries');if(s.maxItems!==undefined&&x.length>s.maxItems)fail(p,'too many entries');if(s.uniqueItems&&new Set(x.map(v=>JSON.stringify(v))).size!==x.length)fail(p,'duplicate array entry');if(s.items)x.forEach((v,i)=>validate(v,s.items,defs,p+'['+i+']'))}
+  if(obj(x)){for(const k of s.required||[])if(!own(x,k))fail(p,'missing '+k);for(const [k,v] of Object.entries(x)){if(s.properties&&own(s.properties,k))validate(v,s.properties[k],defs,p+'.'+k);else if(s.additionalProperties===false)fail(p,'unknown property '+k)}}
+  if(s.anyOf&&!s.anyOf.some(a=>{try{validate(x,a,defs,p);return true}catch{return false}}))fail(p,'no valid alternative');
+ }
+ function walk(x,fn){if(obj(x)){fn(x);Object.values(x).forEach(v=>walk(v,fn))}else if(Array.isArray(x))x.forEach(v=>walk(v,fn))}
+ function normalize(pack,schema){inspect(pack);if(!obj(pack))fail('pack','expected object');for(const k of Object.keys(pack))if(!['schema_version','ruleset','id','name','name_el','version','records'].includes(k))fail('pack','unknown property '+k);
+  if(pack.schema_version!==VERSION||pack.ruleset!==RULESET)fail('pack','unsupported schema or ruleset');if(!/^pack_[a-z0-9_]{1,70}$/.test(pack.id||''))fail('pack.id','expected pack_...');if(!/^\d+\.\d+\.\d+$/.test(pack.version||''))fail('pack.version','expected x.y.z');
+  for(const k of ['name','name_el'])if(typeof pack[k]!=='string'||!pack[k].trim()||pack[k].length>150)fail('pack.'+k,'required (max 150 chars)');if(!obj(pack.records))fail('pack.records','expected object');
+  let count=0;for(const [kind,rows] of Object.entries(pack.records)){if(!own(kinds,kind))fail('pack.records','unknown category '+kind);validate(rows,schema.$defs['catalog_'+kind],schema.$defs,kind);count+=rows.length}if(count===0)fail('pack.records','empty pack');if(count>10000)fail('pack.records','maximum 10000 records');return copy(pack);
+ }
+ function merge(core,packs,schema){const out=Object.fromEntries(Object.keys(kinds).map(k=>[k,[]])), ids=new Map(), nested=new Set(), packIds=new Set();
+  function add(records,source){for(const [kind,rows] of Object.entries(records)){if(!own(kinds,kind))fail(source,'unknown category '+kind);validate(rows,schema.$defs['catalog_'+kind],schema.$defs,kind);for(const row of copy(rows)){if(!row.id.startsWith(kinds[kind]))fail(row.id,'wrong category prefix');if(ids.has(row.id))fail(row.id,'duplicate record (core or another pack)');ids.set(row.id,{kind,row,source});out[kind].push(row);walk(row,n=>{if(n.id&&n.id!=='A'&&n.id!=='B'){if(nested.has(n.id))fail(n.id,'duplicate nested ID');nested.add(n.id)}if(own(n,'description')&&!n.description_el)fail(row.id,'missing description_el');if(own(n,'name')&&!n.name_el)fail(row.id,'missing name_el')})}}}
+  inspect(core);add(core,'core');for(const raw of packs){const p=normalize(raw,schema);if(packIds.has(p.id))fail(p.id,'duplicate pack ID');packIds.add(p.id);add(p.records,p.id)}
+  function ref(id,kinds,p){let r=ids.get(id);if(!r||!([].concat(kinds)).includes(r.kind))fail(p,'invalid reference '+id);return r.row}
+  for(const {row:r,kind} of ids.values()){const choices=new Set();walk(r,n=>{if(n.kind&&n.id)choices.add(n.id)});walk(r,n=>{for(const [k,v] of Object.entries(n)){if(own(fk,k))for(const id of [].concat(v))ref(id,fk[k],r.id+'.'+k);if(localRefs.has(k)&&!choices.has(v))fail(r.id,'unknown local choice '+v)}if(['skill','class','weapon','tool','feat','spell','companion'].includes(n.kind)&&n.values){const cats={skill:'skills',class:'classes',weapon:'weapons',tool:'tools',feat:'feats',spell:'spells',companion:'companions'};for(const id of n.values)ref(id,cats[n.kind],r.id+'.values')}if(n.kind==='options'&&(!Array.isArray(n.options)||n.selection_count>n.options.length))fail(r.id,'invalid option count')});
+   if(kind==='classes'){if(r.fixed_hp_per_level!==r.hit_die/2+1)fail(r.id,'invalid fixed HP');for(const id of [...r.subclass_ids,...r.feature_ids])if(ids.get(id).row.class_id!==r.id)fail(r.id,'invalid class ownership '+id)}
+   if(kind==='features'&&r.subclass_id&&ids.get(r.subclass_id).row.class_id!==r.class_id)fail(r.id,'subclass belongs to another class');if(kind==='weapons'&&r.range_ft&&r.range_ft.normal>r.range_ft.long)fail(r.id,'invalid range');
+  }
+  // Reverse associations let packs add subclasses and features to core classes without overriding them.
+  for(const s of out.subclasses){let c=ids.get(s.class_id).row;if(!c.subclass_ids.includes(s.id))c.subclass_ids.push(s.id)}
+  for(const f of out.features){let c=ids.get(f.class_id).row;if(!f.subclass_id&&!c.feature_ids.includes(f.id))c.feature_ids.push(f.id)}
+  return {records:out,byId:id=>{let entry=ids.get(id);return entry?copy(entry.row):null},source:id=>ids.get(id)?.source||null,featuresFor:(classId,subclassId,level=20)=>copy(out.features.filter(f=>f.class_id===classId&&(!f.subclass_id||f.subclass_id===subclassId)&&f.unlock_level<=level))};
+ }
+ function manager(core,schema,storage){let packs=[];let catalog=merge(core,[],schema);let loadError=null;try{let raw=storage.getItem(KEY);if(raw){let stored=JSON.parse(raw);if(!Array.isArray(stored))fail('storage','expected array');catalog=merge(core,stored,schema);packs=stored}}catch(e){loadError=e.message}
+  function commit(next){if(loadError)fail('storage','existing content could not be loaded; reset explicitly first');const candidate=merge(core,next,schema);storage.setItem(KEY,JSON.stringify(next));packs=copy(next);catalog=candidate;return catalog}
+  return {get catalog(){return catalog},get packs(){return copy(packs)},get loadError(){return loadError},importPack:p=>commit([...packs,normalize(p,schema)]),remove:id=>{if(!packs.some(p=>p.id===id))fail(id,'not installed');return commit(packs.filter(p=>p.id!==id))},reset:()=>{storage.removeItem(KEY);packs=[];catalog=merge(core,[],schema);loadError=null}};
+ }
+ async function load(base='./data/rules-2024/'){const get=async path=>{let r=await fetch(new URL(path,new URL(base,location.href)));if(!r.ok)throw Error('HTTP '+r.status+' '+path);return r.json()};let manifest=await get('manifest.json');if(manifest.ruleset!==RULESET||manifest.schema_version!==VERSION)fail('manifest','incompatible version');let [schema,records]=await Promise.all([get('catalog.schema.json'),Promise.all(Object.keys(kinds).map(async k=>[k,await get(k+'.json')]))]);return {schema,core:Object.fromEntries(records),manifest}}
+ const api={RULESET,VERSION,KEY,kinds,normalize,merge,manager,load};if(typeof module==='object'&&module.exports)module.exports=api;else root.ATLAS_CONTENT_PACKS=api;
+})(typeof window==='undefined'?globalThis:window);

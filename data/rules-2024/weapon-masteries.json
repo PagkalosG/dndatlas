@@ -1,0 +1,104 @@
+[
+  {
+    "id": "mastery_cleave",
+    "name": "Cleave",
+    "name_el": "Σάρωση",
+    "description": "Extra attack on a second nearby creature after a melee hit; once per turn.",
+    "description_el": "Επιπλέον επίθεση σε δεύτερο κοντινό πλάσμα μετά από χτύπημα σώμα με σώμα, μία φορά ανά σειρά.",
+    "mechanics": {
+      "trigger": "melee_hit",
+      "max_per_turn": 1,
+      "second_target_distance_ft": 5,
+      "requires_reach": true,
+      "damage_modifier": "negative_only"
+    }
+  },
+  {
+    "id": "mastery_graze",
+    "name": "Graze",
+    "name_el": "Ξυστό Χτύπημα",
+    "description": "On a miss, deal damage equal to the attack ability modifier.",
+    "description_el": "Σε αστοχία, προκάλεσε ζημιά ίση με τον τροποποιητή της ικανότητας επίθεσης.",
+    "mechanics": {
+      "trigger": "miss",
+      "damage_formula": "ATTACK_ABILITY_MOD",
+      "damage_type": "weapon"
+    }
+  },
+  {
+    "id": "mastery_nick",
+    "name": "Nick",
+    "name_el": "Γρήγορο Χτύπημα",
+    "description": "Move the Light extra attack into the Attack action, once per turn.",
+    "description_el": "Μετέφερε την επιπλέον επίθεση του Light στην ενέργεια Επίθεση, μία φορά ανά σειρά.",
+    "mechanics": {
+      "trigger": "light_extra_attack",
+      "action_override": "Attack",
+      "max_per_turn": 1
+    }
+  },
+  {
+    "id": "mastery_push",
+    "name": "Push",
+    "name_el": "Ώθηση",
+    "description": "On hit, push a Large or smaller target away up to 10 ft.",
+    "description_el": "Σε χτύπημα, ώθησε στόχο μεγέθους Large ή μικρότερου έως 10 ft. μακριά.",
+    "mechanics": {
+      "trigger": "hit",
+      "push_ft": 10,
+      "target_max_size": "Large"
+    }
+  },
+  {
+    "id": "mastery_sap",
+    "name": "Sap",
+    "name_el": "Εξασθένηση",
+    "description": "On hit, impose disadvantage on the next attack before your next turn starts.",
+    "description_el": "Σε χτύπημα, μειονέκτημα στην επόμενη επίθεση του στόχου πριν ξεκινήσει η επόμενη σειρά σου.",
+    "mechanics": {
+      "trigger": "hit",
+      "effect": "next_attack_disadvantage",
+      "expires": "start_of_own_next_turn"
+    }
+  },
+  {
+    "id": "mastery_slow",
+    "name": "Slow",
+    "name_el": "Επιβράδυνση",
+    "description": "On damaging hit, reduce Speed by 10 ft until your next turn starts; does not stack.",
+    "description_el": "Σε χτύπημα με ζημιά, μείωσε την ταχύτητα κατά 10 ft μέχρι την επόμενη σειρά σου, χωρίς συσσώρευση.",
+    "mechanics": {
+      "trigger": "hit_and_damage",
+      "speed_bonus": -10,
+      "stacking": "nonstacking",
+      "expires": "start_of_own_next_turn"
+    }
+  },
+  {
+    "id": "mastery_topple",
+    "name": "Topple",
+    "name_el": "Ανατροπή",
+    "description": "On hit, the target can be forced to make a CON save or fall Prone.",
+    "description_el": "Σε χτύπημα, ο στόχος μπορεί να υποχρεωθεί σε σωτηρία Αντοχής ή να πέσει Πρηνής.",
+    "mechanics": {
+      "trigger": "hit",
+      "saving_throw": {
+        "ability": "CON",
+        "dc_formula": "8 + ATTACK_ABILITY_MOD + PB"
+      },
+      "apply_condition_id": "condition_prone"
+    }
+  },
+  {
+    "id": "mastery_vex",
+    "name": "Vex",
+    "name_el": "Παρενοχλητικό Χτύπημα",
+    "description": "After a damaging hit, advantage on the next attack against that creature before the end of your next turn.",
+    "description_el": "Μετά από χτύπημα με ζημιά, πλεονέκτημα στην επόμενη επίθεση κατά του ίδιου στόχου πριν λήξει η επόμενη σειρά σου.",
+    "mechanics": {
+      "trigger": "hit_and_damage",
+      "effect": "next_attack_same_target_advantage",
+      "expires": "end_of_own_next_turn"
+    }
+  }
+]

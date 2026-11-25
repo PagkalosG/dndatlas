@@ -1,0 +1,263 @@
+[
+  {
+    "id": "feature_barbarian_weapon_mastery",
+    "name": "Weapon Mastery",
+    "name_el": "Εξειδίκευση Όπλων",
+    "class_id": "class_barbarian",
+    "unlock_level": 1,
+    "coverage": "structured_subset",
+    "choices": [
+      {
+        "id": "choice_barbarian_weapon_mastery",
+        "label": {
+          "en": "Mastered weapons",
+          "el": "Όπλα εξειδίκευσης"
+        },
+        "kind": "weapon",
+        "selection_count": 2,
+        "filter": {
+          "proficient_only": true
+        },
+        "replacement": {
+          "timing": "Long Rest",
+          "max_replacements": 1
+        },
+        "selection_count_by_class_level": {
+          "1": 2,
+          "4": 3,
+          "10": 4
+        }
+      }
+    ],
+    "description": "Select proficient weapon types whose mastery you can use.",
+    "description_el": "Επίλεξε τύπους όπλων στα οποία έχεις εξειδίκευση για να χρησιμοποιείς την ιδιότητά τους."
+  },
+  {
+    "id": "feature_fighter_weapon_mastery",
+    "name": "Weapon Mastery",
+    "name_el": "Εξειδίκευση Όπλων",
+    "class_id": "class_fighter",
+    "unlock_level": 1,
+    "coverage": "structured_subset",
+    "choices": [
+      {
+        "id": "choice_fighter_weapon_mastery",
+        "label": {
+          "en": "Mastered weapons",
+          "el": "Όπλα εξειδίκευσης"
+        },
+        "kind": "weapon",
+        "selection_count": 3,
+        "filter": {
+          "proficient_only": true
+        },
+        "replacement": {
+          "timing": "Long Rest",
+          "max_replacements": 1
+        },
+        "selection_count_by_class_level": {
+          "1": 3,
+          "4": 4,
+          "10": 5,
+          "16": 6
+        }
+      }
+    ],
+    "description": "Select proficient weapon types whose mastery you can use.",
+    "description_el": "Επίλεξε τύπους όπλων στα οποία έχεις εξειδίκευση για να χρησιμοποιείς την ιδιότητά τους."
+  },
+  {
+    "id": "feature_paladin_weapon_mastery",
+    "name": "Weapon Mastery",
+    "name_el": "Εξειδίκευση Όπλων",
+    "class_id": "class_paladin",
+    "unlock_level": 1,
+    "coverage": "structured_subset",
+    "choices": [
+      {
+        "id": "choice_paladin_weapon_mastery",
+        "label": {
+          "en": "Mastered weapons",
+          "el": "Όπλα εξειδίκευσης"
+        },
+        "kind": "weapon",
+        "selection_count": 2,
+        "filter": {
+          "proficient_only": true
+        },
+        "replacement": {
+          "timing": "Long Rest",
+          "max_replacements": 1
+        },
+        "selection_count_by_class_level": {
+          "1": 2
+        }
+      }
+    ],
+    "description": "Select proficient weapon types whose mastery you can use.",
+    "description_el": "Επίλεξε τύπους όπλων στα οποία έχεις εξειδίκευση για να χρησιμοποιείς την ιδιότητά τους."
+  },
+  {
+    "id": "feature_ranger_weapon_mastery",
+    "name": "Weapon Mastery",
+    "name_el": "Εξειδίκευση Όπλων",
+    "class_id": "class_ranger",
+    "unlock_level": 1,
+    "coverage": "structured_subset",
+    "choices": [
+      {
+        "id": "choice_ranger_weapon_mastery",
+        "label": {
+          "en": "Mastered weapons",
+          "el": "Όπλα εξειδίκευσης"
+        },
+        "kind": "weapon",
+        "selection_count": 2,
+        "filter": {
+          "proficient_only": true
+        },
+        "replacement": {
+          "timing": "Long Rest",
+          "max_replacements": 1
+        },
+        "selection_count_by_class_level": {
+          "1": 2
+        }
+      }
+    ],
+    "description": "Select proficient weapon types whose mastery you can use.",
+    "description_el": "Επίλεξε τύπους όπλων στα οποία έχεις εξειδίκευση για να χρησιμοποιείς την ιδιότητά τους."
+  },
+  {
+    "id": "feature_rogue_weapon_mastery",
+    "name": "Weapon Mastery",
+    "name_el": "Εξειδίκευση Όπλων",
+    "class_id": "class_rogue",
+    "unlock_level": 1,
+    "coverage": "structured_subset",
+    "choices": [
+      {
+        "id": "choice_rogue_weapon_mastery",
+        "label": {
+          "en": "Mastered weapons",
+          "el": "Όπλα εξειδίκευσης"
+        },
+        "kind": "weapon",
+        "selection_count": 2,
+        "filter": {
+          "proficient_only": true
+        },
+        "replacement": {
+          "timing": "Long Rest",
+          "max_replacements": 1
+        },
+        "selection_count_by_class_level": {
+          "1": 2
+        }
+      }
+    ],
+    "description": "Select proficient weapon types whose mastery you can use.",
+    "description_el": "Επίλεξε τύπους όπλων στα οποία έχεις εξειδίκευση για να χρησιμοποιείς την ιδιότητά τους."
+  },
+  {
+    "id": "feature_fighter_second_wind",
+    "name": "Second Wind",
+    "name_el": "Δεύτερη Ανάσα",
+    "class_id": "class_fighter",
+    "unlock_level": 1,
+    "coverage": "structured_subset",
+    "activation": {
+      "action_type": "Bonus Action",
+      "uses_formula": "TABLE",
+      "recharge": "Long Rest"
+    },
+    "mechanics": {
+      "healing_formula": "1d10 + CLASS_LEVEL",
+      "uses_by_class_level": {
+        "1": 2,
+        "4": 3,
+        "10": 4
+      },
+      "short_rest_recovery": 1
+    },
+    "description": "Recover hit points and regain one expended use on a Short Rest.",
+    "description_el": "Ανάκτησε πόντους ζωής και επανάκτησε μία χρήση στη Σύντομη Ανάπαυση."
+  },
+  {
+    "id": "feature_fighter_extra_attack",
+    "name": "Extra Attack",
+    "name_el": "Επιπλέον Επίθεση",
+    "class_id": "class_fighter",
+    "unlock_level": 5,
+    "coverage": "structured_subset",
+    "mechanics": {
+      "attacks_per_attack_action_by_class_level": {
+        "5": 2,
+        "11": 3,
+        "20": 4
+      }
+    },
+    "description": "Make multiple attacks with the Attack action on your turn.",
+    "description_el": "Πραγματοποίησε πολλαπλές επιθέσεις με την ενέργεια Επίθεση στη σειρά σου."
+  },
+  {
+    "id": "feature_barbarian_extra_attack",
+    "name": "Extra Attack",
+    "name_el": "Επιπλέον Επίθεση",
+    "class_id": "class_barbarian",
+    "unlock_level": 5,
+    "coverage": "structured_subset",
+    "mechanics": {
+      "attacks_per_attack_action_by_class_level": {
+        "5": 2
+      }
+    },
+    "description": "Make two attacks instead of one with the Attack action on your turn.",
+    "description_el": "Κάνε δύο επιθέσεις αντί για μία με την ενέργεια Επίθεση στη σειρά σου."
+  },
+  {
+    "id": "feature_monk_extra_attack",
+    "name": "Extra Attack",
+    "name_el": "Επιπλέον Επίθεση",
+    "class_id": "class_monk",
+    "unlock_level": 5,
+    "coverage": "structured_subset",
+    "mechanics": {
+      "attacks_per_attack_action_by_class_level": {
+        "5": 2
+      }
+    },
+    "description": "Make two attacks instead of one with the Attack action on your turn.",
+    "description_el": "Κάνε δύο επιθέσεις αντί για μία με την ενέργεια Επίθεση στη σειρά σου."
+  },
+  {
+    "id": "feature_paladin_extra_attack",
+    "name": "Extra Attack",
+    "name_el": "Επιπλέον Επίθεση",
+    "class_id": "class_paladin",
+    "unlock_level": 5,
+    "coverage": "structured_subset",
+    "mechanics": {
+      "attacks_per_attack_action_by_class_level": {
+        "5": 2
+      }
+    },
+    "description": "Make two attacks instead of one with the Attack action on your turn.",
+    "description_el": "Κάνε δύο επιθέσεις αντί για μία με την ενέργεια Επίθεση στη σειρά σου."
+  },
+  {
+    "id": "feature_ranger_extra_attack",
+    "name": "Extra Attack",
+    "name_el": "Επιπλέον Επίθεση",
+    "class_id": "class_ranger",
+    "unlock_level": 5,
+    "coverage": "structured_subset",
+    "mechanics": {
+      "attacks_per_attack_action_by_class_level": {
+        "5": 2
+      }
+    },
+    "description": "Make two attacks instead of one with the Attack action on your turn.",
+    "description_el": "Κάνε δύο επιθέσεις αντί για μία με την ενέργεια Επίθεση στη σειρά σου."
+  }
+]

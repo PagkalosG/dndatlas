@@ -1,0 +1,169 @@
+[
+  {
+    "id": "subclass_path_of_the_berserker",
+    "name": "Path of the Berserker",
+    "name_el": "Μονοπάτι του Μανιασμένου Πολεμιστή",
+    "class_id": "class_barbarian",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      6,
+      10,
+      14
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_college_of_lore",
+    "name": "College of Lore",
+    "name_el": "Κολέγιο της Γνώσης",
+    "class_id": "class_bard",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      6,
+      14
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_life_domain",
+    "name": "Life Domain",
+    "name_el": "Τομέας της Ζωής",
+    "class_id": "class_cleric",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      6,
+      17
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_circle_of_the_land",
+    "name": "Circle of the Land",
+    "name_el": "Κύκλος της Γης",
+    "class_id": "class_druid",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      6,
+      10,
+      14
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_champion",
+    "name": "Champion",
+    "name_el": "Πρωταθλητής",
+    "class_id": "class_fighter",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      7,
+      10,
+      15,
+      18
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_warrior_of_the_open_hand",
+    "name": "Warrior of the Open Hand",
+    "name_el": "Πολεμιστής της Ανοιχτής Παλάμης",
+    "class_id": "class_monk",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      6,
+      11,
+      17
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_oath_of_devotion",
+    "name": "Oath of Devotion",
+    "name_el": "Όρκος Αφοσίωσης",
+    "class_id": "class_paladin",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      7,
+      15,
+      20
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_hunter",
+    "name": "Hunter",
+    "name_el": "Κυνηγός",
+    "class_id": "class_ranger",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      7,
+      11,
+      15
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_thief",
+    "name": "Thief",
+    "name_el": "Κλέφτης",
+    "class_id": "class_rogue",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      9,
+      13,
+      17
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_draconic_sorcery",
+    "name": "Draconic Sorcery",
+    "name_el": "Δρακονική Μαγεία",
+    "class_id": "class_sorcerer",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      6,
+      14,
+      18
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_fiend_patron",
+    "name": "Fiend Patron",
+    "name_el": "Δαιμονικός Προστάτης",
+    "class_id": "class_warlock",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      6,
+      10,
+      14
+    ],
+    "coverage": "reference_only"
+  },
+  {
+    "id": "subclass_evoker",
+    "name": "Evoker",
+    "name_el": "Επικλητής",
+    "class_id": "class_wizard",
+    "unlock_level": 3,
+    "feature_unlock_levels": [
+      3,
+      6,
+      10,
+      14
+    ],
+    "coverage": "reference_only"
+  }
+]

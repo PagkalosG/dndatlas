@@ -1,6 +1,6 @@
 {
-  "version": "3.12.2",
-  "updated": "2026-11-24",
+  "version": "3.12.4",
+  "updated": "2026-11-25",
   "ruleset": "D&D 5e 2024",
-  "notes": "Responsive pending choice checkboxes, compact DM skill review and duplicate choice prevention"
+  "notes": "DM-only spell review, pending choice dashboard, spell level grouping; manual save"
 }

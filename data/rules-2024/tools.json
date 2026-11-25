@@ -1,0 +1,58 @@
+[
+  {
+    "id": "tool_calligrapher_s_supplies",
+    "name": "Calligrapher’s Supplies",
+    "name_el": "Υλικά Καλλιγραφίας",
+    "category": "Artisan",
+    "ability": "DEX",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "tool_thieves_tools",
+    "name": "Thieves’ Tools",
+    "name_el": "Εργαλεία Κλέφτη",
+    "category": "Other",
+    "ability": "DEX",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "tool_smith_s_tools",
+    "name": "Smith’s Tools",
+    "name_el": "Εργαλεία Σιδηρουργού",
+    "category": "Artisan",
+    "ability": "STR",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "tool_dice_set",
+    "name": "Dice Set",
+    "name_el": "Σετ Ζαριών",
+    "category": "Gaming Set",
+    "ability": "WIS",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "tool_dragonchess_set",
+    "name": "Dragonchess Set",
+    "name_el": "Σετ Δρακόσκακου",
+    "category": "Gaming Set",
+    "ability": "WIS",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "tool_playing_card_set",
+    "name": "Playing Card Set",
+    "name_el": "Τράπουλα",
+    "category": "Gaming Set",
+    "ability": "WIS",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "tool_three_dragon_ante_set",
+    "name": "Three-Dragon Ante Set",
+    "name_el": "Σετ Three-Dragon Ante",
+    "category": "Gaming Set",
+    "ability": "WIS",
+    "coverage": "reference_only"
+  }
+]

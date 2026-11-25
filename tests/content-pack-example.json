@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0.0",
+  "ruleset": "D&D 5e 2024",
+  "id": "pack_atlas_example",
+  "name": "Atlas homebrew example",
+  "name_el": "Παράδειγμα ιδιοκατασκευής Atlas",
+  "version": "1.0.0",
+  "records": {
+    "subclasses": [
+      {
+        "id": "subclass_atlas_example_fighter",
+        "name": "Atlas Sentinel (homebrew)",
+        "name_el": "Φρουρός του Άτλαντα (ιδιοκατασκευή)",
+        "class_id": "class_fighter",
+        "unlock_level": 3,
+        "feature_unlock_levels": [
+          3
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "feature_atlas_example_sentinel",
+        "name": "Sentinel Training (homebrew)",
+        "name_el": "Εκπαίδευση φρουρού (ιδιοκατασκευή)",
+        "class_id": "class_fighter",
+        "subclass_id": "subclass_atlas_example_fighter",
+        "unlock_level": 3,
+        "description": "Example only: choose one skill from the listed options. Not an official subclass.",
+        "description_el": "Μόνο παράδειγμα: διάλεξε μία δεξιότητα από τις επιλογές. Δεν είναι επίσημη υποκλάση.",
+        "choices": [
+          {
+            "id": "choice_atlas_example_sentinel_skill",
+            "label": {
+              "en": "Skill",
+              "el": "Δεξιότητα"
+            },
+            "kind": "skill",
+            "selection_count": 1,
+            "values": [
+              "skill_perception",
+              "skill_survival"
+            ],
+            "exclude_already_proficient": true
+          }
+        ]
+      }
+    ]
+  }
+}

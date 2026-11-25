@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0.0",
+  "catalog_version": "0.3.1",
+  "ruleset": "D&D 5e 2024",
+  "source": "SRD 5.2.1",
+  "source_url": "https://www.dndbeyond.com/srd",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "languages": [
+    "en",
+    "el"
+  ],
+  "atlas_base_version": "3.12.2",
+  "integration_status": "additive_legacy_bridge_partial_manual_review",
+  "files": {
+    "species": {
+      "path": "species.json",
+      "count": 9,
+      "coverage": "structured_species"
+    },
+    "weapons": {
+      "path": "weapons.json",
+      "count": 38,
+      "coverage": "complete_table"
+    },
+    "weapon-masteries": {
+      "path": "weapon-masteries.json",
+      "count": 8,
+      "coverage": "complete_table"
+    },
+    "armor": {
+      "path": "armor.json",
+      "count": 13,
+      "coverage": "complete_table"
+    },
+    "skills": {
+      "path": "skills.json",
+      "count": 18,
+      "coverage": "complete_table"
+    },
+    "classes": {
+      "path": "classes.json",
+      "count": 12,
+      "coverage": "partial"
+    },
+    "subclasses": {
+      "path": "subclasses.json",
+      "count": 12,
+      "coverage": "reference_only"
+    },
+    "features": {
+      "path": "features.json",
+      "count": 11,
+      "coverage": "partial"
+    },
+    "spells": {
+      "path": "spells.json",
+      "count": 42,
+      "coverage": "partial_verified_metadata"
+    },
+    "backgrounds": {
+      "path": "backgrounds.json",
+      "count": 4,
+      "coverage": "structured_subset"
+    },
+    "feats": {
+      "path": "feats.json",
+      "count": 9,
+      "coverage": "partial"
+    },
+    "tools": {
+      "path": "tools.json",
+      "count": 7,
+      "coverage": "reference_only"
+    },
+    "equipment": {
+      "path": "equipment.json",
+      "count": 10,
+      "coverage": "reference_only"
+    },
+    "companions": {
+      "path": "companions.json",
+      "count": 0,
+      "coverage": "not_populated"
+    },
+    "magic-items": {
+      "path": "magic-items.json",
+      "count": 0,
+      "coverage": "not_populated"
+    },
+    "conditions": {
+      "path": "conditions.json",
+      "count": 15,
+      "coverage": "reference_only"
+    },
+    "rules": {
+      "path": "rules.json",
+      "count": 4,
+      "coverage": "partial"
+    }
+  },
+  "schema_file": "catalog.schema.json",
+  "validation_notes": "Partial SRD catalog; content-pack manager merges validated additive data. Legacy Builder and Character Sheet not connected."
+}

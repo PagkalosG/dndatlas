@@ -1,0 +1,62 @@
+[
+  {
+    "id": "equipment_book",
+    "name": "Book",
+    "name_el": "Βιβλίο",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "equipment_holy_symbol",
+    "name": "Holy Symbol",
+    "name_el": "Ιερό Σύμβολο",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "equipment_parchment",
+    "name": "Parchment",
+    "name_el": "Περγαμηνή",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "equipment_robe",
+    "name": "Robe",
+    "name_el": "Ρόμπα",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "equipment_crowbar",
+    "name": "Crowbar",
+    "name_el": "Λοστός",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "equipment_pouch",
+    "name": "Pouch",
+    "name_el": "Πουγκί",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "equipment_traveler_s_clothes",
+    "name": "Traveler’s Clothes",
+    "name_el": "Ρούχα Ταξιδιώτη",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "equipment_arrows",
+    "name": "Arrows",
+    "name_el": "Βέλη",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "equipment_healer_s_kit",
+    "name": "Healer’s Kit",
+    "name_el": "Σετ Θεραπευτή",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "equipment_quiver",
+    "name": "Quiver",
+    "name_el": "Φαρέτρα",
+    "coverage": "reference_only"
+  }
+]

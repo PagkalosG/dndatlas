@@ -1,0 +1,224 @@
+[
+  {
+    "id": "feat_alert",
+    "name": "Alert",
+    "name_el": "Σε Επιφυλακή",
+    "category": "Origin",
+    "description": "Add PB to initiative; may exchange initiative with a willing ally in the same combat immediately after rolling, unless either is Incapacitated.",
+    "description_el": "Πρόσθεσε PB στην πρωτοβουλία. Μετά τη ζαριά μπορείς να την ανταλλάξεις με πρόθυμο σύμμαχο στην ίδια μάχη, αν κανείς σας δεν είναι Ανίκανος.",
+    "mechanics": {
+      "initiative_bonus_formula": "PB",
+      "initiative_swap": true
+    },
+    "repeatable": false,
+    "coverage": "structured_subset"
+  },
+  {
+    "id": "feat_savage_attacker",
+    "name": "Savage Attacker",
+    "name_el": "Άγριος Επιτιθέμενος",
+    "category": "Origin",
+    "description": "Once per turn after hitting with a weapon, roll the weapon damage dice twice and use either result.",
+    "description_el": "Μία φορά ανά σειρά, μετά από χτύπημα με όπλο, ρίξε δύο φορές τα ζάρια ζημιάς του όπλου και κράτησε το ένα αποτέλεσμα.",
+    "mechanics": {
+      "weapon_damage_reroll_once_per_turn": true
+    },
+    "repeatable": false,
+    "coverage": "structured_subset"
+  },
+  {
+    "id": "feat_skilled",
+    "name": "Skilled",
+    "name_el": "Εξειδικευμένος",
+    "category": "Origin",
+    "description": "Choose three skill or tool proficiencies; repeatable.",
+    "description_el": "Επίλεξε τρεις εξειδικεύσεις δεξιοτήτων ή εργαλείων. Μπορεί να επιλεγεί ξανά.",
+    "mechanics": {},
+    "repeatable": true,
+    "coverage": "structured_subset",
+    "choices": [
+      {
+        "id": "choice_skilled_proficiencies",
+        "label": {
+          "en": "Proficiencies",
+          "el": "Εξειδικεύσεις"
+        },
+        "kind": "skill_or_tool",
+        "selection_count": 3,
+        "filter": {
+          "all": true
+        },
+        "exclude_already_proficient": true
+      }
+    ]
+  },
+  {
+    "id": "feat_magic_initiate",
+    "name": "Magic Initiate",
+    "name_el": "Μύηση στη Μαγεία",
+    "category": "Origin",
+    "description": "Choose a Cleric, Druid or Wizard list, two cantrips and a level 1 spell; choose INT, WIS or CHA for casting.",
+    "description_el": "Επίλεξε λίστα Κληρικού, Δρυΐδη ή Μελετητή της Μαγείας, δύο τεχνάσματα και ένα ξόρκι επιπέδου 1. Επίλεξε Νοημοσύνη, Σοφία ή Χάρισμα για μαγεία.",
+    "mechanics": {
+      "free_casts_formula": "1",
+      "recharge": "Long Rest",
+      "always_prepared": true,
+      "slot_casting_allowed": true
+    },
+    "repeatable": true,
+    "coverage": "structured_subset",
+    "choices": [
+      {
+        "id": "choice_magic_initiate_list",
+        "label": {
+          "en": "Spell list",
+          "el": "Λίστα ξορκιών"
+        },
+        "kind": "class",
+        "selection_count": 1,
+        "values": [
+          "class_cleric",
+          "class_druid",
+          "class_wizard"
+        ]
+      },
+      {
+        "id": "choice_magic_initiate_ability",
+        "label": {
+          "en": "Spellcasting ability",
+          "el": "Ικανότητα μαγείας"
+        },
+        "kind": "ability",
+        "selection_count": 1,
+        "values": [
+          "INT",
+          "WIS",
+          "CHA"
+        ]
+      },
+      {
+        "id": "choice_magic_initiate_cantrips",
+        "label": {
+          "en": "Cantrips",
+          "el": "Τεχνάσματα"
+        },
+        "kind": "spell",
+        "selection_count": 2,
+        "filter": {
+          "spell_level": 0,
+          "class_from_choice": "choice_magic_initiate_list",
+          "requires_complete_catalog": true
+        }
+      },
+      {
+        "id": "choice_magic_initiate_spell",
+        "label": {
+          "en": "Level 1 spell",
+          "el": "Ξόρκι επιπέδου 1"
+        },
+        "kind": "spell",
+        "selection_count": 1,
+        "filter": {
+          "spell_level": 1,
+          "class_from_choice": "choice_magic_initiate_list",
+          "requires_complete_catalog": true
+        },
+        "replacement": {
+          "timing": "Level Up",
+          "max_replacements": 1
+        }
+      }
+    ],
+    "repeatability_constraint": "different_spell_list"
+  },
+  {
+    "id": "feat_ability_score_improvement",
+    "name": "Ability Score Improvement",
+    "name_el": "Βελτίωση Χαρακτηριστικών",
+    "category": "General",
+    "description": "Increase one score by 2 or two by 1, maximum 20. Repeatable.",
+    "description_el": "Αύξησε ένα χαρακτηριστικό κατά 2 ή δύο κατά 1, έως 20. Επαναλαμβανόμενο.",
+    "mechanics": {
+      "ability_score_patterns": [
+        [
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "ability_cap": 20
+    },
+    "repeatable": true,
+    "coverage": "structured_subset",
+    "prerequisites": {
+      "character_level": 4
+    }
+  },
+  {
+    "id": "feat_archery",
+    "name": "Archery",
+    "name_el": "Τοξοβολία",
+    "category": "Fighting Style",
+    "description": "+2 to attacks with ranged weapons.",
+    "description_el": "+2 στις επιθέσεις με όπλα εξ αποστάσεως.",
+    "mechanics": {
+      "ranged_weapon_attack_bonus": 2
+    },
+    "repeatable": false,
+    "coverage": "structured_subset",
+    "prerequisites": {
+      "requires_fighting_style_feature": true
+    }
+  },
+  {
+    "id": "feat_defense",
+    "name": "Defense",
+    "name_el": "Άμυνα",
+    "category": "Fighting Style",
+    "description": "+1 AC when wearing armor.",
+    "description_el": "+1 στην Κλάση Πανοπλίας όταν φοράς πανοπλία.",
+    "mechanics": {
+      "ac_bonus_when_armored": 1
+    },
+    "repeatable": false,
+    "coverage": "structured_subset",
+    "prerequisites": {
+      "requires_fighting_style_feature": true
+    }
+  },
+  {
+    "id": "feat_great_weapon_fighting",
+    "name": "Great Weapon Fighting",
+    "name_el": "Μάχη με Μεγάλο Όπλο",
+    "category": "Fighting Style",
+    "description": "Treat 1s and 2s on damage dice as 3 when attacking with a two-handed or versatile melee weapon held in two hands.",
+    "description_el": "Με όπλο σώμα με σώμα δύο χεριών ή ευέλικτο που κρατάς με δύο χέρια, αντιμετώπισε 1 και 2 στα ζάρια ζημιάς ως 3.",
+    "mechanics": {
+      "damage_die_floor": 3,
+      "requires_two_handed_melee_weapon": true
+    },
+    "repeatable": false,
+    "coverage": "structured_subset",
+    "prerequisites": {
+      "requires_fighting_style_feature": true
+    }
+  },
+  {
+    "id": "feat_two_weapon_fighting",
+    "name": "Two-Weapon Fighting",
+    "name_el": "Μάχη με Δύο Όπλα",
+    "category": "Fighting Style",
+    "description": "Add your ability modifier to the Light extra attack damage if not already included.",
+    "description_el": "Πρόσθεσε τον τροποποιητή ικανότητας στη ζημιά της επιπλέον επίθεσης Light, αν δεν έχει ήδη προστεθεί.",
+    "mechanics": {
+      "light_extra_attack_add_ability_modifier": true
+    },
+    "repeatable": false,
+    "coverage": "structured_subset",
+    "prerequisites": {
+      "requires_fighting_style_feature": true
+    }
+  }
+]

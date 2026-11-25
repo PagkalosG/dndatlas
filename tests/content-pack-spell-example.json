@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "ruleset": "D&D 5e 2024",
+  "id": "pack_atlas_spell_example",
+  "name": "Atlas spell example",
+  "name_el": "Παράδειγμα ξορκιού Atlas",
+  "version": "1.0.0",
+  "records": {
+    "spells": [{
+      "id": "spell_atlas_glow",
+      "name": "Atlas Glow",
+      "name_el": "Λάμψη Άτλαντα",
+      "level": 0,
+      "class_ids": ["class_wizard"],
+      "school": "Evocation",
+      "casting_time": "Magic Action",
+      "range": "Touch",
+      "duration": "1 minute",
+      "components": "V, S",
+      "ritual": false,
+      "concentration": false,
+      "description": "A homebrew example. Create a harmless glow on a touched object.",
+      "description_el": "Παράδειγμα ιδιοκατασκευής. Δημιουργείς ακίνδυνη λάμψη σε αντικείμενο που αγγίζεις."
+    }]
+  }
+}

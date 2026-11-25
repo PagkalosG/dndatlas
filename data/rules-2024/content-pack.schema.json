@@ -1,0 +1,1685 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Atlas 2024 content pack",
+  "description": "Additive user content. Runtime additionally checks nonempty records, IDs, foreign keys, ownership, limits, and localization; schema alone does not validate game-rule correctness.",
+  "$defs": {
+    "localized": {
+      "type": "object",
+      "properties": {
+        "en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "el": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "en",
+        "el"
+      ],
+      "additionalProperties": false
+    },
+    "activation": {
+      "type": "object",
+      "properties": {
+        "action_type": {
+          "enum": [
+            "Action",
+            "Bonus Action",
+            "Reaction",
+            "Magic Action",
+            "Attack Replacement",
+            "Passive",
+            "Triggered",
+            "Utilize"
+          ]
+        },
+        "uses_formula": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recharge": {
+          "enum": [
+            "Short Rest",
+            "Long Rest",
+            "Short or Long Rest",
+            "None"
+          ]
+        },
+        "duration": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "action_type",
+        "uses_formula",
+        "recharge"
+      ]
+    },
+    "spellGrant": {
+      "type": "object",
+      "properties": {
+        "spell_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "unlock_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "casting_ability_choice_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "always_prepared": {
+          "type": "boolean"
+        },
+        "uses_spell_slots": {
+          "type": "boolean"
+        },
+        "free_casts_formula": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recharge": {
+          "enum": [
+            "Long Rest",
+            "Short Rest",
+            "Short or Long Rest",
+            "None"
+          ]
+        },
+        "replacement": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "spell_id",
+        "unlock_level",
+        "casting_ability_choice_id",
+        "always_prepared",
+        "uses_spell_slots"
+      ]
+    },
+    "option": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "activation": {
+          "$ref": "#/$defs/activation"
+        },
+        "granted_spells": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/spellGrant"
+          }
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/choice"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el"
+      ]
+    },
+    "choice": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "label": {
+          "$ref": "#/$defs/localized"
+        },
+        "kind": {
+          "enum": [
+            "options",
+            "skill",
+            "feat",
+            "ability",
+            "weapon",
+            "tool",
+            "skill_or_tool",
+            "spell",
+            "class",
+            "companion"
+          ]
+        },
+        "selection_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "selection_count_by_class_level": {
+          "type": "object"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/option"
+          },
+          "minItems": 1
+        },
+        "filter": {
+          "type": "object"
+        },
+        "replacement": {
+          "type": "object"
+        },
+        "exclude_already_proficient": {
+          "type": "boolean"
+        },
+        "exclude_already_selected": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "kind",
+        "selection_count"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "options"
+          ]
+        },
+        {
+          "required": [
+            "values"
+          ]
+        },
+        {
+          "required": [
+            "filter"
+          ]
+        }
+      ]
+    },
+    "trait": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "unlock_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "activation": {
+          "$ref": "#/$defs/activation"
+        },
+        "active_effects": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "granted_spells": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/spellGrant"
+          }
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/choice"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "unlock_level",
+        "description",
+        "description_el"
+      ]
+    },
+    "record": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el"
+      ]
+    },
+    "species": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "creature_type": {
+          "const": "Humanoid"
+        },
+        "size_options": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Small",
+              "Medium"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "base_speed": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lifespan_years": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "short_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "short_summary_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "traits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/trait"
+          },
+          "minItems": 1
+        },
+        "sub_choice_group": {
+          "$ref": "#/$defs/choice"
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/choice"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "creature_type",
+        "size_options",
+        "base_speed",
+        "short_summary",
+        "short_summary_el",
+        "traits"
+      ]
+    },
+    "classes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "hit_die": {
+          "enum": [
+            6,
+            8,
+            10,
+            12
+          ]
+        },
+        "fixed_hp_per_level": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "primary_abilities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "STR",
+              "DEX",
+              "CON",
+              "INT",
+              "WIS",
+              "CHA"
+            ]
+          },
+          "minItems": 1
+        },
+        "saving_throw_proficiencies": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "STR",
+              "DEX",
+              "CON",
+              "INT",
+              "WIS",
+              "CHA"
+            ]
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true
+        },
+        "subclass_unlock_level": {
+          "const": 3
+        },
+        "spellcasting_progression": {
+          "enum": [
+            "none",
+            "full",
+            "half",
+            "pact"
+          ]
+        },
+        "subclass_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "feature_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "hit_die",
+        "fixed_hp_per_level",
+        "primary_abilities",
+        "saving_throw_proficiencies",
+        "subclass_unlock_level",
+        "spellcasting_progression",
+        "subclass_ids",
+        "feature_ids"
+      ]
+    },
+    "subclasses": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "class_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "unlock_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "feature_unlock_levels": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "class_id",
+        "unlock_level",
+        "feature_unlock_levels"
+      ]
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "class_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "subclass_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "unlock_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/choice"
+          }
+        },
+        "activation": {
+          "$ref": "#/$defs/activation"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "class_id",
+        "unlock_level"
+      ]
+    },
+    "weapons": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "category": {
+          "enum": [
+            "Simple",
+            "Martial"
+          ]
+        },
+        "attack_type": {
+          "enum": [
+            "Melee",
+            "Ranged"
+          ]
+        },
+        "damage": {
+          "type": "object",
+          "properties": {
+            "dice": {
+              "type": "string",
+              "pattern": "^(?:[0-9]+d[0-9]+|[0-9]+)$"
+            },
+            "type": {
+              "enum": [
+                "Bludgeoning",
+                "Piercing",
+                "Slashing"
+              ]
+            }
+          },
+          "required": [
+            "dice",
+            "type"
+          ]
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Light",
+              "Finesse",
+              "Thrown",
+              "Versatile",
+              "Two-Handed",
+              "Ammunition",
+              "Loading",
+              "Heavy",
+              "Reach"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "mastery_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "weight_lb": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cost_cp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ability_options": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "STR",
+              "DEX",
+              "CON",
+              "INT",
+              "WIS",
+              "CHA"
+            ]
+          },
+          "minItems": 1
+        },
+        "range_ft": {
+          "type": "object",
+          "properties": {
+            "normal": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "long": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "normal",
+            "long"
+          ]
+        },
+        "versatile_damage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ammunition_type": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "category",
+        "attack_type",
+        "damage",
+        "properties",
+        "mastery_id",
+        "weight_lb",
+        "cost_cp",
+        "ability_options"
+      ]
+    },
+    "armor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "category": {
+          "enum": [
+            "Light",
+            "Medium",
+            "Heavy",
+            "Shield"
+          ]
+        },
+        "ac": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "enum": [
+                "base",
+                "bonus"
+              ]
+            },
+            "value": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "add_dexterity_modifier": {
+              "type": "boolean"
+            },
+            "dexterity_cap": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "mode",
+            "value",
+            "add_dexterity_modifier"
+          ]
+        },
+        "strength_minimum": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "stealth_disadvantage": {
+          "type": "boolean"
+        },
+        "weight_lb": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cost_cp": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "category",
+        "ac",
+        "strength_minimum",
+        "stealth_disadvantage",
+        "weight_lb",
+        "cost_cp"
+      ]
+    },
+    "backgrounds": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "ability_options": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "STR",
+              "DEX",
+              "CON",
+              "INT",
+              "WIS",
+              "CHA"
+            ]
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true
+        },
+        "ability_score_patterns": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "feat_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "skill_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "starting_equipment_options": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "minItems": 2
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/choice"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "ability_options",
+        "ability_score_patterns",
+        "feat_id",
+        "skill_ids",
+        "starting_equipment_options"
+      ]
+    },
+    "feats": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "category": {
+          "enum": [
+            "Origin",
+            "General",
+            "Fighting Style",
+            "Epic Boon"
+          ]
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/choice"
+          }
+        },
+        "repeatable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "category"
+      ]
+    },
+    "spells": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "class_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^class_[a-z0-9_]+$"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "school": {
+          "enum": [
+            "Abjuration",
+            "Conjuration",
+            "Divination",
+            "Enchantment",
+            "Evocation",
+            "Illusion",
+            "Necromancy",
+            "Transmutation"
+          ]
+        },
+        "casting_time": {
+          "type": "string",
+          "minLength": 1
+        },
+        "range": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "components": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ritual": {
+          "type": "boolean"
+        },
+        "concentration": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "level"
+      ]
+    },
+    "skills": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "ability": {
+          "enum": [
+            "STR",
+            "DEX",
+            "CON",
+            "INT",
+            "WIS",
+            "CHA"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "ability"
+      ]
+    },
+    "tools": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ability": {
+          "enum": [
+            "STR",
+            "DEX",
+            "CON",
+            "INT",
+            "WIS",
+            "CHA"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "category",
+        "ability"
+      ]
+    },
+    "companions": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "owner_feature_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "form_group_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "form_selection": {
+          "type": "object",
+          "properties": {
+            "replacement_timing": {
+              "enum": [
+                "Long Rest",
+                "Short Rest",
+                "None"
+              ]
+            },
+            "selection_count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "replacement_timing",
+            "selection_count"
+          ]
+        },
+        "stat_block": {
+          "type": "object",
+          "properties": {
+            "size": {
+              "type": "string",
+              "minLength": 1
+            },
+            "creature_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ac_formula": {
+              "type": "string",
+              "minLength": 1
+            },
+            "hp_formula": {
+              "type": "string",
+              "minLength": 1
+            },
+            "speed": {
+              "type": "object"
+            },
+            "abilities": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "size",
+            "creature_type",
+            "ac_formula",
+            "hp_formula",
+            "speed",
+            "abilities"
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "initiative": {
+          "type": "object"
+        },
+        "command": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "owner_feature_id",
+        "form_group_id",
+        "form_selection",
+        "stat_block",
+        "actions"
+      ]
+    },
+    "magic-items": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        },
+        "rarity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requires_attunement": {
+          "type": "boolean"
+        },
+        "base_item_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "rarity",
+        "requires_attunement"
+      ]
+    },
+    "weapon-masteries": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "description",
+        "description_el",
+        "mechanics"
+      ]
+    },
+    "rules": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_el": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanics": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "name_el",
+        "mechanics"
+      ]
+    },
+    "catalog_species": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/species"
+      }
+    },
+    "catalog_weapons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/weapons"
+      }
+    },
+    "catalog_weapon-masteries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/weapon-masteries"
+      }
+    },
+    "catalog_armor": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/armor"
+      }
+    },
+    "catalog_skills": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/skills"
+      }
+    },
+    "catalog_classes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/classes"
+      }
+    },
+    "catalog_subclasses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/subclasses"
+      }
+    },
+    "catalog_features": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/features"
+      }
+    },
+    "catalog_spells": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/spells"
+      }
+    },
+    "catalog_backgrounds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/backgrounds"
+      }
+    },
+    "catalog_feats": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/feats"
+      }
+    },
+    "catalog_tools": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tools"
+      }
+    },
+    "catalog_equipment": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "catalog_companions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/companions"
+      }
+    },
+    "catalog_magic-items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/magic-items"
+      }
+    },
+    "catalog_conditions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "catalog_rules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/rules"
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "ruleset": {
+      "const": "D&D 5e 2024"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^pack_[a-z0-9_]{1,70}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 150
+    },
+    "name_el": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 150
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "records": {
+      "type": "object",
+      "properties": {
+        "species": {
+          "$ref": "#/$defs/catalog_species"
+        },
+        "weapons": {
+          "$ref": "#/$defs/catalog_weapons"
+        },
+        "weapon-masteries": {
+          "$ref": "#/$defs/catalog_weapon-masteries"
+        },
+        "armor": {
+          "$ref": "#/$defs/catalog_armor"
+        },
+        "skills": {
+          "$ref": "#/$defs/catalog_skills"
+        },
+        "classes": {
+          "$ref": "#/$defs/catalog_classes"
+        },
+        "subclasses": {
+          "$ref": "#/$defs/catalog_subclasses"
+        },
+        "features": {
+          "$ref": "#/$defs/catalog_features"
+        },
+        "spells": {
+          "$ref": "#/$defs/catalog_spells"
+        },
+        "backgrounds": {
+          "$ref": "#/$defs/catalog_backgrounds"
+        },
+        "feats": {
+          "$ref": "#/$defs/catalog_feats"
+        },
+        "tools": {
+          "$ref": "#/$defs/catalog_tools"
+        },
+        "equipment": {
+          "$ref": "#/$defs/catalog_equipment"
+        },
+        "companions": {
+          "$ref": "#/$defs/catalog_companions"
+        },
+        "magic-items": {
+          "$ref": "#/$defs/catalog_magic-items"
+        },
+        "conditions": {
+          "$ref": "#/$defs/catalog_conditions"
+        },
+        "rules": {
+          "$ref": "#/$defs/catalog_rules"
+        }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "ruleset",
+    "id",
+    "name",
+    "name_el",
+    "version",
+    "records"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,228 @@
+[
+  {
+    "id": "armor_padded_armor",
+    "name": "Padded Armor",
+    "name_el": "Ενισχυμένη Υφασμάτινη Πανοπλία",
+    "category": "Light",
+    "ac": {
+      "mode": "base",
+      "value": 11,
+      "add_dexterity_modifier": true
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": true,
+    "weight_lb": 8,
+    "cost_cp": 500,
+    "don_minutes": 1,
+    "doff_minutes": 1
+  },
+  {
+    "id": "armor_leather_armor",
+    "name": "Leather Armor",
+    "name_el": "Δερμάτινη Πανοπλία",
+    "category": "Light",
+    "ac": {
+      "mode": "base",
+      "value": 11,
+      "add_dexterity_modifier": true
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": false,
+    "weight_lb": 10,
+    "cost_cp": 1000,
+    "don_minutes": 1,
+    "doff_minutes": 1
+  },
+  {
+    "id": "armor_studded_leather_armor",
+    "name": "Studded Leather Armor",
+    "name_el": "Ενισχυμένη Δερμάτινη Πανοπλία",
+    "category": "Light",
+    "ac": {
+      "mode": "base",
+      "value": 12,
+      "add_dexterity_modifier": true
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": false,
+    "weight_lb": 13,
+    "cost_cp": 4500,
+    "don_minutes": 1,
+    "doff_minutes": 1
+  },
+  {
+    "id": "armor_hide_armor",
+    "name": "Hide Armor",
+    "name_el": "Πανοπλία από Τομάρι",
+    "category": "Medium",
+    "ac": {
+      "mode": "base",
+      "value": 12,
+      "add_dexterity_modifier": true,
+      "dexterity_cap": 2
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": false,
+    "weight_lb": 12,
+    "cost_cp": 1000,
+    "don_minutes": 5,
+    "doff_minutes": 1
+  },
+  {
+    "id": "armor_chain_shirt",
+    "name": "Chain Shirt",
+    "name_el": "Αλυσιδωτό Πουκάμισο",
+    "category": "Medium",
+    "ac": {
+      "mode": "base",
+      "value": 13,
+      "add_dexterity_modifier": true,
+      "dexterity_cap": 2
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": false,
+    "weight_lb": 20,
+    "cost_cp": 5000,
+    "don_minutes": 5,
+    "doff_minutes": 1
+  },
+  {
+    "id": "armor_scale_mail",
+    "name": "Scale Mail",
+    "name_el": "Φολιδωτή Πανοπλία",
+    "category": "Medium",
+    "ac": {
+      "mode": "base",
+      "value": 14,
+      "add_dexterity_modifier": true,
+      "dexterity_cap": 2
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": true,
+    "weight_lb": 45,
+    "cost_cp": 5000,
+    "don_minutes": 5,
+    "doff_minutes": 1
+  },
+  {
+    "id": "armor_breastplate",
+    "name": "Breastplate",
+    "name_el": "Θώρακας",
+    "category": "Medium",
+    "ac": {
+      "mode": "base",
+      "value": 14,
+      "add_dexterity_modifier": true,
+      "dexterity_cap": 2
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": false,
+    "weight_lb": 20,
+    "cost_cp": 40000,
+    "don_minutes": 5,
+    "doff_minutes": 1
+  },
+  {
+    "id": "armor_half_plate_armor",
+    "name": "Half Plate Armor",
+    "name_el": "Μισή Πλάκα",
+    "category": "Medium",
+    "ac": {
+      "mode": "base",
+      "value": 15,
+      "add_dexterity_modifier": true,
+      "dexterity_cap": 2
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": true,
+    "weight_lb": 40,
+    "cost_cp": 75000,
+    "don_minutes": 5,
+    "doff_minutes": 1
+  },
+  {
+    "id": "armor_ring_mail",
+    "name": "Ring Mail",
+    "name_el": "Πανοπλία Κρίκων",
+    "category": "Heavy",
+    "ac": {
+      "mode": "base",
+      "value": 14,
+      "add_dexterity_modifier": false
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": true,
+    "weight_lb": 40,
+    "cost_cp": 3000,
+    "don_minutes": 10,
+    "doff_minutes": 5
+  },
+  {
+    "id": "armor_chain_mail",
+    "name": "Chain Mail",
+    "name_el": "Αλυσιδωτή Πανοπλία",
+    "category": "Heavy",
+    "ac": {
+      "mode": "base",
+      "value": 16,
+      "add_dexterity_modifier": false
+    },
+    "strength_minimum": 13,
+    "stealth_disadvantage": true,
+    "weight_lb": 55,
+    "cost_cp": 7500,
+    "don_minutes": 10,
+    "doff_minutes": 5
+  },
+  {
+    "id": "armor_splint_armor",
+    "name": "Splint Armor",
+    "name_el": "Ελασματοειδής Πανοπλία",
+    "category": "Heavy",
+    "ac": {
+      "mode": "base",
+      "value": 17,
+      "add_dexterity_modifier": false
+    },
+    "strength_minimum": 15,
+    "stealth_disadvantage": true,
+    "weight_lb": 60,
+    "cost_cp": 20000,
+    "don_minutes": 10,
+    "doff_minutes": 5
+  },
+  {
+    "id": "armor_plate_armor",
+    "name": "Plate Armor",
+    "name_el": "Πλήρης Πανοπλία Πλάκας",
+    "category": "Heavy",
+    "ac": {
+      "mode": "base",
+      "value": 18,
+      "add_dexterity_modifier": false
+    },
+    "strength_minimum": 15,
+    "stealth_disadvantage": true,
+    "weight_lb": 65,
+    "cost_cp": 150000,
+    "don_minutes": 10,
+    "doff_minutes": 5
+  },
+  {
+    "id": "armor_shield",
+    "name": "Shield",
+    "name_el": "Ασπίδα",
+    "category": "Shield",
+    "ac": {
+      "mode": "bonus",
+      "value": 2,
+      "add_dexterity_modifier": false
+    },
+    "strength_minimum": null,
+    "stealth_disadvantage": false,
+    "weight_lb": 6,
+    "cost_cp": 1000,
+    "don_action": "Utilize",
+    "doff_action": "Utilize"
+  }
+]

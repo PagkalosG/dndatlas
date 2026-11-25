@@ -1,0 +1,287 @@
+[
+  {
+    "id": "background_acolyte",
+    "name": "Acolyte",
+    "name_el": "Ακόλουθος",
+    "ability_options": [
+      "INT",
+      "WIS",
+      "CHA"
+    ],
+    "ability_score_patterns": [
+      [
+        2,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ]
+    ],
+    "feat_id": "feat_magic_initiate",
+    "skill_ids": [
+      "skill_insight",
+      "skill_religion"
+    ],
+    "starting_equipment_options": [
+      {
+        "id": "A",
+        "items": [
+          {
+            "item_id": "tool_calligrapher_s_supplies",
+            "quantity": 1
+          },
+          {
+            "item_id": "equipment_book",
+            "quantity": 1,
+            "variant": {
+              "en": "prayers",
+              "el": "προσευχές"
+            }
+          },
+          {
+            "item_id": "equipment_holy_symbol",
+            "quantity": 1
+          },
+          {
+            "item_id": "equipment_parchment",
+            "quantity": 10
+          },
+          {
+            "item_id": "equipment_robe",
+            "quantity": 1
+          }
+        ],
+        "gold_gp": 8
+      },
+      {
+        "id": "B",
+        "items": [],
+        "gold_gp": 50
+      }
+    ],
+    "coverage": "structured_subset",
+    "tool_ids": [
+      "tool_calligrapher_s_supplies"
+    ],
+    "feat_choice_overrides": {
+      "choice_magic_initiate_list": "class_cleric"
+    }
+  },
+  {
+    "id": "background_criminal",
+    "name": "Criminal",
+    "name_el": "Εγκληματίας",
+    "ability_options": [
+      "DEX",
+      "CON",
+      "INT"
+    ],
+    "ability_score_patterns": [
+      [
+        2,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ]
+    ],
+    "feat_id": "feat_alert",
+    "skill_ids": [
+      "skill_sleight_of_hand",
+      "skill_stealth"
+    ],
+    "starting_equipment_options": [
+      {
+        "id": "A",
+        "items": [
+          {
+            "item_id": "weapon_dagger",
+            "quantity": 2
+          },
+          {
+            "item_id": "tool_thieves_tools",
+            "quantity": 1
+          },
+          {
+            "item_id": "equipment_crowbar",
+            "quantity": 1
+          },
+          {
+            "item_id": "equipment_pouch",
+            "quantity": 2
+          },
+          {
+            "item_id": "equipment_traveler_s_clothes",
+            "quantity": 1
+          }
+        ],
+        "gold_gp": 16
+      },
+      {
+        "id": "B",
+        "items": [],
+        "gold_gp": 50
+      }
+    ],
+    "coverage": "structured_subset",
+    "tool_ids": [
+      "tool_thieves_tools"
+    ]
+  },
+  {
+    "id": "background_sage",
+    "name": "Sage",
+    "name_el": "Λόγιος",
+    "ability_options": [
+      "CON",
+      "INT",
+      "WIS"
+    ],
+    "ability_score_patterns": [
+      [
+        2,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ]
+    ],
+    "feat_id": "feat_magic_initiate",
+    "skill_ids": [
+      "skill_arcana",
+      "skill_history"
+    ],
+    "starting_equipment_options": [
+      {
+        "id": "A",
+        "items": [
+          {
+            "item_id": "weapon_quarterstaff",
+            "quantity": 1
+          },
+          {
+            "item_id": "tool_calligrapher_s_supplies",
+            "quantity": 1
+          },
+          {
+            "item_id": "equipment_book",
+            "quantity": 1,
+            "variant": {
+              "en": "history",
+              "el": "ιστορία"
+            }
+          },
+          {
+            "item_id": "equipment_parchment",
+            "quantity": 8
+          },
+          {
+            "item_id": "equipment_robe",
+            "quantity": 1
+          }
+        ],
+        "gold_gp": 8
+      },
+      {
+        "id": "B",
+        "items": [],
+        "gold_gp": 50
+      }
+    ],
+    "coverage": "structured_subset",
+    "tool_ids": [
+      "tool_calligrapher_s_supplies"
+    ],
+    "feat_choice_overrides": {
+      "choice_magic_initiate_list": "class_wizard"
+    }
+  },
+  {
+    "id": "background_soldier",
+    "name": "Soldier",
+    "name_el": "Στρατιώτης",
+    "ability_options": [
+      "STR",
+      "DEX",
+      "CON"
+    ],
+    "ability_score_patterns": [
+      [
+        2,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ]
+    ],
+    "feat_id": "feat_savage_attacker",
+    "skill_ids": [
+      "skill_athletics",
+      "skill_intimidation"
+    ],
+    "starting_equipment_options": [
+      {
+        "id": "A",
+        "items": [
+          {
+            "item_id": "weapon_spear",
+            "quantity": 1
+          },
+          {
+            "item_id": "weapon_shortbow",
+            "quantity": 1
+          },
+          {
+            "item_id": "equipment_arrows",
+            "quantity": 20
+          },
+          {
+            "item_from_choice": "choice_soldier_gaming_set",
+            "quantity": 1
+          },
+          {
+            "item_id": "equipment_healer_s_kit",
+            "quantity": 1
+          },
+          {
+            "item_id": "equipment_quiver",
+            "quantity": 1
+          },
+          {
+            "item_id": "equipment_traveler_s_clothes",
+            "quantity": 1
+          }
+        ],
+        "gold_gp": 14
+      },
+      {
+        "id": "B",
+        "items": [],
+        "gold_gp": 50
+      }
+    ],
+    "coverage": "structured_subset",
+    "choices": [
+      {
+        "id": "choice_soldier_gaming_set",
+        "label": {
+          "en": "Gaming set",
+          "el": "Σετ Παιχνιδιού"
+        },
+        "kind": "tool",
+        "selection_count": 1,
+        "filter": {
+          "category": "Gaming Set"
+        }
+      }
+    ]
+  }
+]

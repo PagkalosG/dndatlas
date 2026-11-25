@@ -1,0 +1,923 @@
+[
+  {
+    "id": "weapon_club",
+    "name": "Club",
+    "name_el": "Ρόπαλο",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d4",
+      "type": "Bludgeoning"
+    },
+    "properties": [
+      "Light"
+    ],
+    "mastery_id": "mastery_slow",
+    "weight_lb": 2.0,
+    "cost_cp": 10,
+    "ability_options": [
+      "STR"
+    ]
+  },
+  {
+    "id": "weapon_dagger",
+    "name": "Dagger",
+    "name_el": "Στιλέτο",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d4",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Finesse",
+      "Light",
+      "Thrown"
+    ],
+    "mastery_id": "mastery_nick",
+    "weight_lb": 1.0,
+    "cost_cp": 200,
+    "ability_options": [
+      "STR",
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 20,
+      "long": 60
+    }
+  },
+  {
+    "id": "weapon_greatclub",
+    "name": "Greatclub",
+    "name_el": "Μεγάλο Ρόπαλο",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d8",
+      "type": "Bludgeoning"
+    },
+    "properties": [
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_push",
+    "weight_lb": 10.0,
+    "cost_cp": 20,
+    "ability_options": [
+      "STR"
+    ]
+  },
+  {
+    "id": "weapon_handaxe",
+    "name": "Handaxe",
+    "name_el": "Χειροπέλεκυς",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d6",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Light",
+      "Thrown"
+    ],
+    "mastery_id": "mastery_vex",
+    "weight_lb": 2.0,
+    "cost_cp": 500,
+    "ability_options": [
+      "STR"
+    ],
+    "range_ft": {
+      "normal": 20,
+      "long": 60
+    }
+  },
+  {
+    "id": "weapon_javelin",
+    "name": "Javelin",
+    "name_el": "Ακόντιο",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d6",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Thrown"
+    ],
+    "mastery_id": "mastery_slow",
+    "weight_lb": 2.0,
+    "cost_cp": 50,
+    "ability_options": [
+      "STR"
+    ],
+    "range_ft": {
+      "normal": 30,
+      "long": 120
+    }
+  },
+  {
+    "id": "weapon_light_hammer",
+    "name": "Light Hammer",
+    "name_el": "Ελαφρύ Σφυρί",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d4",
+      "type": "Bludgeoning"
+    },
+    "properties": [
+      "Light",
+      "Thrown"
+    ],
+    "mastery_id": "mastery_nick",
+    "weight_lb": 2.0,
+    "cost_cp": 200,
+    "ability_options": [
+      "STR"
+    ],
+    "range_ft": {
+      "normal": 20,
+      "long": 60
+    }
+  },
+  {
+    "id": "weapon_mace",
+    "name": "Mace",
+    "name_el": "Κορύνη",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d6",
+      "type": "Bludgeoning"
+    },
+    "properties": [],
+    "mastery_id": "mastery_sap",
+    "weight_lb": 4.0,
+    "cost_cp": 500,
+    "ability_options": [
+      "STR"
+    ]
+  },
+  {
+    "id": "weapon_quarterstaff",
+    "name": "Quarterstaff",
+    "name_el": "Ραβδί",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d6",
+      "type": "Bludgeoning"
+    },
+    "properties": [
+      "Versatile"
+    ],
+    "mastery_id": "mastery_topple",
+    "weight_lb": 4.0,
+    "cost_cp": 20,
+    "ability_options": [
+      "STR"
+    ],
+    "versatile_damage": "1d8"
+  },
+  {
+    "id": "weapon_sickle",
+    "name": "Sickle",
+    "name_el": "Δρεπάνι",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d4",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Light"
+    ],
+    "mastery_id": "mastery_nick",
+    "weight_lb": 2.0,
+    "cost_cp": 100,
+    "ability_options": [
+      "STR"
+    ]
+  },
+  {
+    "id": "weapon_spear",
+    "name": "Spear",
+    "name_el": "Δόρυ",
+    "category": "Simple",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d6",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Thrown",
+      "Versatile"
+    ],
+    "mastery_id": "mastery_sap",
+    "weight_lb": 3.0,
+    "cost_cp": 100,
+    "ability_options": [
+      "STR"
+    ],
+    "range_ft": {
+      "normal": 20,
+      "long": 60
+    },
+    "versatile_damage": "1d8"
+  },
+  {
+    "id": "weapon_dart",
+    "name": "Dart",
+    "name_el": "Βέλος Ρίψης",
+    "category": "Simple",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1d4",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Finesse",
+      "Thrown"
+    ],
+    "mastery_id": "mastery_vex",
+    "weight_lb": 0.25,
+    "cost_cp": 5,
+    "ability_options": [
+      "STR",
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 20,
+      "long": 60
+    }
+  },
+  {
+    "id": "weapon_light_crossbow",
+    "name": "Light Crossbow",
+    "name_el": "Ελαφριά Βαλλίστρα",
+    "category": "Simple",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1d8",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Ammunition",
+      "Loading",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_slow",
+    "weight_lb": 5.0,
+    "cost_cp": 2500,
+    "ability_options": [
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 80,
+      "long": 320
+    },
+    "ammunition_type": "Bolt"
+  },
+  {
+    "id": "weapon_shortbow",
+    "name": "Shortbow",
+    "name_el": "Κοντό Τόξο",
+    "category": "Simple",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1d6",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Ammunition",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_vex",
+    "weight_lb": 2.0,
+    "cost_cp": 2500,
+    "ability_options": [
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 80,
+      "long": 320
+    },
+    "ammunition_type": "Arrow"
+  },
+  {
+    "id": "weapon_sling",
+    "name": "Sling",
+    "name_el": "Σφεντόνα",
+    "category": "Simple",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1d4",
+      "type": "Bludgeoning"
+    },
+    "properties": [
+      "Ammunition"
+    ],
+    "mastery_id": "mastery_slow",
+    "weight_lb": 0.0,
+    "cost_cp": 10,
+    "ability_options": [
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 30,
+      "long": 120
+    },
+    "ammunition_type": "Bullet"
+  },
+  {
+    "id": "weapon_battleaxe",
+    "name": "Battleaxe",
+    "name_el": "Πολεμικός Πέλεκυς",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d8",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Versatile"
+    ],
+    "mastery_id": "mastery_topple",
+    "weight_lb": 4.0,
+    "cost_cp": 1000,
+    "ability_options": [
+      "STR"
+    ],
+    "versatile_damage": "1d10"
+  },
+  {
+    "id": "weapon_flail",
+    "name": "Flail",
+    "name_el": "Αλυσιδωτή Κορύνη",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d8",
+      "type": "Bludgeoning"
+    },
+    "properties": [],
+    "mastery_id": "mastery_sap",
+    "weight_lb": 2.0,
+    "cost_cp": 1000,
+    "ability_options": [
+      "STR"
+    ]
+  },
+  {
+    "id": "weapon_glaive",
+    "name": "Glaive",
+    "name_el": "Γκλέιβ",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d10",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Heavy",
+      "Reach",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_graze",
+    "weight_lb": 6.0,
+    "cost_cp": 2000,
+    "ability_options": [
+      "STR"
+    ],
+    "heavy_requirement": {
+      "ability": "STR",
+      "minimum": 13,
+      "failure": "disadvantage"
+    }
+  },
+  {
+    "id": "weapon_greataxe",
+    "name": "Greataxe",
+    "name_el": "Μεγάλος Πέλεκυς",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d12",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Heavy",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_cleave",
+    "weight_lb": 7.0,
+    "cost_cp": 3000,
+    "ability_options": [
+      "STR"
+    ],
+    "heavy_requirement": {
+      "ability": "STR",
+      "minimum": 13,
+      "failure": "disadvantage"
+    }
+  },
+  {
+    "id": "weapon_greatsword",
+    "name": "Greatsword",
+    "name_el": "Μεγάλο Σπαθί",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "2d6",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Heavy",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_graze",
+    "weight_lb": 6.0,
+    "cost_cp": 5000,
+    "ability_options": [
+      "STR"
+    ],
+    "heavy_requirement": {
+      "ability": "STR",
+      "minimum": 13,
+      "failure": "disadvantage"
+    }
+  },
+  {
+    "id": "weapon_halberd",
+    "name": "Halberd",
+    "name_el": "Αλαβάρδα",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d10",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Heavy",
+      "Reach",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_cleave",
+    "weight_lb": 6.0,
+    "cost_cp": 2000,
+    "ability_options": [
+      "STR"
+    ],
+    "heavy_requirement": {
+      "ability": "STR",
+      "minimum": 13,
+      "failure": "disadvantage"
+    }
+  },
+  {
+    "id": "weapon_lance",
+    "name": "Lance",
+    "name_el": "Λόγχη",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d10",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Heavy",
+      "Reach",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_topple",
+    "weight_lb": 6.0,
+    "cost_cp": 1000,
+    "ability_options": [
+      "STR"
+    ],
+    "two_handed_exception": "mounted",
+    "heavy_requirement": {
+      "ability": "STR",
+      "minimum": 13,
+      "failure": "disadvantage"
+    }
+  },
+  {
+    "id": "weapon_longsword",
+    "name": "Longsword",
+    "name_el": "Μακρύ Σπαθί",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d8",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Versatile"
+    ],
+    "mastery_id": "mastery_sap",
+    "weight_lb": 3.0,
+    "cost_cp": 1500,
+    "ability_options": [
+      "STR"
+    ],
+    "versatile_damage": "1d10"
+  },
+  {
+    "id": "weapon_maul",
+    "name": "Maul",
+    "name_el": "Βαρύ Σφυρί",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "2d6",
+      "type": "Bludgeoning"
+    },
+    "properties": [
+      "Heavy",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_topple",
+    "weight_lb": 10.0,
+    "cost_cp": 1000,
+    "ability_options": [
+      "STR"
+    ],
+    "heavy_requirement": {
+      "ability": "STR",
+      "minimum": 13,
+      "failure": "disadvantage"
+    }
+  },
+  {
+    "id": "weapon_morningstar",
+    "name": "Morningstar",
+    "name_el": "Ακανθωτή Κορύνη",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d8",
+      "type": "Piercing"
+    },
+    "properties": [],
+    "mastery_id": "mastery_sap",
+    "weight_lb": 4.0,
+    "cost_cp": 1500,
+    "ability_options": [
+      "STR"
+    ]
+  },
+  {
+    "id": "weapon_pike",
+    "name": "Pike",
+    "name_el": "Μακριά Λόγχη",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d10",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Heavy",
+      "Reach",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_push",
+    "weight_lb": 18.0,
+    "cost_cp": 500,
+    "ability_options": [
+      "STR"
+    ],
+    "heavy_requirement": {
+      "ability": "STR",
+      "minimum": 13,
+      "failure": "disadvantage"
+    }
+  },
+  {
+    "id": "weapon_rapier",
+    "name": "Rapier",
+    "name_el": "Ξίφος Μονομαχίας",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d8",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Finesse"
+    ],
+    "mastery_id": "mastery_vex",
+    "weight_lb": 2.0,
+    "cost_cp": 2500,
+    "ability_options": [
+      "STR",
+      "DEX"
+    ]
+  },
+  {
+    "id": "weapon_scimitar",
+    "name": "Scimitar",
+    "name_el": "Γιαταγάνι",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d6",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Finesse",
+      "Light"
+    ],
+    "mastery_id": "mastery_nick",
+    "weight_lb": 3.0,
+    "cost_cp": 2500,
+    "ability_options": [
+      "STR",
+      "DEX"
+    ]
+  },
+  {
+    "id": "weapon_shortsword",
+    "name": "Shortsword",
+    "name_el": "Κοντό Σπαθί",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d6",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Finesse",
+      "Light"
+    ],
+    "mastery_id": "mastery_vex",
+    "weight_lb": 2.0,
+    "cost_cp": 1000,
+    "ability_options": [
+      "STR",
+      "DEX"
+    ]
+  },
+  {
+    "id": "weapon_trident",
+    "name": "Trident",
+    "name_el": "Τρίαινα",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d8",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Thrown",
+      "Versatile"
+    ],
+    "mastery_id": "mastery_topple",
+    "weight_lb": 4.0,
+    "cost_cp": 500,
+    "ability_options": [
+      "STR"
+    ],
+    "range_ft": {
+      "normal": 20,
+      "long": 60
+    },
+    "versatile_damage": "1d10"
+  },
+  {
+    "id": "weapon_warhammer",
+    "name": "Warhammer",
+    "name_el": "Πολεμικό Σφυρί",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d8",
+      "type": "Bludgeoning"
+    },
+    "properties": [
+      "Versatile"
+    ],
+    "mastery_id": "mastery_push",
+    "weight_lb": 5.0,
+    "cost_cp": 1500,
+    "ability_options": [
+      "STR"
+    ],
+    "versatile_damage": "1d10"
+  },
+  {
+    "id": "weapon_war_pick",
+    "name": "War Pick",
+    "name_el": "Πολεμική Αξίνα",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d8",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Versatile"
+    ],
+    "mastery_id": "mastery_sap",
+    "weight_lb": 2.0,
+    "cost_cp": 500,
+    "ability_options": [
+      "STR"
+    ],
+    "versatile_damage": "1d10"
+  },
+  {
+    "id": "weapon_whip",
+    "name": "Whip",
+    "name_el": "Μαστίγιο",
+    "category": "Martial",
+    "attack_type": "Melee",
+    "damage": {
+      "dice": "1d4",
+      "type": "Slashing"
+    },
+    "properties": [
+      "Finesse",
+      "Reach"
+    ],
+    "mastery_id": "mastery_slow",
+    "weight_lb": 3.0,
+    "cost_cp": 200,
+    "ability_options": [
+      "STR",
+      "DEX"
+    ]
+  },
+  {
+    "id": "weapon_blowgun",
+    "name": "Blowgun",
+    "name_el": "Φυσοκάλαμο",
+    "category": "Martial",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Ammunition",
+      "Loading"
+    ],
+    "mastery_id": "mastery_vex",
+    "weight_lb": 1.0,
+    "cost_cp": 1000,
+    "ability_options": [
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 25,
+      "long": 100
+    },
+    "ammunition_type": "Needle"
+  },
+  {
+    "id": "weapon_hand_crossbow",
+    "name": "Hand Crossbow",
+    "name_el": "Βαλλίστρα Χειρός",
+    "category": "Martial",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1d6",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Ammunition",
+      "Light",
+      "Loading"
+    ],
+    "mastery_id": "mastery_vex",
+    "weight_lb": 3.0,
+    "cost_cp": 7500,
+    "ability_options": [
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 30,
+      "long": 120
+    },
+    "ammunition_type": "Bolt"
+  },
+  {
+    "id": "weapon_heavy_crossbow",
+    "name": "Heavy Crossbow",
+    "name_el": "Βαριά Βαλλίστρα",
+    "category": "Martial",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1d10",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Ammunition",
+      "Heavy",
+      "Loading",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_push",
+    "weight_lb": 18.0,
+    "cost_cp": 5000,
+    "ability_options": [
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 100,
+      "long": 400
+    },
+    "ammunition_type": "Bolt",
+    "heavy_requirement": {
+      "ability": "DEX",
+      "minimum": 13,
+      "failure": "disadvantage"
+    }
+  },
+  {
+    "id": "weapon_longbow",
+    "name": "Longbow",
+    "name_el": "Μακρύ Τόξο",
+    "category": "Martial",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1d8",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Ammunition",
+      "Heavy",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_slow",
+    "weight_lb": 2.0,
+    "cost_cp": 5000,
+    "ability_options": [
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 150,
+      "long": 600
+    },
+    "ammunition_type": "Arrow",
+    "heavy_requirement": {
+      "ability": "DEX",
+      "minimum": 13,
+      "failure": "disadvantage"
+    }
+  },
+  {
+    "id": "weapon_musket",
+    "name": "Musket",
+    "name_el": "Μουσκέτο",
+    "category": "Martial",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1d12",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Ammunition",
+      "Loading",
+      "Two-Handed"
+    ],
+    "mastery_id": "mastery_slow",
+    "weight_lb": 10.0,
+    "cost_cp": 50000,
+    "ability_options": [
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 40,
+      "long": 120
+    },
+    "ammunition_type": "Bullet"
+  },
+  {
+    "id": "weapon_pistol",
+    "name": "Pistol",
+    "name_el": "Πιστόλι",
+    "category": "Martial",
+    "attack_type": "Ranged",
+    "damage": {
+      "dice": "1d10",
+      "type": "Piercing"
+    },
+    "properties": [
+      "Ammunition",
+      "Loading"
+    ],
+    "mastery_id": "mastery_vex",
+    "weight_lb": 3.0,
+    "cost_cp": 25000,
+    "ability_options": [
+      "DEX"
+    ],
+    "range_ft": {
+      "normal": 30,
+      "long": 90
+    },
+    "ammunition_type": "Bullet"
+  }
+]

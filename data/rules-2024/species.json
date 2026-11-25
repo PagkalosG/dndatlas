@@ -1,0 +1,1203 @@
+[
+  {
+    "id": "species_dragonborn",
+    "name": "Dragonborn",
+    "name_el": "Δρακογέννητος",
+    "creature_type": "Humanoid",
+    "size_options": [
+      "Medium"
+    ],
+    "base_speed": 30,
+    "short_summary": "Draconic heritage and elemental breath.",
+    "short_summary_el": "Δρακονική καταγωγή και στοιχειακή πνοή.",
+    "traits": [
+      {
+        "id": "trait_dragonborn_draconic_ancestry",
+        "name": "Draconic Ancestry",
+        "name_el": "Δρακονική Καταγωγή",
+        "unlock_level": 1,
+        "description": "Choose a dragon ancestor.",
+        "description_el": "Επίλεξε πρόγονο δράκο."
+      },
+      {
+        "id": "trait_dragonborn_breath_weapon",
+        "name": "Breath Weapon",
+        "name_el": "Όπλο Πνοής",
+        "unlock_level": 1,
+        "description": "Replace an attack with an elemental breath; choose its shape each time.",
+        "description_el": "Αντικατάστησε μία επίθεση με στοιχειακή πνοή και διάλεξε σχήμα κάθε φορά.",
+        "activation": {
+          "action_type": "Attack Replacement",
+          "uses_formula": "PB",
+          "recharge": "Long Rest"
+        },
+        "mechanics": {
+          "damage": {
+            "type_from_choice": "choice_dragon_ancestry",
+            "dice_by_character_level": {
+              "1": "1d10",
+              "5": "2d10",
+              "11": "3d10",
+              "17": "4d10"
+            }
+          },
+          "saving_throw": {
+            "ability": "DEX",
+            "dc_formula": "8 + CON_MOD + PB",
+            "success": "half_damage"
+          },
+          "area_options": [
+            {
+              "shape": "cone",
+              "length_ft": 15
+            },
+            {
+              "shape": "line",
+              "length_ft": 30,
+              "width_ft": 5
+            }
+          ]
+        }
+      },
+      {
+        "id": "trait_dragonborn_damage_resistance",
+        "name": "Damage Resistance",
+        "name_el": "Αντίσταση σε Ζημιά",
+        "unlock_level": 1,
+        "description": "Resistance matches ancestry.",
+        "description_el": "Η αντίσταση αντιστοιχεί στην καταγωγή.",
+        "mechanics": {
+          "resistance_from_choice": "choice_dragon_ancestry"
+        }
+      },
+      {
+        "id": "trait_dragonborn_darkvision",
+        "name": "Darkvision",
+        "name_el": "Όραση στο Σκοτάδι",
+        "unlock_level": 1,
+        "description": "Darkvision 60 ft.",
+        "description_el": "Όραση στο σκοτάδι 60 ft.",
+        "mechanics": {
+          "darkvision_ft": 60
+        }
+      },
+      {
+        "id": "trait_dragonborn_draconic_flight",
+        "name": "Draconic Flight",
+        "name_el": "Δρακονική Πτήση",
+        "unlock_level": 5,
+        "description": "Temporary wings grant flight equal to walking Speed; end early voluntarily or when Incapacitated.",
+        "description_el": "Προσωρινά φτερά δίνουν ταχύτητα πτήσης ίση με την ταχύτητα βάδισης. Λήγει προαιρετικά ή με ανικανότητα.",
+        "activation": {
+          "action_type": "Bonus Action",
+          "uses_formula": "1",
+          "recharge": "Long Rest",
+          "duration": "10 minutes"
+        },
+        "active_effects": [
+          {
+            "type": "fly_speed",
+            "formula": "SPEED",
+            "ends_on": [
+              "incapacitated",
+              "manual"
+            ]
+          }
+        ]
+      }
+    ],
+    "sub_choice_group": {
+      "id": "choice_dragon_ancestry",
+      "label": {
+        "en": "Draconic Ancestry",
+        "el": "Δρακονική Καταγωγή"
+      },
+      "kind": "options",
+      "selection_count": 1,
+      "options": [
+        {
+          "id": "ancestry_dragon_black",
+          "name": "Black",
+          "name_el": "Μαύρος",
+          "mechanics": {
+            "damage_type": "Acid"
+          }
+        },
+        {
+          "id": "ancestry_dragon_blue",
+          "name": "Blue",
+          "name_el": "Μπλε",
+          "mechanics": {
+            "damage_type": "Lightning"
+          }
+        },
+        {
+          "id": "ancestry_dragon_brass",
+          "name": "Brass",
+          "name_el": "Ορειχάλκινος",
+          "mechanics": {
+            "damage_type": "Fire"
+          }
+        },
+        {
+          "id": "ancestry_dragon_bronze",
+          "name": "Bronze",
+          "name_el": "Χάλκινος",
+          "mechanics": {
+            "damage_type": "Lightning"
+          }
+        },
+        {
+          "id": "ancestry_dragon_copper",
+          "name": "Copper",
+          "name_el": "Χαλκός",
+          "mechanics": {
+            "damage_type": "Acid"
+          }
+        },
+        {
+          "id": "ancestry_dragon_gold",
+          "name": "Gold",
+          "name_el": "Χρυσός",
+          "mechanics": {
+            "damage_type": "Fire"
+          }
+        },
+        {
+          "id": "ancestry_dragon_green",
+          "name": "Green",
+          "name_el": "Πράσινος",
+          "mechanics": {
+            "damage_type": "Poison"
+          }
+        },
+        {
+          "id": "ancestry_dragon_red",
+          "name": "Red",
+          "name_el": "Κόκκινος",
+          "mechanics": {
+            "damage_type": "Fire"
+          }
+        },
+        {
+          "id": "ancestry_dragon_silver",
+          "name": "Silver",
+          "name_el": "Ασημένιος",
+          "mechanics": {
+            "damage_type": "Cold"
+          }
+        },
+        {
+          "id": "ancestry_dragon_white",
+          "name": "White",
+          "name_el": "Λευκός",
+          "mechanics": {
+            "damage_type": "Cold"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "species_dwarf",
+    "name": "Dwarf",
+    "name_el": "Νάνος",
+    "creature_type": "Humanoid",
+    "size_options": [
+      "Medium"
+    ],
+    "base_speed": 30,
+    "short_summary": "Resilient folk with an affinity for stone.",
+    "short_summary_el": "Ανθεκτικός λαός με δεσμό με την πέτρα.",
+    "traits": [
+      {
+        "id": "trait_dwarf_darkvision",
+        "name": "Darkvision",
+        "name_el": "Όραση στο Σκοτάδι",
+        "unlock_level": 1,
+        "description": "Darkvision 120 ft.",
+        "description_el": "Όραση στο σκοτάδι 120 ft.",
+        "mechanics": {
+          "darkvision_ft": 120
+        }
+      },
+      {
+        "id": "trait_dwarf_dwarven_resilience",
+        "name": "Dwarven Resilience",
+        "name_el": "Ανθεκτικότητα Νάνου",
+        "unlock_level": 1,
+        "description": "Poison resistance and advantage against the Poisoned condition.",
+        "description_el": "Αντίσταση στο δηλητήριο και πλεονέκτημα σε σωτηρίες κατά της κατάστασης Δηλητηρίασης.",
+        "mechanics": {
+          "resistances": [
+            "Poison"
+          ],
+          "save_advantages": [
+            {
+              "condition_id": "condition_poisoned",
+              "scope": "avoid_or_end"
+            }
+          ]
+        }
+      },
+      {
+        "id": "trait_dwarf_dwarven_toughness",
+        "name": "Dwarven Toughness",
+        "name_el": "Σκληραγωγία Νάνου",
+        "unlock_level": 1,
+        "description": "Maximum HP increases by one per character level.",
+        "description_el": "Οι μέγιστοι πόντοι ζωής αυξάνονται κατά έναν ανά επίπεδο χαρακτήρα.",
+        "mechanics": {
+          "hp_per_level_bonus": 1
+        }
+      },
+      {
+        "id": "trait_dwarf_stonecunning",
+        "name": "Stonecunning",
+        "name_el": "Αίσθηση Πέτρας",
+        "unlock_level": 1,
+        "description": "Temporary Tremorsense while touching or standing on stone.",
+        "description_el": "Προσωρινή αίσθηση δονήσεων όσο αγγίζεις ή πατάς πέτρα.",
+        "activation": {
+          "action_type": "Bonus Action",
+          "uses_formula": "PB",
+          "recharge": "Long Rest",
+          "duration": "10 minutes"
+        },
+        "active_effects": [
+          {
+            "type": "tremorsense_ft",
+            "value": 60,
+            "requires": "contact_with_stone"
+          }
+        ]
+      }
+    ],
+    "lifespan_years": 350
+  },
+  {
+    "id": "species_elf",
+    "name": "Elf",
+    "name_el": "Ξωτικό",
+    "creature_type": "Humanoid",
+    "size_options": [
+      "Medium"
+    ],
+    "base_speed": 30,
+    "short_summary": "Long-lived folk with magical lineages.",
+    "short_summary_el": "Μακρόβιος λαός με μαγικές γενεαλογίες.",
+    "traits": [
+      {
+        "id": "trait_elf_darkvision",
+        "name": "Darkvision",
+        "name_el": "Όραση στο Σκοτάδι",
+        "unlock_level": 1,
+        "description": "Darkvision 60 ft.",
+        "description_el": "Όραση στο σκοτάδι 60 ft.",
+        "mechanics": {
+          "darkvision_ft": 60
+        }
+      },
+      {
+        "id": "trait_elf_elven_lineage",
+        "name": "Elven Lineage",
+        "name_el": "Ξωτική Γενεαλογία",
+        "unlock_level": 1,
+        "description": "Lineage determines innate magic and its casting ability.",
+        "description_el": "Η γενεαλογία καθορίζει την έμφυτη μαγεία και την ικανότητα μαγείας."
+      },
+      {
+        "id": "trait_elf_fey_ancestry",
+        "name": "Fey Ancestry",
+        "name_el": "Νεραϊδική Καταγωγή",
+        "unlock_level": 1,
+        "description": "Advantage on saves against being Charmed.",
+        "description_el": "Πλεονέκτημα σε σωτηρίες για αποφυγή ή λήξη της Γοητείας.",
+        "mechanics": {
+          "save_advantages": [
+            {
+              "condition_id": "condition_charmed",
+              "scope": "avoid_or_end"
+            }
+          ]
+        }
+      },
+      {
+        "id": "trait_elf_keen_senses",
+        "name": "Keen Senses",
+        "name_el": "Οξυμένες Αισθήσεις",
+        "unlock_level": 1,
+        "description": "Choose Insight, Perception or Survival proficiency.",
+        "description_el": "Επίλεξε εξειδίκευση σε Διορατικότητα, Αντίληψη ή Επιβίωση.",
+        "choices": [
+          {
+            "id": "choice_elf_keen_senses",
+            "label": {
+              "en": "Skill",
+              "el": "Δεξιότητα"
+            },
+            "kind": "skill",
+            "selection_count": 1,
+            "values": [
+              "skill_insight",
+              "skill_perception",
+              "skill_survival"
+            ],
+            "exclude_already_proficient": true
+          }
+        ]
+      },
+      {
+        "id": "trait_elf_trance",
+        "name": "Trance",
+        "name_el": "Έκσταση",
+        "unlock_level": 1,
+        "description": "Four-hour Long Rest in meditation; immune to magical sleep.",
+        "description_el": "Μακρά ανάπαυση τεσσάρων ωρών με διαλογισμό και ανοσία στον μαγικό ύπνο.",
+        "mechanics": {
+          "long_rest_hours": 4,
+          "magical_sleep_immunity": true
+        }
+      }
+    ],
+    "lifespan_years": 750,
+    "sub_choice_group": {
+      "id": "choice_elf_lineage",
+      "label": {
+        "en": "Elven Lineage",
+        "el": "Ξωτική Γενεαλογία"
+      },
+      "kind": "options",
+      "selection_count": 1,
+      "options": [
+        {
+          "id": "lineage_elf_drow",
+          "name": "Drow",
+          "name_el": "Ντρόου",
+          "mechanics": {
+            "darkvision_ft": 120
+          },
+          "granted_spells": [
+            {
+              "spell_id": "spell_dancing_lights",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_elf_casting_ability",
+              "always_prepared": false,
+              "uses_spell_slots": false
+            },
+            {
+              "spell_id": "spell_faerie_fire",
+              "unlock_level": 3,
+              "casting_ability_choice_id": "choice_elf_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            },
+            {
+              "spell_id": "spell_darkness",
+              "unlock_level": 5,
+              "casting_ability_choice_id": "choice_elf_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            }
+          ]
+        },
+        {
+          "id": "lineage_elf_high_elf",
+          "name": "High Elf",
+          "name_el": "Υψηλό Ξωτικό",
+          "mechanics": {},
+          "granted_spells": [
+            {
+              "spell_id": "spell_prestidigitation",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_elf_casting_ability",
+              "always_prepared": false,
+              "uses_spell_slots": false,
+              "replacement": {
+                "timing": "Long Rest",
+                "filter": {
+                  "class_id": "class_wizard",
+                  "spell_level": 0,
+                  "requires_complete_catalog": true
+                }
+              }
+            },
+            {
+              "spell_id": "spell_detect_magic",
+              "unlock_level": 3,
+              "casting_ability_choice_id": "choice_elf_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            },
+            {
+              "spell_id": "spell_misty_step",
+              "unlock_level": 5,
+              "casting_ability_choice_id": "choice_elf_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            }
+          ]
+        },
+        {
+          "id": "lineage_elf_wood_elf",
+          "name": "Wood Elf",
+          "name_el": "Ξωτικό του Δάσους",
+          "mechanics": {
+            "speed_override": 35
+          },
+          "granted_spells": [
+            {
+              "spell_id": "spell_druidcraft",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_elf_casting_ability",
+              "always_prepared": false,
+              "uses_spell_slots": false
+            },
+            {
+              "spell_id": "spell_longstrider",
+              "unlock_level": 3,
+              "casting_ability_choice_id": "choice_elf_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            },
+            {
+              "spell_id": "spell_pass_without_trace",
+              "unlock_level": 5,
+              "casting_ability_choice_id": "choice_elf_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            }
+          ]
+        }
+      ]
+    },
+    "choices": [
+      {
+        "id": "choice_elf_casting_ability",
+        "label": {
+          "en": "Spellcasting ability",
+          "el": "Ικανότητα μαγείας"
+        },
+        "kind": "ability",
+        "selection_count": 1,
+        "values": [
+          "INT",
+          "WIS",
+          "CHA"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "species_gnome",
+    "name": "Gnome",
+    "name_el": "Γνώμος",
+    "creature_type": "Humanoid",
+    "size_options": [
+      "Small"
+    ],
+    "base_speed": 30,
+    "short_summary": "Small magical folk with forest or rock lineages.",
+    "short_summary_el": "Μικρόσωμος μαγικός λαός του δάσους ή της πέτρας.",
+    "traits": [
+      {
+        "id": "trait_gnome_darkvision",
+        "name": "Darkvision",
+        "name_el": "Όραση στο Σκοτάδι",
+        "unlock_level": 1,
+        "description": "Darkvision 60 ft.",
+        "description_el": "Όραση στο σκοτάδι 60 ft.",
+        "mechanics": {
+          "darkvision_ft": 60
+        }
+      },
+      {
+        "id": "trait_gnome_gnomish_cunning",
+        "name": "Gnomish Cunning",
+        "name_el": "Ευφυΐα Γνώμου",
+        "unlock_level": 1,
+        "description": "Advantage on Intelligence, Wisdom and Charisma saves.",
+        "description_el": "Πλεονέκτημα σε σωτηρίες Νοημοσύνης, Σοφίας και Χαρίσματος.",
+        "mechanics": {
+          "save_advantages": [
+            {
+              "ability": "INT"
+            },
+            {
+              "ability": "WIS"
+            },
+            {
+              "ability": "CHA"
+            }
+          ]
+        }
+      },
+      {
+        "id": "trait_gnome_gnomish_lineage",
+        "name": "Gnomish Lineage",
+        "name_el": "Γενεαλογία Γνώμου",
+        "unlock_level": 1,
+        "description": "Choose innate magic from a lineage.",
+        "description_el": "Επίλεξε έμφυτη μαγεία μέσω γενεαλογίας."
+      }
+    ],
+    "lifespan_years": 425,
+    "choices": [
+      {
+        "id": "choice_gnome_casting_ability",
+        "label": {
+          "en": "Spellcasting ability",
+          "el": "Ικανότητα μαγείας"
+        },
+        "kind": "ability",
+        "selection_count": 1,
+        "values": [
+          "INT",
+          "WIS",
+          "CHA"
+        ]
+      }
+    ],
+    "sub_choice_group": {
+      "id": "choice_gnome_lineage",
+      "label": {
+        "en": "Gnomish Lineage",
+        "el": "Γενεαλογία Γνώμου"
+      },
+      "kind": "options",
+      "selection_count": 1,
+      "options": [
+        {
+          "id": "lineage_gnome_forest_gnome",
+          "name": "Forest Gnome",
+          "name_el": "Γνώμος του Δάσους",
+          "granted_spells": [
+            {
+              "spell_id": "spell_minor_illusion",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_gnome_casting_ability",
+              "always_prepared": false,
+              "uses_spell_slots": false
+            },
+            {
+              "spell_id": "spell_speak_with_animals",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_gnome_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "PB",
+              "recharge": "Long Rest"
+            }
+          ]
+        },
+        {
+          "id": "lineage_gnome_rock_gnome",
+          "name": "Rock Gnome",
+          "name_el": "Γνώμος της Πέτρας",
+          "granted_spells": [
+            {
+              "spell_id": "spell_mending",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_gnome_casting_ability",
+              "always_prepared": false,
+              "uses_spell_slots": false
+            },
+            {
+              "spell_id": "spell_prestidigitation",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_gnome_casting_ability",
+              "always_prepared": false,
+              "uses_spell_slots": false
+            }
+          ],
+          "mechanics": {
+            "clockwork_device": {
+              "creation_minutes": 10,
+              "size": "Tiny",
+              "ac": 5,
+              "hp": 1,
+              "max_active": 3,
+              "duration_hours": 8,
+              "activation": "Bonus Action",
+              "dismantle": "Utilize",
+              "requires_spell_id": "spell_prestidigitation",
+              "effect_selection": "single_prestidigitation_effect"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "species_goliath",
+    "name": "Goliath",
+    "name_el": "Γολιάθ",
+    "creature_type": "Humanoid",
+    "size_options": [
+      "Medium"
+    ],
+    "base_speed": 35,
+    "short_summary": "Giant ancestry and temporary growth.",
+    "short_summary_el": "Γιγάντια καταγωγή και προσωρινή αύξηση μεγέθους.",
+    "traits": [
+      {
+        "id": "trait_goliath_giant_ancestry",
+        "name": "Giant Ancestry",
+        "name_el": "Γιγάντια Καταγωγή",
+        "unlock_level": 1,
+        "description": "Select a giant boon.",
+        "description_el": "Επίλεξε χάρισμα γίγαντα."
+      },
+      {
+        "id": "trait_goliath_large_form",
+        "name": "Large Form",
+        "name_el": "Μεγάλη Μορφή",
+        "unlock_level": 5,
+        "description": "Grow to Large when space permits; gain movement and Strength-check advantage.",
+        "description_el": "Γίνε Μεγάλος αν υπάρχει χώρος, με αυξημένη ταχύτητα και πλεονέκτημα στους ελέγχους Δύναμης.",
+        "activation": {
+          "action_type": "Bonus Action",
+          "uses_formula": "1",
+          "recharge": "Long Rest",
+          "duration": "10 minutes"
+        },
+        "active_effects": [
+          {
+            "type": "size_override",
+            "value": "Large",
+            "requires": "sufficient_space"
+          },
+          {
+            "type": "speed_bonus",
+            "value": 10
+          },
+          {
+            "type": "check_advantage",
+            "ability": "STR"
+          }
+        ]
+      },
+      {
+        "id": "trait_goliath_powerful_build",
+        "name": "Powerful Build",
+        "name_el": "Ισχυρό Σώμα",
+        "unlock_level": 1,
+        "description": "Count one size larger for carrying capacity; advantage on checks to escape Grappled.",
+        "description_el": "Μετράς ως ένα μέγεθος μεγαλύτερος για μεταφορά βάρους και έχεις πλεονέκτημα στους ελέγχους διαφυγής από Αρπαγή.",
+        "mechanics": {
+          "carrying_size_bonus": 1,
+          "check_advantages": [
+            {
+              "condition_id": "condition_grappled",
+              "scope": "end"
+            }
+          ]
+        }
+      }
+    ],
+    "sub_choice_group": {
+      "id": "choice_giant_ancestry",
+      "label": {
+        "en": "Giant Ancestry",
+        "el": "Γιγάντια Καταγωγή"
+      },
+      "kind": "options",
+      "selection_count": 1,
+      "options": [
+        {
+          "id": "ancestry_giant_cloud_s_jaunt",
+          "name": "Cloud’s Jaunt",
+          "name_el": "Άλμα Νέφους",
+          "activation": {
+            "action_type": "Bonus Action",
+            "uses_formula": "PB",
+            "recharge": "Long Rest"
+          },
+          "mechanics": {
+            "teleport_ft": 30,
+            "requires_visible_unoccupied_space": true
+          }
+        },
+        {
+          "id": "ancestry_giant_fire_s_burn",
+          "name": "Fire’s Burn",
+          "name_el": "Κάψιμο Φωτιάς",
+          "activation": {
+            "action_type": "Triggered",
+            "uses_formula": "PB",
+            "recharge": "Long Rest"
+          },
+          "mechanics": {
+            "trigger": "attack_hit_and_damage",
+            "extra_damage": "1d10",
+            "damage_type": "Fire"
+          }
+        },
+        {
+          "id": "ancestry_giant_frost_s_chill",
+          "name": "Frost’s Chill",
+          "name_el": "Ψύχος Πάγου",
+          "activation": {
+            "action_type": "Triggered",
+            "uses_formula": "PB",
+            "recharge": "Long Rest"
+          },
+          "mechanics": {
+            "trigger": "attack_hit_and_damage",
+            "extra_damage": "1d6",
+            "damage_type": "Cold",
+            "speed_bonus": -10,
+            "duration": "until_start_of_next_turn"
+          }
+        },
+        {
+          "id": "ancestry_giant_hill_s_tumble",
+          "name": "Hill’s Tumble",
+          "name_el": "Πτώση Λόφου",
+          "activation": {
+            "action_type": "Triggered",
+            "uses_formula": "PB",
+            "recharge": "Long Rest"
+          },
+          "mechanics": {
+            "trigger": "attack_hit_and_damage",
+            "target_max_size": "Large",
+            "apply_condition_id": "condition_prone"
+          }
+        },
+        {
+          "id": "ancestry_giant_stone_s_endurance",
+          "name": "Stone’s Endurance",
+          "name_el": "Αντοχή Πέτρας",
+          "activation": {
+            "action_type": "Reaction",
+            "uses_formula": "PB",
+            "recharge": "Long Rest"
+          },
+          "mechanics": {
+            "trigger": "take_damage",
+            "damage_reduction_formula": "1d12 + CON_MOD"
+          }
+        },
+        {
+          "id": "ancestry_giant_storm_s_thunder",
+          "name": "Storm’s Thunder",
+          "name_el": "Βροντή Καταιγίδας",
+          "activation": {
+            "action_type": "Reaction",
+            "uses_formula": "PB",
+            "recharge": "Long Rest"
+          },
+          "mechanics": {
+            "trigger": "take_damage_from_creature",
+            "range_ft": 60,
+            "damage": "1d8",
+            "damage_type": "Thunder"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "species_halfling",
+    "name": "Halfling",
+    "name_el": "Ημίσωμος",
+    "creature_type": "Humanoid",
+    "size_options": [
+      "Small"
+    ],
+    "base_speed": 30,
+    "short_summary": "Nimble folk with exceptional luck.",
+    "short_summary_el": "Ευκίνητος λαός με ξεχωριστή τύχη.",
+    "traits": [
+      {
+        "id": "trait_halfling_brave",
+        "name": "Brave",
+        "name_el": "Γενναίος",
+        "unlock_level": 1,
+        "description": "Advantage on saves against Frightened.",
+        "description_el": "Πλεονέκτημα σε σωτηρίες αποφυγής ή λήξης του Φόβου.",
+        "mechanics": {
+          "save_advantages": [
+            {
+              "condition_id": "condition_frightened",
+              "scope": "avoid_or_end"
+            }
+          ]
+        }
+      },
+      {
+        "id": "trait_halfling_halfling_nimbleness",
+        "name": "Halfling Nimbleness",
+        "name_el": "Ευκινησία Ημίσωμου",
+        "unlock_level": 1,
+        "description": "Move through larger creatures without ending movement in their space.",
+        "description_el": "Πέρασε μέσα από χώρο μεγαλύτερου πλάσματος χωρίς να σταματήσεις εκεί.",
+        "mechanics": {
+          "move_through_larger_creatures": true
+        }
+      },
+      {
+        "id": "trait_halfling_luck",
+        "name": "Luck",
+        "name_el": "Τύχη",
+        "unlock_level": 1,
+        "description": "May reroll a natural 1 on a D20 Test; keep the new roll.",
+        "description_el": "Μπορείς να επαναλάβεις φυσικό 1 σε Δοκιμή d20 και κρατάς τη νέα ζαριά.",
+        "mechanics": {
+          "reroll_natural_one": "d20_test"
+        }
+      },
+      {
+        "id": "trait_halfling_naturally_stealthy",
+        "name": "Naturally Stealthy",
+        "name_el": "Έμφυτη Απόκρυψη",
+        "unlock_level": 1,
+        "description": "Can Hide using a creature at least one size larger as obscuration.",
+        "description_el": "Μπορείς να Κρυφτείς με κάλυψη από πλάσμα τουλάχιστον ενός μεγέθους μεγαλύτερο.",
+        "mechanics": {
+          "hide_behind_larger_creature": true
+        }
+      }
+    ],
+    "lifespan_years": 150
+  },
+  {
+    "id": "species_human",
+    "name": "Human",
+    "name_el": "Άνθρωπος",
+    "creature_type": "Humanoid",
+    "size_options": [
+      "Small",
+      "Medium"
+    ],
+    "base_speed": 30,
+    "short_summary": "Adaptable folk with additional training.",
+    "short_summary_el": "Προσαρμοστικός λαός με πρόσθετη εκπαίδευση.",
+    "traits": [
+      {
+        "id": "trait_human_resourceful",
+        "name": "Resourceful",
+        "name_el": "Εφευρετικός",
+        "unlock_level": 1,
+        "description": "Gain Heroic Inspiration after a Long Rest.",
+        "description_el": "Αποκτάς Ηρωική Έμπνευση μετά από Μακρά Ανάπαυση.",
+        "mechanics": {
+          "rest_grants": [
+            {
+              "rest": "Long Rest",
+              "resource": "heroic_inspiration",
+              "value": 1
+            }
+          ]
+        }
+      },
+      {
+        "id": "trait_human_skillful",
+        "name": "Skillful",
+        "name_el": "Επιδέξιος",
+        "unlock_level": 1,
+        "description": "Choose an additional skill proficiency.",
+        "description_el": "Επίλεξε μία επιπλέον εξειδίκευση δεξιότητας.",
+        "choices": [
+          {
+            "id": "choice_human_skillful",
+            "label": {
+              "en": "Skill",
+              "el": "Δεξιότητα"
+            },
+            "kind": "skill",
+            "selection_count": 1,
+            "filter": {
+              "all": true
+            },
+            "exclude_already_proficient": true
+          }
+        ]
+      },
+      {
+        "id": "trait_human_versatile",
+        "name": "Versatile",
+        "name_el": "Πολυτάλαντος",
+        "unlock_level": 1,
+        "description": "Choose one Origin feat.",
+        "description_el": "Επίλεξε ένα Χάρισμα Προέλευσης.",
+        "choices": [
+          {
+            "id": "choice_human_origin_feat",
+            "label": {
+              "en": "Origin feat",
+              "el": "Χάρισμα Προέλευσης"
+            },
+            "kind": "feat",
+            "selection_count": 1,
+            "filter": {
+              "category": "Origin"
+            },
+            "respect_feat_repeatability": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "species_orc",
+    "name": "Orc",
+    "name_el": "Ορκ",
+    "creature_type": "Humanoid",
+    "size_options": [
+      "Medium"
+    ],
+    "base_speed": 30,
+    "short_summary": "Enduring folk with bursts of energy.",
+    "short_summary_el": "Ανθεκτικός λαός με εκρήξεις ενέργειας.",
+    "traits": [
+      {
+        "id": "trait_orc_adrenaline_rush",
+        "name": "Adrenaline Rush",
+        "name_el": "Έκρηξη Αδρεναλίνης",
+        "unlock_level": 1,
+        "description": "Dash as a Bonus Action and gain temporary HP equal to PB.",
+        "description_el": "Κάνε Σπριντ ως Πρόσθετη Ενέργεια και απόκτησε προσωρινούς πόντους ζωής ίσους με το μπόνους εξειδίκευσης.",
+        "activation": {
+          "action_type": "Bonus Action",
+          "uses_formula": "PB",
+          "recharge": "Short or Long Rest"
+        },
+        "mechanics": {
+          "grant_action": "Dash",
+          "temporary_hp_formula": "PB"
+        }
+      },
+      {
+        "id": "trait_orc_darkvision",
+        "name": "Darkvision",
+        "name_el": "Όραση στο Σκοτάδι",
+        "unlock_level": 1,
+        "description": "Darkvision 120 ft.",
+        "description_el": "Όραση στο σκοτάδι 120 ft.",
+        "mechanics": {
+          "darkvision_ft": 120
+        }
+      },
+      {
+        "id": "trait_orc_relentless_endurance",
+        "name": "Relentless Endurance",
+        "name_el": "Αμείλικτη Αντοχή",
+        "unlock_level": 1,
+        "description": "When reduced to 0 HP without instant death, stay at 1 HP instead.",
+        "description_el": "Όταν πέφτεις στους 0 πόντους ζωής χωρίς ακαριαίο θάνατο, μένεις στον 1.",
+        "activation": {
+          "action_type": "Triggered",
+          "uses_formula": "1",
+          "recharge": "Long Rest"
+        },
+        "mechanics": {
+          "trigger": "hp_reduced_to_zero_not_killed",
+          "hp_floor": 1
+        }
+      }
+    ]
+  },
+  {
+    "id": "species_tiefling",
+    "name": "Tiefling",
+    "name_el": "Τίφλινγκ",
+    "creature_type": "Humanoid",
+    "size_options": [
+      "Small",
+      "Medium"
+    ],
+    "base_speed": 30,
+    "short_summary": "Innate magic from a fiendish legacy.",
+    "short_summary_el": "Έμφυτη μαγεία από δαιμονική κληρονομιά.",
+    "traits": [
+      {
+        "id": "trait_tiefling_darkvision",
+        "name": "Darkvision",
+        "name_el": "Όραση στο Σκοτάδι",
+        "unlock_level": 1,
+        "description": "Darkvision 60 ft.",
+        "description_el": "Όραση στο σκοτάδι 60 ft.",
+        "mechanics": {
+          "darkvision_ft": 60
+        }
+      },
+      {
+        "id": "trait_tiefling_fiendish_legacy",
+        "name": "Fiendish Legacy",
+        "name_el": "Δαιμονική Κληρονομιά",
+        "unlock_level": 1,
+        "description": "Choose a legacy for resistance and magic.",
+        "description_el": "Επίλεξε κληρονομιά για αντίσταση και μαγεία."
+      },
+      {
+        "id": "trait_tiefling_otherworldly_presence",
+        "name": "Otherworldly Presence",
+        "name_el": "Αλλόκοσμη Παρουσία",
+        "unlock_level": 1,
+        "description": "Gain Thaumaturgy using the legacy casting ability.",
+        "description_el": "Αποκτάς Θαυματουργία με την ικανότητα μαγείας της κληρονομιάς.",
+        "granted_spells": [
+          {
+            "spell_id": "spell_thaumaturgy",
+            "unlock_level": 1,
+            "casting_ability_choice_id": "choice_tiefling_casting_ability",
+            "always_prepared": false,
+            "uses_spell_slots": false
+          }
+        ]
+      }
+    ],
+    "sub_choice_group": {
+      "id": "choice_tiefling_legacy",
+      "label": {
+        "en": "Fiendish Legacy",
+        "el": "Δαιμονική Κληρονομιά"
+      },
+      "kind": "options",
+      "selection_count": 1,
+      "options": [
+        {
+          "id": "legacy_tiefling_abyssal",
+          "name": "Abyssal",
+          "name_el": "Αβυσσαλέα",
+          "mechanics": {
+            "resistances": [
+              "Poison"
+            ]
+          },
+          "granted_spells": [
+            {
+              "spell_id": "spell_poison_spray",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_tiefling_casting_ability",
+              "always_prepared": false,
+              "uses_spell_slots": false
+            },
+            {
+              "spell_id": "spell_ray_of_sickness",
+              "unlock_level": 3,
+              "casting_ability_choice_id": "choice_tiefling_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            },
+            {
+              "spell_id": "spell_hold_person",
+              "unlock_level": 5,
+              "casting_ability_choice_id": "choice_tiefling_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            }
+          ]
+        },
+        {
+          "id": "legacy_tiefling_chthonic",
+          "name": "Chthonic",
+          "name_el": "Χθόνια",
+          "mechanics": {
+            "resistances": [
+              "Necrotic"
+            ]
+          },
+          "granted_spells": [
+            {
+              "spell_id": "spell_chill_touch",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_tiefling_casting_ability",
+              "always_prepared": false,
+              "uses_spell_slots": false
+            },
+            {
+              "spell_id": "spell_false_life",
+              "unlock_level": 3,
+              "casting_ability_choice_id": "choice_tiefling_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            },
+            {
+              "spell_id": "spell_ray_of_enfeeblement",
+              "unlock_level": 5,
+              "casting_ability_choice_id": "choice_tiefling_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            }
+          ]
+        },
+        {
+          "id": "legacy_tiefling_infernal",
+          "name": "Infernal",
+          "name_el": "Κολασμένη",
+          "mechanics": {
+            "resistances": [
+              "Fire"
+            ]
+          },
+          "granted_spells": [
+            {
+              "spell_id": "spell_fire_bolt",
+              "unlock_level": 1,
+              "casting_ability_choice_id": "choice_tiefling_casting_ability",
+              "always_prepared": false,
+              "uses_spell_slots": false
+            },
+            {
+              "spell_id": "spell_hellish_rebuke",
+              "unlock_level": 3,
+              "casting_ability_choice_id": "choice_tiefling_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            },
+            {
+              "spell_id": "spell_darkness",
+              "unlock_level": 5,
+              "casting_ability_choice_id": "choice_tiefling_casting_ability",
+              "always_prepared": true,
+              "uses_spell_slots": true,
+              "free_casts_formula": "1",
+              "recharge": "Long Rest"
+            }
+          ]
+        }
+      ]
+    },
+    "choices": [
+      {
+        "id": "choice_tiefling_casting_ability",
+        "label": {
+          "en": "Spellcasting ability",
+          "el": "Ικανότητα μαγείας"
+        },
+        "kind": "ability",
+        "selection_count": 1,
+        "values": [
+          "INT",
+          "WIS",
+          "CHA"
+        ]
+      }
+    ]
+  }
+]

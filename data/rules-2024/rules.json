@@ -1,0 +1,40 @@
+[
+  {
+    "id": "rule_proficiency_bonus",
+    "name": "Proficiency Bonus",
+    "name_el": "Μπόνους Εξειδίκευσης",
+    "mechanics": {
+      "by_character_level": {
+        "1": 2,
+        "5": 3,
+        "9": 4,
+        "13": 5,
+        "17": 6
+      }
+    }
+  },
+  {
+    "id": "rule_ability_modifier",
+    "name": "Ability Modifier",
+    "name_el": "Τροποποιητής Χαρακτηριστικού",
+    "mechanics": {
+      "formula": "floor((ABILITY_SCORE - 10) / 2)"
+    }
+  },
+  {
+    "id": "rule_spell_save_dc",
+    "name": "Spell Save DC",
+    "name_el": "Δυσκολία Σωτηρίας Ξορκιού",
+    "mechanics": {
+      "formula": "8 + SPELLCASTING_ABILITY_MOD + PB"
+    }
+  },
+  {
+    "id": "rule_spell_attack_modifier",
+    "name": "Spell Attack Modifier",
+    "name_el": "Τροποποιητής Επίθεσης Ξορκιού",
+    "mechanics": {
+      "formula": "SPELLCASTING_ABILITY_MOD + PB"
+    }
+  }
+]

@@ -1,0 +1,638 @@
+[
+  {
+    "id": "spell_dancing_lights",
+    "name": "Dancing Lights",
+    "name_el": "Χορευτικά Φώτα",
+    "level": 0,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_faerie_fire",
+    "name": "Faerie Fire",
+    "name_el": "Νεραϊδόφωτο",
+    "level": 1,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_darkness",
+    "name": "Darkness",
+    "name_el": "Σκοτάδι",
+    "level": 2,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_prestidigitation",
+    "name": "Prestidigitation",
+    "name_el": "Μαγικά Τεχνάσματα",
+    "level": 0,
+    "coverage": "verified_metadata_only",
+    "school": "Transmutation",
+    "class_ids": [
+      "class_bard",
+      "class_sorcerer",
+      "class_warlock",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "10 feet",
+    "components": "V, S",
+    "duration": "Up to 1 hour",
+    "ritual": false,
+    "concentration": false
+  },
+  {
+    "id": "spell_detect_magic",
+    "name": "Detect Magic",
+    "name_el": "Ανίχνευση Μαγείας",
+    "level": 1,
+    "coverage": "verified_metadata_only",
+    "school": "Divination",
+    "class_ids": [
+      "class_bard",
+      "class_cleric",
+      "class_druid",
+      "class_paladin",
+      "class_ranger",
+      "class_sorcerer",
+      "class_warlock",
+      "class_wizard"
+    ],
+    "casting_time": "Action or Ritual",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "Concentration, up to 10 minutes",
+    "ritual": true,
+    "concentration": true
+  },
+  {
+    "id": "spell_misty_step",
+    "name": "Misty Step",
+    "name_el": "Ομιχλώδες Βήμα",
+    "level": 2,
+    "coverage": "verified_metadata_only",
+    "school": "Conjuration",
+    "class_ids": [
+      "class_sorcerer",
+      "class_warlock",
+      "class_wizard"
+    ],
+    "casting_time": "Bonus Action",
+    "range": "Self",
+    "components": "V",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false
+  },
+  {
+    "id": "spell_druidcraft",
+    "name": "Druidcraft",
+    "name_el": "Δρυιδικά Τεχνάσματα",
+    "level": 0,
+    "coverage": "verified_metadata_only",
+    "school": "Transmutation",
+    "class_ids": [
+      "class_druid"
+    ],
+    "casting_time": "Action",
+    "range": "30 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false
+  },
+  {
+    "id": "spell_longstrider",
+    "name": "Longstrider",
+    "name_el": "Μακρύ Βήμα",
+    "level": 1,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_pass_without_trace",
+    "name": "Pass without Trace",
+    "name_el": "Πέρασμα Χωρίς Ίχνη",
+    "level": 2,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_minor_illusion",
+    "name": "Minor Illusion",
+    "name_el": "Μικρή Ψευδαίσθηση",
+    "level": 0,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_speak_with_animals",
+    "name": "Speak with Animals",
+    "name_el": "Ομιλία με Ζώα",
+    "level": 1,
+    "coverage": "verified_metadata_only",
+    "school": "Divination",
+    "class_ids": [
+      "class_bard",
+      "class_druid",
+      "class_ranger",
+      "class_warlock"
+    ],
+    "casting_time": "Action or Ritual",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "10 minutes",
+    "ritual": true,
+    "concentration": false
+  },
+  {
+    "id": "spell_mending",
+    "name": "Mending",
+    "name_el": "Επισκευή",
+    "level": 0,
+    "coverage": "verified_metadata_only",
+    "school": "Transmutation",
+    "class_ids": [
+      "class_bard",
+      "class_cleric",
+      "class_druid",
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "1 minute",
+    "range": "Touch",
+    "components": "V, S, M (two lodestones)",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false
+  },
+  {
+    "id": "spell_thaumaturgy",
+    "name": "Thaumaturgy",
+    "name_el": "Θαυματουργία",
+    "level": 0,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_poison_spray",
+    "name": "Poison Spray",
+    "name_el": "Ψεκασμός Δηλητηρίου",
+    "level": 0,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_ray_of_sickness",
+    "name": "Ray of Sickness",
+    "name_el": "Ακτίνα Ασθένειας",
+    "level": 1,
+    "coverage": "verified_metadata_only",
+    "school": "Necromancy",
+    "class_ids": [
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "60 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false
+  },
+  {
+    "id": "spell_hold_person",
+    "name": "Hold Person",
+    "name_el": "Ακινητοποίηση Προσώπου",
+    "level": 2,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_chill_touch",
+    "name": "Chill Touch",
+    "name_el": "Ψυχρό Άγγιγμα",
+    "level": 0,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_false_life",
+    "name": "False Life",
+    "name_el": "Ψεύτικη Ζωή",
+    "level": 1,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_ray_of_enfeeblement",
+    "name": "Ray of Enfeeblement",
+    "name_el": "Ακτίνα Εξασθένησης",
+    "level": 2,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_fire_bolt",
+    "name": "Fire Bolt",
+    "name_el": "Πύρινη Βολίδα",
+    "level": 0,
+    "coverage": "verified_metadata_only",
+    "school": "Evocation",
+    "class_ids": [
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "120 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false
+  },
+  {
+    "id": "spell_hellish_rebuke",
+    "name": "Hellish Rebuke",
+    "name_el": "Κολασμένη Αντεπίθεση",
+    "level": 1,
+    "coverage": "reference_only"
+  },
+  {
+    "id": "spell_alter_self",
+    "name": "Alter Self",
+    "name_el": "Μεταμόρφωση Εαυτού",
+    "level": 2,
+    "school": "Transmutation",
+    "class_ids": [
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "Concentration, up to 1 hour",
+    "ritual": false,
+    "concentration": true,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_calm_emotions",
+    "name": "Calm Emotions",
+    "name_el": "Καταπράυνση Συναισθημάτων",
+    "level": 2,
+    "school": "Enchantment",
+    "class_ids": [
+      "class_bard",
+      "class_cleric"
+    ],
+    "casting_time": "Action",
+    "range": "60 feet",
+    "components": "V, S",
+    "duration": "Concentration, up to 1 minute",
+    "ritual": false,
+    "concentration": true,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_chromatic_orb",
+    "name": "Chromatic Orb",
+    "name_el": "Χρωματική Σφαίρα",
+    "level": 1,
+    "school": "Evocation",
+    "class_ids": [
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "90 feet",
+    "components": "V, S, M (diamond worth 50+ GP)",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_command",
+    "name": "Command",
+    "name_el": "Διαταγή",
+    "level": 1,
+    "school": "Enchantment",
+    "class_ids": [
+      "class_bard",
+      "class_cleric",
+      "class_paladin"
+    ],
+    "casting_time": "Action",
+    "range": "60 feet",
+    "components": "V",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_cure_wounds",
+    "name": "Cure Wounds",
+    "name_el": "Θεραπεία Πληγών",
+    "level": 1,
+    "school": "Abjuration",
+    "class_ids": [
+      "class_bard",
+      "class_cleric",
+      "class_druid",
+      "class_paladin",
+      "class_ranger"
+    ],
+    "casting_time": "Action",
+    "range": "Touch",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_detect_thoughts",
+    "name": "Detect Thoughts",
+    "name_el": "Ανίχνευση Σκέψεων",
+    "level": 2,
+    "school": "Divination",
+    "class_ids": [
+      "class_bard",
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "Self",
+    "components": "V, S, M (1 CP)",
+    "duration": "Concentration, up to 1 minute",
+    "ritual": false,
+    "concentration": true,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_dissonant_whispers",
+    "name": "Dissonant Whispers",
+    "name_el": "Παράφωνοι Ψίθυροι",
+    "level": 1,
+    "school": "Enchantment",
+    "class_ids": [
+      "class_bard"
+    ],
+    "casting_time": "Action",
+    "range": "60 feet",
+    "components": "V",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_dragons_breath",
+    "name": "Dragon's Breath",
+    "name_el": "Ανάσα Δράκου",
+    "level": 2,
+    "school": "Transmutation",
+    "class_ids": [
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Bonus Action",
+    "range": "Touch",
+    "components": "V, S, M (hot pepper)",
+    "duration": "Concentration, up to 1 minute",
+    "ritual": false,
+    "concentration": true,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_ensnaring_strike",
+    "name": "Ensnaring Strike",
+    "name_el": "Παγιδευτικό Χτύπημα",
+    "level": 1,
+    "school": "Conjuration",
+    "class_ids": [
+      "class_ranger"
+    ],
+    "casting_time": "Bonus Action, immediately after a weapon hit",
+    "range": "Self",
+    "components": "V",
+    "duration": "Concentration, up to 1 minute",
+    "ritual": false,
+    "concentration": true,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_goodberry",
+    "name": "Goodberry",
+    "name_el": "Μαγικά Μούρα",
+    "level": 1,
+    "school": "Conjuration",
+    "class_ids": [
+      "class_druid",
+      "class_ranger"
+    ],
+    "casting_time": "Action",
+    "range": "Self",
+    "components": "V, S, M (mistletoe)",
+    "duration": "24 hours",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_hunters_mark",
+    "name": "Hunter's Mark",
+    "name_el": "Σημάδι Κυνηγού",
+    "level": 1,
+    "school": "Divination",
+    "class_ids": [
+      "class_ranger"
+    ],
+    "casting_time": "Bonus Action",
+    "range": "90 feet",
+    "components": "V",
+    "duration": "Concentration, up to 1 hour",
+    "ritual": false,
+    "concentration": true,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_ice_knife",
+    "name": "Ice Knife",
+    "name_el": "Παγωμένο Μαχαίρι",
+    "level": 1,
+    "school": "Conjuration",
+    "class_ids": [
+      "class_druid",
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "60 feet",
+    "components": "S, M (water or ice)",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_light",
+    "name": "Light",
+    "name_el": "Φως",
+    "level": 0,
+    "school": "Evocation",
+    "class_ids": [
+      "class_bard",
+      "class_cleric",
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "Touch",
+    "components": "V, M (firefly or phosphorescent moss)",
+    "duration": "1 hour",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_magic_missile",
+    "name": "Magic Missile",
+    "name_el": "Μαγικό Βλήμα",
+    "level": 1,
+    "school": "Evocation",
+    "class_ids": [
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "120 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_message",
+    "name": "Message",
+    "name_el": "Μήνυμα",
+    "level": 0,
+    "school": "Transmutation",
+    "class_ids": [
+      "class_bard",
+      "class_druid",
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "120 feet",
+    "components": "S, M (copper wire)",
+    "duration": "1 round",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_mind_spike",
+    "name": "Mind Spike",
+    "name_el": "Νοητική Αιχμή",
+    "level": 2,
+    "school": "Divination",
+    "class_ids": [
+      "class_sorcerer",
+      "class_warlock",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "120 feet",
+    "components": "S",
+    "duration": "Concentration, up to 1 hour",
+    "ritual": false,
+    "concentration": true,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_scorching_ray",
+    "name": "Scorching Ray",
+    "name_el": "Καυτή Ακτίνα",
+    "level": 2,
+    "school": "Evocation",
+    "class_ids": [
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "120 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_shield",
+    "name": "Shield",
+    "name_el": "Ασπίδα",
+    "level": 1,
+    "school": "Abjuration",
+    "class_ids": [
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Reaction, when hit by an attack or targeted by Magic Missile",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "1 round",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_sleep",
+    "name": "Sleep",
+    "name_el": "Ύπνος",
+    "level": 1,
+    "school": "Enchantment",
+    "class_ids": [
+      "class_bard",
+      "class_sorcerer",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "60 feet",
+    "components": "V, S, M (sand or rose petals)",
+    "duration": "Concentration, up to 1 minute",
+    "ritual": false,
+    "concentration": true,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_sorcerous_burst",
+    "name": "Sorcerous Burst",
+    "name_el": "Έκρηξη Μαγείας",
+    "level": 0,
+    "school": "Evocation",
+    "class_ids": [
+      "class_sorcerer"
+    ],
+    "casting_time": "Action",
+    "range": "120 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  },
+  {
+    "id": "spell_true_strike",
+    "name": "True Strike",
+    "name_el": "Αληθινό Χτύπημα",
+    "level": 0,
+    "school": "Divination",
+    "class_ids": [
+      "class_bard",
+      "class_sorcerer",
+      "class_warlock",
+      "class_wizard"
+    ],
+    "casting_time": "Action",
+    "range": "Self",
+    "components": "S, M (proficient weapon worth 1+ CP)",
+    "duration": "Instantaneous",
+    "ritual": false,
+    "concentration": false,
+    "coverage": "verified_metadata_only"
+  }
+]

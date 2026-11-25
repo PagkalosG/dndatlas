@@ -1,0 +1,92 @@
+[
+  {
+    "id": "condition_blinded",
+    "name": "Blinded",
+    "name_el": "Τυφλωμένος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_charmed",
+    "name": "Charmed",
+    "name_el": "Γοητευμένος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_deafened",
+    "name": "Deafened",
+    "name_el": "Κωφός",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_exhaustion",
+    "name": "Exhaustion",
+    "name_el": "Εξάντληση",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_frightened",
+    "name": "Frightened",
+    "name_el": "Φοβισμένος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_grappled",
+    "name": "Grappled",
+    "name_el": "Αρπαγμένος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_incapacitated",
+    "name": "Incapacitated",
+    "name_el": "Ανίκανος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_invisible",
+    "name": "Invisible",
+    "name_el": "Αόρατος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_paralyzed",
+    "name": "Paralyzed",
+    "name_el": "Παράλυτος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_petrified",
+    "name": "Petrified",
+    "name_el": "Πετρωμένος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_poisoned",
+    "name": "Poisoned",
+    "name_el": "Δηλητηριασμένος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_prone",
+    "name": "Prone",
+    "name_el": "Πρηνής",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_restrained",
+    "name": "Restrained",
+    "name_el": "Περιορισμένος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_stunned",
+    "name": "Stunned",
+    "name_el": "Ζαλισμένος",
+    "coverage": "reference_only"
+  },
+  {
+    "id": "condition_unconscious",
+    "name": "Unconscious",
+    "name_el": "Αναίσθητος",
+    "coverage": "reference_only"
+  }
+]

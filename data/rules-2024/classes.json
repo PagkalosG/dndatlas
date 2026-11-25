@@ -1,0 +1,299 @@
+[
+  {
+    "id": "class_barbarian",
+    "name": "Barbarian",
+    "name_el": "Βάρβαρος",
+    "hit_die": 12,
+    "fixed_hp_per_level": 7,
+    "primary_abilities": [
+      "STR"
+    ],
+    "saving_throw_proficiencies": [
+      "STR",
+      "CON"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "none",
+    "subclass_ids": [
+      "subclass_path_of_the_berserker"
+    ],
+    "feature_ids": [
+      "feature_barbarian_weapon_mastery",
+      "feature_barbarian_extra_attack"
+    ],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": null
+  },
+  {
+    "id": "class_bard",
+    "name": "Bard",
+    "name_el": "Βάρδος",
+    "hit_die": 8,
+    "fixed_hp_per_level": 5,
+    "primary_abilities": [
+      "CHA"
+    ],
+    "saving_throw_proficiencies": [
+      "DEX",
+      "CHA"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "full",
+    "subclass_ids": [
+      "subclass_college_of_lore"
+    ],
+    "feature_ids": [],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": "CHA"
+  },
+  {
+    "id": "class_cleric",
+    "name": "Cleric",
+    "name_el": "Κληρικός",
+    "hit_die": 8,
+    "fixed_hp_per_level": 5,
+    "primary_abilities": [
+      "WIS"
+    ],
+    "saving_throw_proficiencies": [
+      "WIS",
+      "CHA"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "full",
+    "subclass_ids": [
+      "subclass_life_domain"
+    ],
+    "feature_ids": [],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": "WIS"
+  },
+  {
+    "id": "class_druid",
+    "name": "Druid",
+    "name_el": "Δρυΐδης",
+    "hit_die": 8,
+    "fixed_hp_per_level": 5,
+    "primary_abilities": [
+      "WIS"
+    ],
+    "saving_throw_proficiencies": [
+      "INT",
+      "WIS"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "full",
+    "subclass_ids": [
+      "subclass_circle_of_the_land"
+    ],
+    "feature_ids": [],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": "WIS"
+  },
+  {
+    "id": "class_fighter",
+    "name": "Fighter",
+    "name_el": "Πολεμιστής",
+    "hit_die": 10,
+    "fixed_hp_per_level": 6,
+    "primary_abilities": [
+      "STR",
+      "DEX"
+    ],
+    "saving_throw_proficiencies": [
+      "STR",
+      "CON"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "none",
+    "subclass_ids": [
+      "subclass_champion"
+    ],
+    "feature_ids": [
+      "feature_fighter_weapon_mastery",
+      "feature_fighter_second_wind",
+      "feature_fighter_extra_attack"
+    ],
+    "coverage": "partial",
+    "primary_ability_operator": "any",
+    "spellcasting_ability": null
+  },
+  {
+    "id": "class_monk",
+    "name": "Monk",
+    "name_el": "Μοναχός",
+    "hit_die": 8,
+    "fixed_hp_per_level": 5,
+    "primary_abilities": [
+      "DEX",
+      "WIS"
+    ],
+    "saving_throw_proficiencies": [
+      "STR",
+      "DEX"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "none",
+    "subclass_ids": [
+      "subclass_warrior_of_the_open_hand"
+    ],
+    "feature_ids": [
+      "feature_monk_extra_attack"
+    ],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": null
+  },
+  {
+    "id": "class_paladin",
+    "name": "Paladin",
+    "name_el": "Παλαδίνος",
+    "hit_die": 10,
+    "fixed_hp_per_level": 6,
+    "primary_abilities": [
+      "STR",
+      "CHA"
+    ],
+    "saving_throw_proficiencies": [
+      "WIS",
+      "CHA"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "half",
+    "subclass_ids": [
+      "subclass_oath_of_devotion"
+    ],
+    "feature_ids": [
+      "feature_paladin_weapon_mastery",
+      "feature_paladin_extra_attack"
+    ],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": "CHA"
+  },
+  {
+    "id": "class_ranger",
+    "name": "Ranger",
+    "name_el": "Ιχνηλάτης",
+    "hit_die": 10,
+    "fixed_hp_per_level": 6,
+    "primary_abilities": [
+      "DEX",
+      "WIS"
+    ],
+    "saving_throw_proficiencies": [
+      "STR",
+      "DEX"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "half",
+    "subclass_ids": [
+      "subclass_hunter"
+    ],
+    "feature_ids": [
+      "feature_ranger_weapon_mastery",
+      "feature_ranger_extra_attack"
+    ],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": "WIS"
+  },
+  {
+    "id": "class_rogue",
+    "name": "Rogue",
+    "name_el": "Απατεώνας",
+    "hit_die": 8,
+    "fixed_hp_per_level": 5,
+    "primary_abilities": [
+      "DEX"
+    ],
+    "saving_throw_proficiencies": [
+      "DEX",
+      "INT"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "none",
+    "subclass_ids": [
+      "subclass_thief"
+    ],
+    "feature_ids": [
+      "feature_rogue_weapon_mastery"
+    ],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": null
+  },
+  {
+    "id": "class_sorcerer",
+    "name": "Sorcerer",
+    "name_el": "Έμφυτος Μάγος",
+    "hit_die": 6,
+    "fixed_hp_per_level": 4,
+    "primary_abilities": [
+      "CHA"
+    ],
+    "saving_throw_proficiencies": [
+      "CON",
+      "CHA"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "full",
+    "subclass_ids": [
+      "subclass_draconic_sorcery"
+    ],
+    "feature_ids": [],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": "CHA"
+  },
+  {
+    "id": "class_warlock",
+    "name": "Warlock",
+    "name_el": "Μάγος Συμφώνου",
+    "hit_die": 8,
+    "fixed_hp_per_level": 5,
+    "primary_abilities": [
+      "CHA"
+    ],
+    "saving_throw_proficiencies": [
+      "WIS",
+      "CHA"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "pact",
+    "subclass_ids": [
+      "subclass_fiend_patron"
+    ],
+    "feature_ids": [],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": "CHA"
+  },
+  {
+    "id": "class_wizard",
+    "name": "Wizard",
+    "name_el": "Μελετητής της Μαγείας",
+    "hit_die": 6,
+    "fixed_hp_per_level": 4,
+    "primary_abilities": [
+      "INT"
+    ],
+    "saving_throw_proficiencies": [
+      "INT",
+      "WIS"
+    ],
+    "subclass_unlock_level": 3,
+    "spellcasting_progression": "full",
+    "subclass_ids": [
+      "subclass_evoker"
+    ],
+    "feature_ids": [],
+    "coverage": "partial",
+    "primary_ability_operator": "all",
+    "spellcasting_ability": "INT"
+  }
+]

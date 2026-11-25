@@ -25,6 +25,8 @@ jobs:
           node --check src/data.js
           node --check src/rules-2024.js
           node --test tests/rules-2024.test.cjs tests/history-drive-extension.test.cjs tests/stability-v340.test.cjs tests/ui-skill-stat-controls-v343.test.cjs tests/quality-v350.test.cjs
+      - name: Check content pack, spell audit and DM review regressions
+        run: node --test tests/content-packs.test.cjs tests/content-packs-bridge.test.cjs tests/spell-source-audit.test.cjs tests/dm-rules-review.test.cjs
       - name: Check staging isolation before accessing deployment credentials
         run: |
           node --input-type=module <<'JS'
